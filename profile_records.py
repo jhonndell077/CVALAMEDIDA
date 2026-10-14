@@ -99,6 +99,12 @@ def add_information(profile, section, record):
     # Bound request metadata while retaining the most recent retries.
     while len(ledger)>1000: ledger.pop(next(iter(ledger)))
     from profile_deletions import identity
+    # A later addition to an edited record must update its saved override too.
+    for edit in profile.get('_manual_edits',[]):
+        value=edit.get('value')
+        if edit.get('section')==section and isinstance(value,dict) and (
+            value.get('id')==existing.get('id') or identity(value)==identity(existing)):
+            edit['value']=copy.deepcopy(existing)
     selectors=([section,{'identity':identity(record)}],[section,{'identity':identity(existing)}])
     selectors=(*selectors, *([section,{'identity':alias}] for alias in existing.get('_merged_identities',[])))
     if '_deleted_records' in profile:

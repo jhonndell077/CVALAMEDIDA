@@ -29,6 +29,16 @@ def fixture():
 
 
 class DataBankAuditTests(unittest.TestCase):
+    def test_addition_to_manually_edited_record_survives_rebuild(self):
+        from profile_edits import prepare,apply
+        from profile_records import add_information
+        previous=fixture();updated=copy.deepcopy(previous)
+        updated['references'][0]['role']='Gerente'
+        base=prepare(previous,previous,updated)
+        add_information(base,'references',{'id':'manual-'+'a'*32,'name':'Referencia de prueba','role':'Coordinadora','phone':'8095550101'})
+        rebuilt=apply(base)
+        self.assertEqual(rebuilt['references'][0]['role'],'Gerente\n\nCoordinadora')
+
     def test_each_of_eight_sections_survives_local_save_and_reload(self):
         for section in fixture():
             with self.subTest(section=section), tempfile.TemporaryDirectory() as directory:
