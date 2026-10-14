@@ -21,3 +21,7 @@ El commit del deploy local contiene `[skip ci]`. GitHub lo guarda sin volver a d
 GitHub se autentica por OIDC sin claves privadas descargables. La identidad solo acepta el ID de este repositorio, su propietario, la rama `main` y eventos push o ejecución manual. La cuenta de despliegue tiene permisos de publicación y puede actuar como las cuentas de ejecución existentes. No se crearon claves JSON. Las acciones están fijadas a commits concretos.
 
 El historial Git anterior sigue conservado en la rama local previa; GitHub comienza con una instantánea limpia que excluye antiguos temporales privados. No hagas `git push --all` de las ramas locales antiguas.
+
+## Runner en este PC
+
+El workflow usa el runner privado `CVALAMEDIDA-PC` con etiqueta `cvalamedida`. Se inicia al iniciar sesión en Windows. El PC necesita estar encendido, conectado y con la sesión del usuario abierta. Si está apagado, los pushes esperan hasta que vuelva a estar disponible. Reutiliza Python, Node y Firebase instalados; no instala dependencias globales. Su checkout está separado del proyecto de trabajo y la configuración privada del job se elimina al terminar.
