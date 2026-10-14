@@ -36,3 +36,14 @@ test('card toggles animate their existing body and resize cancels motion',()=>{
  qa.listeners.resize();assert.ok(qa.animations.some(item=>item.animation.cancelled));
  assert.equal(card.querySelector('input').value,'Conservar borrador');
 });
+
+test('button feedback is visible without blocking its action and clears the wave',async()=>{
+ const qa=setup();const button=qa.document.querySelector('#open');let actions=0;
+ button.addEventListener('click',()=>actions++);
+ const click=new qa.window.Event('click',{bubbles:true,cancelable:true});button.dispatchEvent(click);
+ assert.equal(actions,1);assert.equal(click.defaultPrevented,false);
+ const feedback=qa.animations.find(item=>item.element===button);
+ assert.match(feedback.frames[1].transform,/scale\(1\.09\)/);
+ assert.equal(button.querySelector('.cv-button-wave').getAttribute('aria-hidden'),'true');
+ await new Promise(setImmediate);assert.equal(button.querySelector('.cv-button-wave'),null);
+});

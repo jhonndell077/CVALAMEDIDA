@@ -2,7 +2,7 @@
 :root {--cv-motion-fast:180ms; --cv-motion-normal:350ms; --cv-motion-ease:cubic-bezier(.22,1,.36,1);}
 .profile-node {position:relative; transition:border-color var(--cv-motion-fast),box-shadow var(--cv-motion-normal),transform var(--cv-motion-normal) var(--cv-motion-ease);}
 @media (hover:hover) and (pointer:fine) {
-  .profile-node:not([open]):hover {transform:translateY(-4px);box-shadow:0 12px 28px #315d4620;}
+  .profile-node:not([open]):hover {transform:translateY(-10px) scale(1.025);box-shadow:0 24px 48px #315d4640;}
   .profile-node:hover .profile-card-icon {transform:rotate(-5deg) scale(1.08);}
 }
 .profile-card-icon,.profile-card-title {transition:transform var(--cv-motion-normal) var(--cv-motion-ease);}
@@ -27,3 +27,9 @@
   .profile-node,.profile-card-icon,.profile-card-title {transition:none!important;transform:none!important;}
   .cv-motion-cover {display:none;}
 }
+
+button {position:relative; isolation:isolate; overflow:hidden; transform-origin:center; transition:box-shadow var(--cv-motion-fast),filter var(--cv-motion-fast);}
+button:not(:disabled):active {filter:brightness(1.2);box-shadow:0 0 0 5px #76dfba65,0 14px 30px #315d4640;}
+.cv-button-wave {position:absolute; border-radius:50%; background:#b9ffe1; pointer-events:none; z-index:2; mix-blend-mode:screen;}
+@media(hover:hover) and (pointer:fine) {button:not(:disabled):hover {box-shadow:0 8px 24px #315d4640;filter:brightness(1.08);}}
+@media(prefers-reduced-motion:reduce) {button {transition:none!important;} .cv-button-wave {display:none;}}

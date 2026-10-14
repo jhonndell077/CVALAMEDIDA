@@ -13,8 +13,9 @@
     for(const entry of entries) {
       if(!entry.isIntersecting || entry.target.hidden) continue;
       const element=entry.target;
-      if(enabled()) animate(element,[{opacity:.2,transform:'translateY(48px) scale(.94)'},
-        {opacity:1,transform:'translateY(0) scale(1)'}],{duration:tokens.slow});
+      if(enabled()) animate(element,[{opacity:0,transform:'translateY(90px) scale(.86) rotate(-2deg)'},
+        {opacity:1,transform:'translateY(-10px) scale(1.025) rotate(.4deg)',offset:.75},
+        {opacity:1,transform:'translateY(0) scale(1) rotate(0)'}],{duration:tokens.slow});
       revealObserver.unobserve(element);
     }
   },{threshold:.08}) : null;
@@ -41,6 +42,26 @@
     for(const animation of active.values())animation.cancel();
     active.clear();for(const ghost of ghosts)ghost.remove();ghosts.clear();
   }
+  doc.addEventListener('pointerdown',event=>{
+    const button=event.target.closest?.('button');
+    if(button && !button.disabled) animate(button,[{transform:'scale(1)'},{transform:'scale(.9) translateY(3px)'}],{duration:tokens.fast});
+  },true);
+  doc.addEventListener('click',event=>{
+    const button=event.target.closest?.('button');
+    if(button && !button.disabled && enabled()) {
+      animate(button,[{transform:'scale(.9)'},{transform:'scale(1.09) translateY(-5px)',offset:.5},{transform:'scale(1)'}],{duration:tokens.slow});
+      const wave=doc.createElement('span');wave.className='cv-button-wave';wave.setAttribute('aria-hidden','true');
+      const box=rect(button);
+      if(box) {
+        const size=Math.max(box.width,box.height)*2;
+        Object.assign(wave.style,{width:size+'px',height:size+'px',left:((event.detail && Number.isFinite(event.clientX) ? event.clientX-box.left : box.width/2)-size/2)+'px',top:((event.detail && Number.isFinite(event.clientY) ? event.clientY-box.top : box.height/2)-size/2)+'px'});
+        button.append(wave);ghosts.add(wave);
+        const motion=animate(wave,[{transform:'scale(0)',opacity:.65},{transform:'scale(1)',opacity:0}],{duration:tokens.slow});
+        const remove=()=>{wave.remove();ghosts.delete(wave);};
+        if(motion)motion.finished.then(remove,remove);else remove();
+      }
+    }
+  },true);
   doc.addEventListener('click',event=>{
     const trigger=event.target.closest?.('button,a,summary');
     if (trigger) origin={box:rect(trigger.closest('.profile-node,#employment-results article') || trigger),at:Date.now()};
