@@ -1,0 +1,16 @@
+/* Native card expansion: scoped to existing information cards and dialogs. */
+:root {--cv-motion-fast:180ms; --cv-motion-normal:350ms; --cv-motion-ease:cubic-bezier(.22,1,.36,1);}
+.profile-node {position:relative; transition:border-color var(--cv-motion-fast),box-shadow var(--cv-motion-normal),transform var(--cv-motion-normal) var(--cv-motion-ease);}
+@media (hover:hover) and (pointer:fine) {
+  .profile-node:not([open]):hover {transform:translateY(-4px);box-shadow:0 12px 28px #315d4620;}
+  .profile-node:hover .profile-card-icon {transform:rotate(-5deg) scale(1.08);}
+}
+.profile-card-icon,.profile-card-title {transition:transform var(--cv-motion-normal) var(--cv-motion-ease);}
+.profile-node[open] {box-shadow:0 12px 32px #315d4620;}
+.profile-node[open] > summary {background:linear-gradient(120deg,#eaf3ec,#f7faf6);}
+.profile-node[open] > .profile-node-body,.profile-node[open] > .profile-fields {animation:none;}
+.cv-motion-cover {position:fixed;border-radius:18px;background:var(--green,#315d46);pointer-events:none;z-index:1000;transform-origin:center;}
+@media (prefers-reduced-motion:reduce) {
+  .profile-node,.profile-card-icon,.profile-card-title {transition:none!important;transform:none!important;}
+  .cv-motion-cover {display:none;}
+}

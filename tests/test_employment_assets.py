@@ -26,7 +26,7 @@ class AssetTests(unittest.TestCase):
     def test_local_static_assets_are_available(self):
         with patch.dict(os.environ,{'CV_AUTH_REQUIRED':'0','CV_ALLOW_REMOTE':'0','CV_BANK_PROVIDER':'local'}):
             client=self.app.test_client()
-            for asset in ('employment.js','employment.css','vendor/leaflet/leaflet.js','vendor/leaflet/leaflet.css','vendor/leaflet/images/marker-icon.png'):
+            for asset in ('employment.js','employment.css','card-motion.js','card-motion.css','vendor/leaflet/leaflet.js','vendor/leaflet/leaflet.css','vendor/leaflet/images/marker-icon.png'):
                 with self.subTest(asset=asset),client.get('/'+asset) as response:
                     self.assertEqual(response.status_code,200)
 
