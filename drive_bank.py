@@ -398,18 +398,23 @@ class DriveBank:
     def edit_profile(self, previous, updated, validator):
         from profile_edits import prepare
         file_id=quote(self.config['base_file_id'],safe='')
+        # v3 media downloads can omit ETag. v2 exposes the file resource
+        # ETag explicitly and supports conditional updates of its content.
+        metadata=self.request('GET',f'https://www.googleapis.com/drive/v2/files/{file_id}?fields=etag&supportsAllDrives=true')
+        try: etag=metadata.json().get('etag')
+        finally: metadata.close()
+        if not isinstance(etag,str) or not etag:
+            raise BankError('Drive no confirmó la versión del banco. Vuelve a sincronizar.',409)
         response=self.request('GET',f'https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true')
         try:
             base=json.loads(response.content.decode('utf-8-sig'))
-            etag=response.headers.get('ETag')
         finally: response.close()
-        if not etag: raise BankError('Drive no confirmó la versión del banco. Vuelve a sincronizar.',409)
         saved=prepare(base,previous,updated);validator(saved)
         if getattr(self,'_edit_base_snapshot',base)!=base:
             raise BankError('El banco cambió mientras editabas. Sincroniza antes de guardar.',409)
         raw=json.dumps(saved,ensure_ascii=False).encode('utf-8')
         if len(raw)>MAX_BYTES: raise BankError('El banco supera 20 MB.',422)
-        self.request('PATCH',f'https://www.googleapis.com/upload/drive/v3/files/{file_id}?uploadType=media&supportsAllDrives=true',headers={'If-Match':etag,'Content-Type':'application/json; charset=utf-8'},data=raw).close()
+        self.request('PUT',f'https://www.googleapis.com/upload/drive/v2/files/{file_id}?uploadType=media&supportsAllDrives=true',headers={'If-Match':etag,'Content-Type':'application/json; charset=utf-8'},data=raw).close()
         self._downloads.clear()
         response=self.request('GET',f'https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true')
         try:

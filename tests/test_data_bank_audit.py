@@ -29,6 +29,16 @@ def fixture():
 
 
 class DataBankAuditTests(unittest.TestCase):
+    def test_unifying_duplicate_jobs_preserves_both_sets_of_functions(self):
+        from profile_edits import prepare
+        base=fixture();base['experiences'].append({'id':'other-job','title':'Asistente','employer':'Empresa.',
+            'category':'oficina','responsibilities':[{'id':'other-task','text':'Atender consultas'}]})
+        updated=copy.deepcopy(base);updated['experiences'][1]['employer']='Empresa'
+        updated['experiences'][0]['responsibilities'][0]['text']='Organización de archivos'
+        saved=prepare(base,base,updated)
+        rebuilt,_=merge_profile(saved,{})
+        self.assertEqual(len(rebuilt['experiences']),1)
+        self.assertEqual({r['text'] for r in rebuilt['experiences'][0]['responsibilities']},{'Organización de archivos','Atender consultas'})
     def test_addition_to_manually_edited_record_survives_rebuild(self):
         from profile_edits import prepare,apply
         from profile_records import add_information
@@ -103,8 +113,10 @@ class DataBankAuditTests(unittest.TestCase):
         bank=DriveBank({'base_file_id':'base'})
         writes=[]
         def request(method,url,**kwargs):
-            if method=='PATCH': writes.append(kwargs);base.update(json.loads(kwargs['data']))
-            return MagicMock(content=json.dumps(base).encode(),headers={'ETag':'fixture-v1'},json=lambda:copy.deepcopy(base))
+            if '/drive/v2/files/' in url and method=='GET':
+                return MagicMock(json=lambda:{'etag':'fixture-v1'})
+            if method=='PUT': writes.append(kwargs);base.update(json.loads(kwargs['data']))
+            return MagicMock(content=json.dumps(base).encode(),headers={},json=lambda:copy.deepcopy(base))
         bank.request=request
         bank.load=lambda process=False:(apply(copy.deepcopy(base)),{'pending':0},b'')
         with patch.dict(os.environ,{'CV_ALLOW_REMOTE':'0','CV_AUTH_REQUIRED':'0'}),patch.object(app,'bank_enabled',return_value=True),patch.object(app,'BANK_CLIENT',bank),patch.object(app,'MASTER_PROFILE',previous):
