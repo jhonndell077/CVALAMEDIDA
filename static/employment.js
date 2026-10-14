@@ -371,6 +371,7 @@
           const summary = root.document.createElement('summary'); summary.textContent = offer.description_verified === false ? 'Ver información disponible' : 'Ver descripción y requisitos';
           const text = root.document.createElement('p'); text.textContent = offer.description; description.append(summary,text);
           const link = root.document.createElement('a'); link.textContent = `${offer.source_link_search ? 'Buscar esta vacante en' : 'Ver vacante en'} ${offer.source || 'Chiripas'}`;
+          if (offer.source_link_home) link.textContent = 'Abrir RD Trabaja y buscar el cargo';
           if (trustedPortal(offer.url)) link.href = offer.url;
           link.target = '_blank'; link.rel = 'noopener noreferrer'; link.className = 'employment-source';
           const adapt = root.document.createElement('button'); adapt.type = 'button'; adapt.className = 'button button-secondary'; adapt.textContent = offer.description_verified === false ? 'Añadir requisitos y adaptar CV' : 'Adaptar mi CV'; adapt.addEventListener('click',()=>{closeJobResults(); useGenerator(offer);});

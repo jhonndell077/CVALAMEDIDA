@@ -17,7 +17,8 @@ un fallo de consulta como ausencia de vacantes.
 | Computrabajo RD | Búsqueda original con cargo y orden reciente | Acceso directo, sin extracción de ofertas |
 
 RD Trabaja abre el detalle en un modal y no ofrece un enlace individual verificado.
-La tarjeta abre su búsqueda con el cargo. Su ID público distingue dos anuncios
+La tarjeta abre el inicio oficial: las rutas internas devuelven 404 al abrirlas
+directamente. El cargo permanece visible para buscarlo en el portal. Su ID público distingue dos anuncios
 con el mismo título; no se fusionan por compartir enlace de búsqueda. Sus fechas
 sin offset se interpretan como hora local de RD.
 
@@ -55,4 +56,4 @@ fixtures locales y no consultan Firebase ni portales reales.
 
 Para integrar también los resultados de los dos últimos dentro de la ventana
 se necesita una API o acuerdo de distribución del proveedor. El enlace de
-consulta conserva el cargo escrito y la selección de República Dominicana.
+consulta de Aldaba y Computrabajo conserva el cargo escrito y la selección de República Dominicana.

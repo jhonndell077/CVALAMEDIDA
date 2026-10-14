@@ -21,7 +21,7 @@ RD_ZONE = timezone(timedelta(hours=-4))
 SOURCES = {
     'chiripas': ('Chiripas', 'https://chiripas.com/'),
     'tuempleord': ('TuEmpleoRD', 'https://tuempleord.do/busca-tu-trabajo/'),
-    'rdtrabaja': ('RD Trabaja', 'https://rdtrabaja.mt.gob.do/empleo/buscar-empleo'),
+    'rdtrabaja': ('RD Trabaja', 'https://rdtrabaja.mt.gob.do/'),
     'tuvacanterd': ('TuVacanteRD', 'https://tuvacanterd.com/ultimas-vacantes'),
     'aldaba': ('Aldaba', 'https://www.aldaba.com/index.php?bbdd=246&lang=es'),
     'computrabajo': ('Computrabajo RD', 'https://do.computrabajo.com/ofertas-de-trabajo?by=publicationtime'),
@@ -31,6 +31,8 @@ LIVE = ('chiripas', 'tuempleord', 'rdtrabaja', 'tuvacanterd')
 
 def portal_url(source, query=''):
     base = SOURCES[source][1]
+    # Its server does not serve client-side routes when opened in a new tab.
+    if source == 'rdtrabaja': return base
     if not query: return base
     if source == 'aldaba':
         return 'https://www.aldaba.com/buscar.php?' + urlencode({'q': query, 'pais': 'República Dominicana'})
@@ -115,10 +117,10 @@ def parse_rdtrabaja(raw, now=None):
         expiry = iso_date(job.get('fechaVencimiento'))
         if expiry and datetime.fromisoformat(expiry) < now: continue
         # The portal has inline job details, not individual vacancy permalinks.
-        url = portal_url('rdtrabaja', title)
+        url = portal_url('rdtrabaja')
         jobs.append(offer('rdtrabaja', url, title, description,
                           source_job_id=str(job['id']), published_at=iso_date(job.get('fechaPublicacion')),
-                          expires_at=expiry, source_link_search=True))
+                          expires_at=expiry, source_link_home=True))
     return jobs, data.get('pageCount', 1) > 1
 
 
@@ -199,7 +201,7 @@ class UnifiedDominicanJobs(DominicanJobs):
 
     def _source(self, source, query):
         store = self.store_factory()
-        key = 'employment-unified-v1-' + source + '-' + hashlib.sha256(query.casefold().encode()).hexdigest()[:24]
+        key = 'employment-unified-v2-' + source + '-' + hashlib.sha256(query.casefold().encode()).hexdigest()[:24]
         cached, generation = store.read(key)
         if cached and time.time() - cached.get('at', 0) < TTL: return cached['jobs'], cached['more']
         raw = self.fetch(source, query)

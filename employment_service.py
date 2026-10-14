@@ -21,6 +21,8 @@ def canonical(url):
     parts = urlsplit(url)
     if parts.scheme != 'https' or not parts.hostname or parts.username or parts.password:
         raise geo.PolicyError('La oferta no tiene un enlace HTTPS válido.')
+    if parts.netloc.lower() == 'rdtrabaja.mt.gob.do' and parts.path.rstrip('/') == '/empleo/buscar-empleo':
+        return 'https://rdtrabaja.mt.gob.do/'
     query = [(k, v) for k, v in parse_qsl(parts.query)
              if not k.startswith('utm_') and k not in ('ref', 'trackingId')]
     return urlunsplit(('https', parts.netloc.lower(), parts.path, urlencode(sorted(query)), ''))

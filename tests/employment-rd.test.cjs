@@ -106,7 +106,7 @@ test('closing while loading does not reopen the dialog when results arrive',asyn
 });
 
 test('unified cards display their own source, filtered calendar and undated offers',async()=>{
- const official={...offer,id:'official',source_key:'rdtrabaja',source:'RD Trabaja',url:'https://rdtrabaja.mt.gob.do/empleo/buscar-empleo?titulo=Cajero',published_at:'2026-10-14T13:00:00Z',source_link_search:true};
+ const official={...offer,id:'official',source_key:'rdtrabaja',source:'RD Trabaja',url:'https://rdtrabaja.mt.gob.do/',published_at:'2026-10-14T13:00:00Z',source_link_home:true};
  const brief={...offer,id:'brief',source_key:'tuvacanterd',source:'TuVacanteRD',url:'https://tuvacanterd.com/empleo/cajero',published_at:null,description_verified:false};
  const qa=setup({national:true,offers:[{...offer,source_key:'chiripas',source:'Chiripas'},official,brief],sources:[
   {key:'chiripas',name:'Chiripas',status:'ok',count:1,url:'https://chiripas.com/'},
@@ -115,7 +115,7 @@ test('unified cards display their own source, filtered calendar and undated offe
  await qa.context.searchJobs(true);
  assert.equal(qa.document.querySelectorAll('#employment-sources .employment-source-row').length,3);
  assert.match(qa.document.querySelector('#employment-results-status').textContent,/Algunas fuentes no respondieron/);
- assert.match(qa.document.querySelectorAll('#employment-results .employment-source')[1].textContent,/Buscar esta vacante en RD Trabaja/);
+ assert.match(qa.document.querySelectorAll('#employment-results .employment-source')[1].textContent,/Abrir RD Trabaja y buscar el cargo/);
  const select=qa.document.querySelector('#employment-source-filter');
  Object.defineProperty(select,'value',{value:'rdtrabaja',writable:true,configurable:true});
  select.dispatchEvent(new qa.window.Event('change'));
