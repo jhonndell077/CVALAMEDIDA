@@ -10,6 +10,19 @@
 .profile-node[open] > summary {background:linear-gradient(120deg,#eaf3ec,#f7faf6);}
 .profile-node[open] > .profile-node-body,.profile-node[open] > .profile-fields {animation:none;}
 .cv-motion-cover {position:fixed;border-radius:18px;background:var(--green,#315d46);pointer-events:none;z-index:1000;transform-origin:center;}
+.shell > .panel {border-top:4px solid #315d46;box-shadow:0 16px 40px #315d4618;transition:box-shadow var(--cv-motion-normal) var(--cv-motion-ease);}
+.shell > .panel:nth-of-type(3n+2) {border-top-color:#48698c;}
+.shell > .panel:nth-of-type(3n) {border-top-color:#927239;}
+.profile-node > summary {background:linear-gradient(115deg,#eaf3ec,#fff);border-left:4px solid #315d46;}
+.profile-node:nth-child(3n+2) > summary {background:linear-gradient(115deg,#edf2f9,#fff);border-left-color:#48698c;}
+.profile-node:nth-child(3n) > summary {background:linear-gradient(115deg,#faf3e5,#fff);border-left-color:#927239;}
+@media(min-width:800px) {
+  .profile-tree {grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start;}
+  .profile-node[open] {grid-column:1 / -1;}
+}
+@media (hover:hover) and (pointer:fine) {
+  .shell > .panel:hover {box-shadow:0 24px 56px #315d4628;}
+}
 @media (prefers-reduced-motion:reduce) {
   .profile-node,.profile-card-icon,.profile-card-title {transition:none!important;transform:none!important;}
   .cv-motion-cover {display:none;}

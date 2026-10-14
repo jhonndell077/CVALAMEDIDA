@@ -8,6 +8,16 @@
   const reduced=root.matchMedia?.('(prefers-reduced-motion: reduce)');
   const cards=new WeakSet(), dialogs=new WeakMap(), active=new Map(), ghosts=new Set();
   let origin=null;
+  const revealed=new WeakSet();
+  const revealObserver=root.IntersectionObserver ? new root.IntersectionObserver(entries=>{
+    for(const entry of entries) {
+      if(!entry.isIntersecting || entry.target.hidden) continue;
+      const element=entry.target;
+      if(enabled()) animate(element,[{opacity:.2,transform:'translateY(48px) scale(.94)'},
+        {opacity:1,transform:'translateY(0) scale(1)'}],{duration:tokens.slow});
+      revealObserver.unobserve(element);
+    }
+  },{threshold:.08}) : null;
   const enabled=()=>!reduced?.matches && !doc.hidden;
   function rect(element) {
     const box=element?.getBoundingClientRect?.();
@@ -49,6 +59,9 @@
     });
   }
   function scan() {
+    for(const panel of doc.querySelectorAll('.shell > .panel,.shell > .hero')) {
+      if(revealed.has(panel))continue;revealed.add(panel);revealObserver?.observe(panel);
+    }
     [...doc.querySelectorAll('#profile-tree > .profile-node')].forEach((card,index)=>{
       if(cards.has(card))return;cards.add(card);
       card.addEventListener('toggle',()=>cardToggle(card));
