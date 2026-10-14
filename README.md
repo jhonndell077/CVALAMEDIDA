@@ -422,3 +422,7 @@ mismo envío al primer correo de postulación detectado. Ambos canales conservan
 la autorización de la cuenta, el archivo en Drive y el registro de Gmail;
 los envíos confirmados o inciertos no se repiten automáticamente. Si falta
 correo o autorización, se informa el motivo. WhatsApp conserva su flujo actual.
+
+## GitHub y publicación automática
+
+Repositorio privado: https://github.com/jhonndell077/CVALAMEDIDA. Un push a main activa pruebas y publica todas las funciones y Hosting. El Deploy local directo se conserva: ./Deploy.ps1 publica y luego sincroniza GitHub sin repetir CI. Consulta GITHUB-Y-DEPLOY.md para cambios desde el móvil, datos privados y errores de sincronización.
