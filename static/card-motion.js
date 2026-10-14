@@ -113,6 +113,7 @@
     }
   }
   function dialogChanged(dialog) {
+    if (dialog.hasAttribute('data-own-motion')) return;
     const state=dialogs.get(dialog);if(!state || state.open===dialog.open)return;
     state.open=dialog.open;
     if (dialog.open) {

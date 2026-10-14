@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="es">
   <head>
-    <meta name="cv-build" content="20261014T142935Z-21506d6a">
+    <meta name="cv-build" content="20261014T180418Z-46bbcff3">
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#f8f5eb">
     <meta name="application-name" content="CV a la medida">
     <meta name="apple-mobile-web-app-title" content="CV a la medida">
@@ -464,7 +464,7 @@
       <div id="onboarding-cv-preview" class="draft-preview kitchen-preview"></div>
       <button id="onboarding-preview-back" class="button button-primary" type="button">Seguir editando</button>
     </dialog>
-    <div id="loading-overlay" class="loading-overlay" role="dialog" aria-modal="true" aria-labelledby="loading-label" tabindex="-1" hidden>
+    <dialog id="loading-overlay" class="loading-overlay" aria-labelledby="loading-label" tabindex="-1" data-own-motion hidden>
       <div class="loading-window">
         <div class="loading-spinner" aria-hidden="true"></div>
         <h2 id="loading-label" role="status" aria-live="polite" aria-atomic="true">Cargando</h2>
@@ -473,7 +473,7 @@
         <p id="loading-detail">Solicitud iniciada</p>
         <button id="loading-background" class="button button-secondary" type="button" hidden>Continuar en segundo plano</button>
       </div>
-    </div>
+    </dialog>
     <script src="/loading.js" defer></script>
     <script src="/background.js" defer></script>
     <script src="/app-version.js" defer></script>
@@ -482,6 +482,13 @@
     <script src="/telegram.js" defer></script>
     <script src="/repeaters.js" defer></script>
     <script src="/onboarding.js" defer></script>
+    <button id="data-toggle" class="button button-primary data-toggle" type="button" aria-haspopup="dialog" aria-controls="data-dialog" aria-expanded="false" hidden>Datos</button>
+    <dialog id="data-dialog" aria-labelledby="data-title" data-own-motion>
+      <header class="data-header"><h2 id="data-title">Mis datos</h2><button id="data-close" class="button button-secondary" type="button" aria-label="Cerrar Mis datos" autofocus>Cerrar</button></header>
+      <div id="data-content" class="data-content"></div>
+    </dialog>
+    <script src="/data-panel.js" defer></script>
+    <script src="/ui-navigation.js" defer></script>
     <script src="/app.js" defer></script>
     <script src="/vendor/leaflet/leaflet.js" defer></script>
     <script src="/employment.js" defer></script>

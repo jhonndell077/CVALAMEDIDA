@@ -116,7 +116,14 @@ window.cvTelegram = (() => {
     if (!user || !driveConnected) return null;
     try { return await json('/api/telegram/drive/session', {}); }
     catch (problem) {
-      if (problem.status === 409) { driveConnected = false; return null; }
+      if (problem.status === 409) {
+        driveConnected = false;
+        button().hidden = false;
+        button().disabled = !client || !user;
+        button().textContent = 'Autorizar Drive para Telegram';
+        status().textContent = 'Google necesita renovar los permisos. Pulsa Autorizar Drive para Telegram.';
+        return null;
+      }
       throw problem;
     }
   }

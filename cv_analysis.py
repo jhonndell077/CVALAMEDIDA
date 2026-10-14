@@ -447,8 +447,9 @@ def selected_experience_items(core, analysis: dict[str, Any]) -> list[dict[str, 
 
 
 def consolidate_experiences(core, experiences: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Keep each selected employment record separate, including repeated job titles."""
-    return list(experiences)
+    """Merge duplicate employment records without merging distinct employers or periods."""
+    from profile_records import consolidate
+    return consolidate({"experiences": experiences})["experiences"]
 
 
 def cv_public_content(core, value):
@@ -634,7 +635,8 @@ def make_draft(core, analysis: dict[str, Any]) -> dict[str, Any]:
     ][:10]
 
     summary = core.professional_summary(vacancy, matching, experiences, skill_ids, courses, projects)
-    return core.cv_public_content({
+    from profile_records import consolidate
+    return core.cv_public_content(consolidate({
         "candidate": core.MASTER_PROFILE["candidate"],
         "position": position,
         "template": template,
@@ -651,4 +653,4 @@ def make_draft(core, analysis: dict[str, Any]) -> dict[str, Any]:
             "Las fechas y duración de los empleos no aparecen en las fuentes. "
             "Confirma los periodos antes de postular."
         ),
-    })
+    }))

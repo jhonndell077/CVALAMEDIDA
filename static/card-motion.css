@@ -50,3 +50,8 @@ button.cv-galaxy-button:not(:disabled):is(:hover,:focus-visible,:active) :is(.cv
 @keyframes cv-galaxy-spin {to {transform:rotate(360deg);}}
 @keyframes cv-galaxy-orbit {to {transform:rotate(calc(var(--angle) + 360deg)) translateY(var(--distance));}}
 @media(prefers-reduced-motion:reduce) {.cv-galaxy-star,.cv-galaxy-spark {animation:none!important;} .cv-galaxy-ring {transition:none;}}
+/* Preserve the calendar and destructive-action states beneath decoration. */
+button.cv-galaxy-button.employment-calendar-day { --galaxy-bg: #fff; --galaxy-ink: var(--green); }
+button.cv-galaxy-button.employment-calendar-day.has-publications { --galaxy-bg: #edf5ee; }
+button.cv-galaxy-button.employment-calendar-day[aria-pressed="true"] { --galaxy-bg: #315d46; --galaxy-ink: #fff; }
+button.cv-galaxy-button.profile-remove { --galaxy-bg: #fff1ef; --galaxy-ink: var(--red); --galaxy-star: #a23b34; }

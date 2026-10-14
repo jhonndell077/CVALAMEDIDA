@@ -13,6 +13,7 @@ window.cvLoading = (() => {
   let dismissed = false;
   let animation = 0;
   const now = () => performance.now();
+  overlay.addEventListener?.('cancel', event => event.preventDefault());
   function advance(operation, target) {
     // Every integer is applied in order. A fast completion may paint several in
     // one frame; never hold a finished request open to slow down its counter.
@@ -45,6 +46,8 @@ window.cvLoading = (() => {
     const current = [...operations.values()].at(-1);
     label.textContent = current?.message || 'Cargando';
     overlay.hidden = operations.size === 0 || dismissed;
+    if (!overlay.hidden && overlay.showModal && !overlay.open) overlay.showModal();
+    else if (overlay.hidden && overlay.open) overlay.close();
     bar.value = active?.display || 1;
     percent.textContent = `${active?.display || 1}%`;
     detail.textContent = active?.stage || 'Solicitud iniciada';
@@ -73,7 +76,7 @@ window.cvLoading = (() => {
       if (!operations.size) {
         background.forEach((element, index) => { element.inert = previousInert[index]; });
         document.body.classList.remove('is-loading');
-        if (previousFocus?.isConnected && !previousFocus.disabled) previousFocus.focus({preventScroll: true});
+        if (previousFocus?.isConnected && !previousFocus.disabled && (!previousFocus.getClientRects || previousFocus.getClientRects().length)) previousFocus.focus({preventScroll: true});
       }
     };
     finish.update = (progress, stage, durable = false) => {

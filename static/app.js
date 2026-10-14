@@ -1258,6 +1258,8 @@ window.addEventListener('cv-background-result', async event => {
   const {path, result} = event.detail;
   if (path === '/api/analyze') handleVacancyResponse(result, result.selection_payload || {}, state.vacancyRevision || 0);
   if (path === '/api/draft') {
+    // A recovered preview must never export a different vacancy's analysis.
+    state.analysis = window.cvDraftAnalyses?.get(result.draft) || result.analysis || null;
     state.draft = result.draft;
     await renderDraft(result.draft);
     jobPanel.hidden = true; analysisPanel.hidden = true; cvPanel.hidden = false; setActiveStep(3);
@@ -1277,6 +1279,7 @@ window.addEventListener('cv-background-result', async event => {
 });
 
 function setActiveStep(active) {
+  window.cvUI?.showStep(active);
   document.querySelectorAll("[data-step-indicator]").forEach((step) => {
     step.classList.toggle(
       "active",
@@ -1408,6 +1411,7 @@ function findSkill(id) {
 
 $("#create-button").addEventListener("click", async (event) => {
   const button = event.currentTarget;
+  const draftAnalysis = state.analysis;
   try {
     clearError();
     setBusy(button, true, "Generando Hoja de vida");
@@ -1415,14 +1419,17 @@ $("#create-button").addEventListener("click", async (event) => {
       analysis: state.analysis,
     });
     state.draft = response.draft;
+    window.cvDraftAnalyses ||= new WeakMap();
+    window.cvDraftAnalyses.set(response.draft, draftAnalysis);
     await renderDraft(response.draft);
     analysisPanel.hidden = true;
     cvPanel.hidden = false;
     setActiveStep(3);
     await sendApplicationGmail();
   } catch (error) {
-    $("#gap-box").hidden = false;
-    $("#gap-box").textContent = error.message || "No se pudo crear el CV.";
+    const errorBox = cvPanel.hidden ? $("#gap-box") : $("#cv-error");
+    errorBox.hidden = false;
+    errorBox.textContent = error.message || "No se pudo crear el CV.";
   } finally {
     setBusy(button, false);
   }
@@ -1435,6 +1442,12 @@ function addPreviewSection(parent, title) {
 }
 
 async function renderDraft(draft) {
+  for (const id of ['download-pdf', 'download-docx', 'send-whatsapp']) {
+    $("#" + id).disabled = !state.analysis;
+  }
+  $('#back-to-analysis').textContent = state.analysis ? '← Volver al análisis' : '← Analizar otra vez';
+  $('#cv-error').hidden = Boolean(state.analysis);
+  if (!state.analysis) $('#cv-error').textContent = 'Esta vista previa recuperada no tiene su análisis disponible en esta sesión. Analiza de nuevo la vacante para generar y descargar el CV correcto. Los archivos ya guardados siguen disponibles en Drive.';
   state.pdf = null;
   $("#application-subject").value = draft.position;
   $("#application-message").value = `Hola, me interesa aplicar a la vacante de ${draft.position}. Adjunto mi hoja de vida para su consideración.\n\nSaludos,\n${draft.candidate.name}`;
@@ -1536,6 +1549,7 @@ async function download(format) {
   cvError.textContent = "";
   cvError.hidden = true;
   try {
+    if (!state.analysis) throw new Error('Analiza de nuevo esta vacante antes de generar el archivo.');
     setBusy(button, true, format === "pdf" ? "Generando y guardando PDF" : "Generando y guardando Word");
     await window.cvDrive.connect();
     if (state.user) state.idToken = await state.user.getIdToken();
@@ -1779,6 +1793,13 @@ $("#back-to-job").addEventListener("click", () => {
 
 $("#back-to-analysis").addEventListener("click", () => {
   cvPanel.hidden = true;
+  if (!state.analysis) {
+    analysisPanel.hidden = true;
+    jobPanel.hidden = false;
+    setActiveStep(1);
+    return;
+  }
+  renderAnalysis(state.analysis);
   analysisPanel.hidden = false;
   setActiveStep(2);
 });
