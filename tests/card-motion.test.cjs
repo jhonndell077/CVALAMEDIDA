@@ -9,8 +9,10 @@ function setup(reduced=false){
  window.HTMLElement.prototype.animate=function(frames,options){const animation={finished:Promise.resolve(),cancel(){animation.cancelled=true;}};animations.push({element:this,frames,options,animation});return animation;};
  const dialog=document.querySelector('dialog');Object.defineProperty(dialog,'open',{get:()=>dialog.hasAttribute('open')});
  const root={document,MutationObserver:class {constructor(callback){observe=callback;}observe(){}},matchMedia:()=>({matches:reduced,addEventListener(){}}),addEventListener:(type,fn)=>listeners[type]=fn};
- vm.runInNewContext(fs.readFileSync('static/card-motion.js','utf8'),{window:root,Date});
- return {document,window,animations,listeners,mutate:()=>observe([{type:'attributes',target:dialog}]),dialog};
+ let clock=1000;
+ class Clock extends Date {static now(){return clock;}}
+ vm.runInNewContext(fs.readFileSync('static/card-motion.js','utf8'),{window:root,Date:Clock});
+ return {document,window,root,animations,listeners,tick:()=>clock+=250,mutate:()=>observe([{type:'attributes',target:dialog}]),dialog};
 }
 test('motion respects reduced preference and leaves form drafts intact',()=>{
  const qa=setup(true);qa.dialog.setAttribute('open','');qa.mutate();
@@ -46,4 +48,18 @@ test('button feedback is visible without blocking its action and clears the wave
  assert.match(feedback.frames[1].transform,/scale\(1\.09\)/);
  assert.equal(button.querySelector('.cv-button-wave').getAttribute('aria-hidden'),'true');
  await new Promise(setImmediate);assert.equal(button.querySelector('.cv-button-wave'),null);
+});
+
+test('scroll feedback repeats in both directions instead of stopping after the first reveal',()=>{
+ const qa=setup();const shell=qa.document.createElement('main');shell.className='shell';
+ const panel=qa.document.createElement('section');panel.className='panel';shell.append(panel);qa.document.body.append(shell);
+ qa.root.innerHeight=800;qa.root.requestAnimationFrame=callback=>callback();
+ qa.document.activeElement=qa.document.body;
+ qa.root.scrollY=100;qa.listeners.scroll();
+ qa.tick();qa.root.scrollY=200;qa.listeners.scroll();
+ qa.tick();qa.root.scrollY=80;qa.listeners.scroll();
+ const pulses=qa.animations.filter(item=>item.element===panel);
+ assert.equal(pulses.length,3);
+ assert.match(pulses[0].frames[1].transform,/translateY\(-28px\)/);
+ assert.match(pulses[2].frames[1].transform,/translateY\(28px\)/);
 });
