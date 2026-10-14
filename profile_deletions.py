@@ -52,7 +52,8 @@ def apply_deletions(profile):
         part = path[0]
         if isinstance(part, dict) and isinstance(node, list):
             for index in range(len(node) - 1, -1, -1):
-                if identity(node[index]) == part.get('identity'):
+                aliases = node[index].get('_merged_identities', []) if isinstance(node[index], dict) else []
+                if identity(node[index]) == part.get('identity') or part.get('identity') in aliases:
                     if len(path) == 1:
                         node.pop(index)
                     else:

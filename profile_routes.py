@@ -223,9 +223,9 @@ def register_routes(core):
                 from drive_bank import BankError
                 try:
                     core.load_drive_bank()
-                    core.account_state.BANK_CLIENT.add_record(section, record, core.validate_profile)
+                    saved_id=core.account_state.BANK_CLIENT.add_record(section, record, core.validate_profile) or record["id"]
                     core.load_drive_bank(force=True)
-                    if not any(item.get('id') == record['id'] for item in core.account_state.MASTER_PROFILE[section]):
+                    if not any(item.get('id') == saved_id for item in core.account_state.MASTER_PROFILE[section]):
                         raise core.AppError('El registro se guardó pero no está disponible en el perfil. Revisa si fue eliminado anteriormente.', 409)
                 except BankError as error:
                     raise core.AppError(str(error), error.status_code) from error
@@ -233,16 +233,15 @@ def register_routes(core):
                 if core.os.environ.get("CV_ALLOW_REMOTE") == "1":
                     raise core.AppError("El banco de Drive no está configurado.", 503)
                 profile = core.json.loads(core.PROFILE_PATH.read_text(encoding="utf-8"))
-                existing = next((item for item in profile[section] if item.get("id") == record["id"]), None)
-                if existing and existing != record:
-                    raise core.AppError("Este registro ya fue guardado con otros datos.", 409)
-                if not existing:
-                    profile[section].append(record)
-                    core.validate_profile(profile)
-                    core.save_master_profile(profile)
+                from profile_records import consolidate, add_information
+                profile=consolidate(profile)
+                try: saved_id=add_information(profile,section,record)
+                except ValueError as error: raise core.AppError(str(error),409) from error
+                core.validate_profile(profile)
+                core.save_master_profile(profile)
                 core.account_state.MASTER_PROFILE = profile
                 core.refresh_profile_indexes()
-        return core.jsonify({"message": "Información guardada en tu banco. Ya está disponible para generar CV.", "record_id": record["id"], "profile": core.account_state.MASTER_PROFILE})
+        return core.jsonify({"message": "Información guardada en tu banco. Ya está disponible para generar CV.", "record_id": saved_id, "profile": core.account_state.MASTER_PROFILE})
 
     core.add_profile_information = add_profile_information
 

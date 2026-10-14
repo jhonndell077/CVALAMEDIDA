@@ -93,8 +93,14 @@ def clean_facts(raw: Any) -> dict:
 
 def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
     """Build from current files each time: deletion/changes cannot leave stale claims."""
-    profile = copy.deepcopy(base)
+    from profile_records import consolidate, find_record, merge_record
+    profile = consolidate(base)
     warnings = []
+    def skill_identifier(label):
+        value=identifier('skill',label)
+        if any(item.get('id')==value for item in profile['skills']):
+            value=identifier('skill',label+' '+hashlib.sha256(label.casefold().encode()).hexdigest())
+        return value
     for file_id, doc in sorted(documents.items(), key=lambda pair: (not bool(pair[1].get("facts",{}).get("candidate",{}).get("name")), pair[1].get('processed_at') or '', pair[0])):
         if not doc.get("active") or doc.get("status") != "incorporado":
             continue
@@ -109,13 +115,17 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
             if value:
                 profile['candidate'][key] = copy.deepcopy(value)
         for reference in facts.get('references', []):
-            if not any(normalized(r['name'] + ' ' + r['phone']) == normalized(reference['name'] + ' ' + reference['phone']) for r in profile['references']):
-                profile['references'].append(copy.deepcopy(reference))
+            existing_reference=find_record(profile['references'], 'references', reference)
+            if existing_reference is None: profile['references'].append(copy.deepcopy(reference))
+            else: merge_record(existing_reference, reference)
         for section in ("courses", "education", "experiences", "projects"):
             for item in facts.get(section, []):
                 secondary = "employer" if section == "experiences" else "institution" if section in {"courses", "education"} else "description"
                 key = normalized(item["title"] + " " + item.get(secondary, ""))
-                existing = next((r for r in profile[section] if normalized(r["title"] + " " + r.get(secondary, "")) == key), None)
+                existing = find_record(profile[section], section, item)
+                if section=="projects": key=normalized(item["title"]+" "+item.get("url",""))
+                elif section=="experiences": key += " "+item.get("start_date", "")+" "+item.get("end_date", "")
+                elif section in {"courses","education"}: key += " "+item.get("date", "")
                 if existing is None:
                     existing = copy.deepcopy(item)
                     existing["id"] = identifier(section, key)
@@ -124,6 +134,7 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
                         existing["responsibilities"] = []
                         existing.pop("generated_responsibilities", None)
                     profile[section].append(existing)
+                if section=="projects": merge_record(existing,item)
                 existing.setdefault("source_documents", [])
                 if source not in existing["source_documents"]:
                     existing["source_documents"].append(source)
@@ -151,9 +162,9 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
                         elif item.get(date) and existing.get(date) != item[date]:
                             warnings.append({"file_id": file_id, "name": doc["name"], "message": f"Hay fechas laborales distintas para {item['title']}; se conserva la existente."})
         for label in facts.get("skills", []):
-            skill = next((s for s in profile["skills"] if normalized(s["label"]) == normalized(label)), None)
+            skill = find_record(profile["skills"], "skills", {"label":label})
             if skill is None:
-                skill = {"id": identifier("skill", label), "label": label, "sources": [file_id]}
+                skill = {"id": skill_identifier(label), "label": label, "sources": [file_id]}
                 profile["skills"].append(skill)
             skill.setdefault("source_documents", [])
             if source not in skill["source_documents"]:
@@ -168,8 +179,8 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
             recipient=normalized(facts.get("recipient"))
             if recipient and not set(recipient.split()) & set(normalized(base["candidate"]["name"]+" "+profile["candidate"]["name"]).split()): continue
             for label in facts.get("generated_skills",[]):
-                if any(normalized(skill["label"])==normalized(label) for skill in profile["skills"]): continue
-                profile["skills"].append({"id":identifier("skill",label),"label":label,"sources":[file_id],
+                if find_record(profile["skills"], "skills", {"label":label}) is not None: continue
+                profile["skills"].append({"id":skill_identifier(label),"label":label,"sources":[file_id],
                     "origin":"sugerida_por_experiencia_o_estudios", "source_documents":[{"file_id":file_id,"name":doc["name"],"fingerprint":doc["fingerprint"]}]})
     from profile_deletions import apply_deletions
     return apply_deletions(profile), warnings
@@ -346,7 +357,7 @@ class DriveBank:
             raise BankError("Drive no pudo actualizar el banco. No se utilizará una copia desactualizada.")
         return response
 
-    def add_record(self, section: str, record: dict, validator) -> None:
+    def add_record(self, section: str, record: dict, validator) -> str:
         files = self.inventory()
         file_id = self.config["base_file_id"]
         response = self.request("GET", f"https://www.googleapis.com/drive/v3/files/{quote(file_id, safe='')}?alt=media&supportsAllDrives=true")
@@ -357,18 +368,17 @@ class DriveBank:
             etag = response.headers.get("ETag")
         finally:
             response.close()
-        existing = next((item for item in base[section] if item.get("id") == record["id"]), None)
+        from profile_records import consolidate, add_information
+        before=copy.deepcopy(base)
+        base=consolidate(base)
         from profile_deletions import identity
-        # An explicit addition restores that record, without restoring deleted child fields.
-        selector = [section, {'identity': identity(record)}]
-        deleted = base.get('_deleted_records', [])
-        restoring = selector in deleted
-        if existing:
-            if existing != record:
-                raise BankError("Este registro ya fue guardado con otros datos.", 409)
-            if not restoring:return
-        else:base[section].append(record)
-        if restoring:base['_deleted_records'] = [item for item in deleted if item != selector]
+        incoming_selector=[section, {'identity': identity(record)}]
+        try: record_id=add_information(base,section,record)
+        except ValueError as error: raise BankError(str(error),409) from error
+        saved_record=next(item for item in base[section] if item['id']==record_id)
+        selectors=(incoming_selector,[section, {'identity':identity(saved_record)}])
+        base['_deleted_records']=[item for item in base.get('_deleted_records',[]) if item not in selectors]
+        if base==before: return record_id
         validator(base)
         data = json.dumps(base, ensure_ascii=False, indent=2).encode("utf-8")
         if len(data) > MAX_BYTES:
@@ -379,8 +389,10 @@ class DriveBank:
         self.request("PATCH", f"https://www.googleapis.com/upload/drive/v3/files/{quote(file_id, safe='')}?uploadType=media&supportsAllDrives=true", headers=headers, data=data).close()
         self._downloads.clear()
         saved = json.loads(self.download(files[file_id])[0].decode("utf-8-sig"))
-        if record not in saved.get(section, []):
+        if (not any(item.get("id")==record_id for item in saved.get(section, [])) or
+            saved.get('_information_requests',{}).get(record['id']) != base['_information_requests'][record['id']]):
             raise BankError("No se pudo verificar el guardado. Reintenta con el mismo formulario.")
+        return record_id
 
     def delete_record(self, selector):
         file_id = quote(self.config['base_file_id'], safe='')

@@ -134,8 +134,14 @@ def refresh_profile_indexes() -> None:
 
 
 def validate_profile(profile: Any) -> dict[str, Any]:
-    if not isinstance(profile, dict) or set(profile) - {'_deleted_records'} != set(account_state.MASTER_PROFILE) - {'_deleted_records'}:
+    metadata = {'_deleted_records', '_information_requests'}
+    if not isinstance(profile, dict) or set(profile) - metadata != set(account_state.MASTER_PROFILE) - metadata:
         raise AppError("El banco debe conservar todas sus secciones originales.")
+    requests = profile.get('_information_requests', {})
+    if (not isinstance(requests, dict) or len(requests)>1000 or
+        any(not isinstance(key,str) or not re.fullmatch(r'manual-[a-f0-9]{32}',key)
+            or not isinstance(value,str) or not re.fullmatch(r'[a-f0-9]{64}',value) for key,value in requests.items())):
+        raise AppError('Los identificadores de guardado no son válidos.')
 
     def require_text(value: Any, field: str) -> str:
         if not isinstance(value, str) or not value.strip() or len(value) > 10_000:
