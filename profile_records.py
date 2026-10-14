@@ -91,7 +91,10 @@ def add_information(profile, section, record):
     existing=find_record(profile[section],section,record)
     if existing is None:
         profile[section].append(copy.deepcopy(record));existing=profile[section][-1]
-    else: merge_record(existing,record)
+    else:
+        merge_record(existing,record)
+        # Legacy and document-derived references have no ID.
+        if not existing.get('id'): existing['id'] = record['id']
     ledger[record['id']]=signature
     # Bound request metadata while retaining the most recent retries.
     while len(ledger)>1000: ledger.pop(next(iter(ledger)))

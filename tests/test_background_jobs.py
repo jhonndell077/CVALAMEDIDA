@@ -38,6 +38,15 @@ def job(store, path='/api/analyze', **values):
 
 
 class BackgroundJobTests(unittest.TestCase):
+    def test_information_save_does_not_process_unrelated_pending_documents(self):
+        store=Store(); job(store,'/api/profile/information')
+        with patch.object(app,'bank_enabled',return_value=True), patch.object(app,'load_drive_bank') as load, patch.dict(app.app.view_functions,{'add_profile_information':lambda:jsonify(message='Guardado',profile={'courses':[]})}), patch.object(push,'notify'):
+            jobs.process_job(app,ID,store)
+            load.assert_not_called()
+        saved=store.read(ID)[0]
+        self.assertEqual(saved['state'],'done')
+        self.assertEqual(saved['result']['message'],'Guardado')
+
     def test_bank_sync_persists_removals_even_when_no_new_files_are_pending(self):
         store = Store(); job(store, '/api/bank/sync')
         with patch.object(app, 'bank_enabled', return_value=True), patch.object(app, 'load_drive_bank', return_value={'pending': 0, 'documents': []}) as load, patch.object(push, 'notify'):

@@ -67,7 +67,7 @@ def _process_job(core, identifier, store):
         if time.time() - job['created_at'] > 3600:
             raise core.AppError('La autorización de este proceso venció. Vuelve a iniciarlo.', 401)
         operation = job['operation']
-        if operation in {'analysis', 'bank_sync', 'draft', 'export', 'gmail', 'information'} and core.bank_enabled():
+        if operation in {'analysis', 'bank_sync', 'draft', 'export', 'gmail'} and core.bank_enabled():
             checkpoint(3, 'Consultando el banco de Drive')
             status = core.load_drive_bank()
             if operation == 'bank_sync' and not status.get('pending'):

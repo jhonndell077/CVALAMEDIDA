@@ -134,7 +134,7 @@ def refresh_profile_indexes() -> None:
 
 
 def validate_profile(profile: Any) -> dict[str, Any]:
-    metadata = {'_deleted_records', '_information_requests'}
+    metadata = {'_deleted_records', '_information_requests', '_manual_edits', '_candidate_edits'}
     if not isinstance(profile, dict) or set(profile) - metadata != set(account_state.MASTER_PROFILE) - metadata:
         raise AppError("El banco debe conservar todas sus secciones originales.")
     requests = profile.get('_information_requests', {})
@@ -1383,9 +1383,8 @@ def health() -> Any:
                 "allowed_email": '' if os.environ.get('CV_MULTI_ACCOUNT') == '1' else account_state.ARCHIVE_CONFIG.get("allowed_email", ""),
             },
             "profile_editable": (
-                not bank_enabled()
-                and os.environ.get("CV_ALLOW_REMOTE") != "1"
-                and os.environ.get("CV_AUTH_REQUIRED") != "1"
+                bank_enabled() or (os.environ.get("CV_ALLOW_REMOTE") != "1"
+                and os.environ.get("CV_AUTH_REQUIRED") != "1")
             ),
             "privacy": (
                 "La vacante y las evidencias laborales se procesan con Vertex AI; "

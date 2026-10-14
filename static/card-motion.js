@@ -80,6 +80,11 @@
   }
   function scan() {
     for(const button of doc.querySelectorAll('button')) {
+      const content=[...button.childNodes].filter(node=>!node.classList?.contains('cv-galaxy-decoration') && !node.classList?.contains('cv-button-wave'));
+      if(content.length && !(content.length===1 && content[0].classList?.contains('cv-button-label'))) {
+        const label=doc.createElement('span');label.className='cv-button-label';
+        label.append(...content);button.prepend(label);
+      }
       if(button.querySelector(':scope > .cv-galaxy-decoration'))continue;
       button.classList.add('cv-galaxy-button');
       const decoration=doc.createElement('span');

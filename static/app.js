@@ -33,6 +33,7 @@ const fileInput = $("#job-file");
 const modelSelect = $("#model-select");
 const informationForm = $("#new-information-form");
 let informationRequestId = null;
+let informationRequestSignature = null;
 let informationSaving = false;
 function closeInformationForm() {
   informationForm.hidden = true;
@@ -58,16 +59,20 @@ informationForm.addEventListener("submit", async event => {
   const button = $("#save-information");
   const errorBox = $("#information-error");
   errorBox.hidden = true;
-  informationRequestId ||= crypto.randomUUID().replaceAll("-", "");
-  const values = {...Object.fromEntries(new FormData(informationForm)), ...window.cvRepeaters.collect(informationForm)};
-  const type = values.type;
-  delete values.type;
-  setBusy(button, true, "Guardando nueva información");
   try {
+    const values = {...Object.fromEntries(new FormData(informationForm)), ...window.cvRepeaters.collect(informationForm)};
+    const type = values.type;
+    delete values.type;
+    const signature = JSON.stringify({type, fields: values});
+    if (signature !== informationRequestSignature) informationRequestId = null;
+    informationRequestId ||= crypto.randomUUID().replaceAll("-", "");
+    informationRequestSignature = signature;
+    setBusy(button, true, "Guardando nueva información");
     if (state.user) state.idToken = await state.user.getIdToken();
     const saved = await requestJson("/api/profile/information", { type, request_id: informationRequestId, fields: values });
     // The save is complete even if the subsequent profile refresh fails.
     informationRequestId = null;
+    informationRequestSignature = null;
     informationForm.reset();
     window.cvRepeaters.reset(informationForm);
     informationForm.elements.type.dispatchEvent(new Event("change"));
@@ -132,13 +137,13 @@ function setBusy(button, busy, label = "Cargando") {
   button.classList.toggle("loading-label", busy);
   if (busy) {
     if (!busyButtons.has(button)) busyButtons.set(button, {
-      html: button.innerHTML, finish: window.cvLoading.start(label),
+      nodes: [...button.childNodes], finish: window.cvLoading.start(label),
     });
     button.textContent = label;
   } else {
     const operation = busyButtons.get(button);
     if (operation) {
-      button.innerHTML = operation.html;
+      button.replaceChildren(...operation.nodes);
       busyButtons.delete(button);
       operation.finish();
     }
@@ -367,7 +372,7 @@ async function loadProfileSummaryWork() {
   const profile = await response.json();
   if (profileOwner !== state.user?.uid || profileRevision !== (state.vacancyRevision || 0)) return;
   applySavedProfile(profile);
-  if (state.profileEditable) {
+  if (state.profileEditable && !state.bankEnabled) {
     $("#knowledge-local-controls").hidden = false;
     $("#knowledge-local-note").hidden = true;
     try {
@@ -772,7 +777,7 @@ function renderProfileValue(parent, key, value, path, options = {}) {
         addProfileDeleteButton(entrySummary, itemPath, item);
         const fields = addText(entry, "div", "", "profile-fields");
         Object.entries(item).forEach(([childKey, childValue]) => {
-          renderProfileValue(fields, childKey, childValue, [...itemPath, childKey]);
+          if (!childKey.startsWith('_') && !['source_documents','id'].includes(childKey)) renderProfileValue(fields, childKey, childValue, [...itemPath, childKey]);
         });
       } else {
         const wrapper = addText(body, "div", "", "profile-entry profile-leaf");
@@ -831,7 +836,7 @@ function renderProfileTree() {
   $("#profile-status").textContent = state.profileEditable
     ? state.profileDirty
       ? "Cambios sin guardar"
-      : "Banco local listo"
+      : "Banco listo para editar"
     : "Banco profesional · puedes eliminar registros";
   $("#save-profile").hidden = !state.profileEditable;
   $("#discard-profile").hidden = !state.profileEditable;
@@ -858,10 +863,11 @@ async function saveProfileChangesWork() {
   saveButton.disabled = true;
   saveButton.textContent = "Guardando…";
   try {
+    if (state.user) state.idToken = await state.user.getIdToken();
     const response = await fetch("/api/profile", {
       method: "PUT",
       headers: authenticatedHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(state.profileDraft),
+      body: JSON.stringify(state.bankEnabled ? {profile:state.profileDraft,expected_profile:state.profile} : state.profileDraft),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -870,8 +876,11 @@ async function saveProfileChangesWork() {
     state.profile = data.profile;
     state.profileDraft = structuredClone(data.profile);
     state.profileDirty = false;
+    state.analysis = null; state.draft = null; state.pdf = null;
+    state.vacancyRevision = (state.vacancyRevision || 0) + 1;
+    analysisPanel.hidden = true; cvPanel.hidden = true; jobPanel.hidden = false;
     renderProfileTree();
-    $("#profile-status").textContent = "Guardado en el banco maestro local";
+    $("#profile-status").textContent = data.message || "Guardado en tu banco";
   } catch (error) {
     profileError.textContent = error.message || "No se pudieron guardar los cambios.";
     profileError.hidden = false;
@@ -1266,6 +1275,7 @@ window.addEventListener('cv-background-result', async event => {
   }
   if (path === '/api/bank/sync') { renderBankStatus(result); await loadProfileSummary(); }
   if (path === '/api/profile/information') {
+    $('#information-error').hidden = true;
     state.analysis = null; state.draft = null; state.pdf = null;
     state.vacancyRevision = (state.vacancyRevision || 0) + 1;
     analysisPanel.hidden = true; cvPanel.hidden = true; jobPanel.hidden = false;

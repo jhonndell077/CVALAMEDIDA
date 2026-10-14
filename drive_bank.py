@@ -183,7 +183,8 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
                 profile["skills"].append({"id":skill_identifier(label),"label":label,"sources":[file_id],
                     "origin":"sugerida_por_experiencia_o_estudios", "source_documents":[{"file_id":file_id,"name":doc["name"],"fingerprint":doc["fingerprint"]}]})
     from profile_deletions import apply_deletions
-    return apply_deletions(profile), warnings
+    from profile_edits import apply as apply_edits
+    return apply_deletions(apply_edits(profile)), warnings
 
 
 def extraction_input(name: str, mime: str, raw: bytes) -> tuple[str, bytes | None, str | None]:
@@ -375,7 +376,7 @@ class DriveBank:
         incoming_selector=[section, {'identity': identity(record)}]
         try: record_id=add_information(base,section,record)
         except ValueError as error: raise BankError(str(error),409) from error
-        saved_record=next(item for item in base[section] if item['id']==record_id)
+        saved_record=next(item for item in base[section] if item.get('id')==record_id)
         selectors=(incoming_selector,[section, {'identity':identity(saved_record)}])
         base['_deleted_records']=[item for item in base.get('_deleted_records',[]) if item not in selectors]
         if base==before: return record_id
@@ -393,6 +394,27 @@ class DriveBank:
             saved.get('_information_requests',{}).get(record['id']) != base['_information_requests'][record['id']]):
             raise BankError("No se pudo verificar el guardado. Reintenta con el mismo formulario.")
         return record_id
+
+    def edit_profile(self, previous, updated, validator):
+        from profile_edits import prepare
+        file_id=quote(self.config['base_file_id'],safe='')
+        response=self.request('GET',f'https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true')
+        try:
+            base=json.loads(response.content.decode('utf-8-sig'))
+            etag=response.headers.get('ETag')
+        finally: response.close()
+        if not etag: raise BankError('Drive no confirmó la versión del banco. Vuelve a sincronizar.',409)
+        saved=prepare(base,previous,updated);validator(saved)
+        if getattr(self,'_edit_base_snapshot',base)!=base:
+            raise BankError('El banco cambió mientras editabas. Sincroniza antes de guardar.',409)
+        raw=json.dumps(saved,ensure_ascii=False).encode('utf-8')
+        if len(raw)>MAX_BYTES: raise BankError('El banco supera 20 MB.',422)
+        self.request('PATCH',f'https://www.googleapis.com/upload/drive/v3/files/{file_id}?uploadType=media&supportsAllDrives=true',headers={'If-Match':etag,'Content-Type':'application/json; charset=utf-8'},data=raw).close()
+        self._downloads.clear()
+        response=self.request('GET',f'https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true')
+        try:
+            if response.json()!=saved: raise BankError('No se pudo verificar el guardado. Sincroniza antes de reintentar.',409)
+        finally: response.close()
 
     def delete_record(self, selector):
         file_id = quote(self.config['base_file_id'], safe='')
@@ -572,6 +594,7 @@ class DriveBank:
         except Exception as error:
             raise BankError("No se puede leer hoja_de_vida.jpeg. Sube una imagen válida y vuelve a sincronizar.", 422) from error
         base = json.loads(self.download(files[self.config["base_file_id"]])[0].decode("utf-8-sig"))
+        self._edit_base_snapshot=copy.deepcopy(base)
         index = json.loads(self.download(files[self.config["index_file_id"]])[0].decode("utf-8-sig"))
         if not isinstance(index.get("documents"), dict) or index.get("version") != 1:
             raise BankError("indice_banco.json no tiene un formato compatible.", 422)

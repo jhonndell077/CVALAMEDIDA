@@ -40,7 +40,8 @@ button.cv-galaxy-button:is(.button-secondary,.text-button,.profile-add) {--galax
 button.cv-galaxy-button:not(:disabled):is(:hover,:focus-visible,:active) {background:var(--galaxy-bg);color:var(--galaxy-ink);box-shadow:0 0 20px #729c7760,inset 0 1px 0 #fffdf560;filter:none;}
 button.cv-galaxy-button:focus-visible {outline:3px solid #8baa91;outline-offset:3px;}
 button.cv-galaxy-button:disabled {opacity:.55;}
-.cv-galaxy-decoration {position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;overflow:hidden;}
+.cv-button-label {position:relative;z-index:1;pointer-events:none;}
+.cv-galaxy-decoration {position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;overflow:hidden;}
 .cv-galaxy-spark {position:absolute;inset:-100%;background:conic-gradient(from 0deg,transparent 0deg 320deg,var(--galaxy-glow) 350deg,#fff5d9 360deg);animation:cv-galaxy-spin 3.6s linear infinite;animation-play-state:paused;opacity:.5;}
 .cv-galaxy-backdrop {position:absolute;inset:2px;border-radius:inherit;background:radial-gradient(ellipse at 100% 100%,#a9c8ab35,transparent 65%),var(--galaxy-bg);}
 .cv-galaxy-ring {position:absolute;inset:0;opacity:.35;transition:opacity 250ms;}

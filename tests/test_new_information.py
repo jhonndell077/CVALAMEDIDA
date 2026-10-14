@@ -10,6 +10,29 @@ import app
 from drive_bank import DriveBank, BankError
 
 class NewInformationTests(unittest.TestCase):
+    def test_all_information_types_persist_and_retry_through_drive_route(self):
+        from profile_records import add_information
+        base=copy.deepcopy(app.MASTER_PROFILE)
+        base['references']=[{'name':'Referencia de prueba','role':'Supervisora','phone':'8095550123'}]
+        payloads=[self.payload(kind,employer='Empresa',category='Servicio',responsibilities='Atender clientes',description='Proyecto de prueba') for kind in ('courses','education','experiences','projects')]
+        payloads.append({'type':'references','request_id':'b'*32,'fields':{'name':'Referencia de prueba','role':'Gerente','phone':'+1 (809) 555-0123'}})
+        for index,payload in enumerate(payloads): payload['request_id']=format(index+1,'032x')
+        class Bank:
+            def load(self,process=False):return copy.deepcopy(base),{'pending':2},b''
+            def add_record(self,section,record,validator):
+                saved_id=add_information(base,section,record);validator(base);return saved_id
+        with patch.dict(os.environ,{'CV_AUTH_REQUIRED':'0','CV_ALLOW_REMOTE':'0'}), patch.object(app,'bank_enabled',return_value=True), patch.object(app,'BANK_CLIENT',Bank()), patch.object(app,'MASTER_PROFILE',copy.deepcopy(base)):
+            client=app.app.test_client()
+            for payload in payloads:
+                with self.subTest(section=payload['type']):
+                    for _ in range(2):
+                        response=client.post('/api/profile/information',json=payload)
+                        self.assertEqual(response.status_code,200,response.json)
+                        self.assertTrue(any(item.get('id')==response.json['record_id'] for item in response.json['profile'][payload['type']]))
+                    self.assertEqual(client.get('/api/profile').json[payload['type']],base[payload['type']])
+            self.assertEqual(len(base['references']),1)
+        app.refresh_profile_indexes()
+
     def test_profile_read_bypasses_recent_server_snapshot(self):
         original=copy.deepcopy(app.MASTER_PROFILE)
         updated=copy.deepcopy(original)
@@ -120,6 +143,24 @@ class NewInformationTests(unittest.TestCase):
         self.assertEqual(written[0]['headers']['If-Match'], 'version-one')
         self.assertEqual(base['courses'][-1], record)
         self.assertEqual(base['candidate'], app.MASTER_PROFILE['candidate'])
+
+    def test_drive_adds_reference_among_legacy_records_and_retries(self):
+        for existing in (False,True):
+            with self.subTest(existing=existing):
+                base=copy.deepcopy(app.MASTER_PROFILE)
+                base['references']=[{'name':'Referencia antigua','role':'Supervisora','phone':'8095550100'}]
+                payload={'type':'references','request_id':'c'*32,'fields':{'name':'Referencia antigua' if existing else 'Referencia nueva','role':'Gerente','phone':'8095550100' if existing else '8295550101'}}
+                section,record=app.new_information_record(payload)
+                bank=DriveBank({'base_file_id':'base'});bank.inventory=lambda:{'base':{'id':'base'}}
+                writes=[]
+                def request(method,url,**kwargs):
+                    if method=='PATCH':
+                        writes.append(kwargs);base.update(json.loads(kwargs['data']))
+                    return MagicMock(content=json.dumps(base).encode(),headers={'ETag':'v1'})
+                bank.request=request;bank.download=lambda file:(json.dumps(base).encode(),'','')
+                for _ in range(2): self.assertEqual(bank.add_record(section,record,app.validate_profile),record['id'])
+                self.assertEqual(len(writes),1)
+                self.assertEqual(len(base['references']),1 if existing else 2)
 
     def test_explicit_addition_restores_previously_deleted_record(self):
         from profile_deletions import deletion_for, apply_deletions

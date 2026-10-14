@@ -55,6 +55,24 @@ test('scroll no longer starts a continuous bounce loop',()=>{
  const qa=setup();assert.equal(qa.listeners.scroll,undefined);
 });
 
+test('busy buttons restore original label and decorations after success or failure',()=>{
+ const source=fs.readFileSync('static/app.js','utf8');
+ const qa=setup(),button=qa.document.querySelector('#open');
+ const original=[...button.childNodes];let finished=0;
+ const context=vm.createContext({busyButtons:new WeakMap(),window:{cvLoading:{start:()=>()=>finished++}}});
+ vm.runInContext(source.slice(source.indexOf('function setBusy('),source.indexOf('function showError(')),context);
+ for(const label of ['Guardando','Sincronizando']) {
+   context.setBusy(button,true,label);qa.mutate();
+   assert.equal(button.textContent,label);assert.equal(button.disabled,true);
+   context.setBusy(button,false);qa.mutate();
+   assert.equal(button.textContent,'Abrir');assert.equal(button.disabled,false);
+   assert.deepEqual([...button.childNodes],original);
+   assert.equal(button.querySelectorAll('.cv-galaxy-decoration').length,1);
+   assert.equal(button.querySelectorAll('.cv-button-label').length,1);
+ }
+ assert.equal(finished,2);
+});
+
 test('galaxy decorates dynamic buttons and restores decoration after label updates without duplicates',()=>{
  const qa=setup(),button=qa.document.querySelector('#open');
  assert.equal(button.textContent,'Abrir');

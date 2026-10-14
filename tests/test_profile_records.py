@@ -15,6 +15,15 @@ def document(facts):
     return {'active':True,'status':'incorporado','name':'Fixture','fingerprint':'v1','facts':facts}
 
 class ProfileRecordsTests(unittest.TestCase):
+    def test_add_existing_reference_without_id_preserves_and_assigns_id(self):
+        profile=blank()
+        profile['references']=[{'name':'Referencia de prueba','role':'Supervisora','phone':'8095550123'}]
+        record={'id':'manual-'+'a'*32,'name':'REFERENCIA DE PRUEBA','role':'Gerente','phone':'+1 (809) 555-0123'}
+        for _ in range(2):
+            self.assertEqual(add_information(profile,'references',record),record['id'])
+        self.assertEqual(len(profile['references']),1)
+        self.assertEqual(profile['references'][0]['role'],'Supervisora\n\nGerente')
+
     def test_projects_merge_case_variants_without_losing_descriptions_or_technologies(self):
         base=blank();base['projects']=[{'id':'first','title':'Proyecto de prueba','description':'Descripción inicial','technologies':['Python'],'url':''},
             {'id':'second','title':'PROYECTO DE PRUEBA','description':'Detalles complementarios','technologies':['python','SQLite'],'url':''}]

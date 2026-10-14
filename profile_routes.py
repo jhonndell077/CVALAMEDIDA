@@ -280,6 +280,25 @@ def register_routes(core):
 
     @core.app.put("/api/profile")
     def update_profile() -> Any:
+        if core.bank_enabled():
+            from drive_bank import BankError
+            payload=core.request.get_json(silent=True)
+            if not isinstance(payload,dict) or not isinstance(payload.get('profile'),dict) or not isinstance(payload.get('expected_profile'),dict):
+                raise core.AppError('Envía el perfil y su versión original.',400)
+            with core.NEW_INFORMATION_LOCK:
+                core.load_drive_bank(force=True)
+                if payload['expected_profile']!=core.account_state.MASTER_PROFILE:
+                    raise core.AppError('El banco cambió. Sincroniza antes de guardar para conservar los cambios.',409)
+                updated=core.validate_profile(payload['profile'])
+                if any(updated.get(key)!=payload['expected_profile'].get(key) for key in set(updated)|set(payload['expected_profile']) if key.startswith('_')):
+                    raise core.AppError('Los metadatos del banco no se pueden editar.',400)
+                if updated['candidate'].get('photo')!=core.account_state.MASTER_PROFILE['candidate'].get('photo'):
+                    raise core.AppError('La fotografía se actualiza desde el banco de documentos.',400)
+                try:
+                    core.account_state.BANK_CLIENT.edit_profile(core.account_state.MASTER_PROFILE,updated,core.validate_profile)
+                    core.load_drive_bank(force=True)
+                except BankError as error: raise core.AppError(str(error),error.status_code) from error
+            return core.jsonify(profile=core.account_state.MASTER_PROFILE,message='Cambios guardados y verificados en tu banco.')
         if (
             core.bank_enabled()
             or core.os.environ.get("CV_ALLOW_REMOTE") == "1"
