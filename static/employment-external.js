@@ -25,12 +25,8 @@
   if (!form) return;
   const field = name => form.elements.namedItem(name);
   const status = root.document.querySelector('#employment-external-status');
-  const list = root.document.querySelector('#employment-external-portals');
-  for (const [id, [name, url]] of Object.entries(sources)) {
+  for (const [id, [name]] of Object.entries(sources)) {
     const option = root.document.createElement('option'); option.value = id; option.textContent = name; field('source').append(option);
-    const item = root.document.createElement('li'), link = root.document.createElement('a');
-    link.textContent = `${name}: búsqueda externa (otra pestaña)`; link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
-    item.append(link); list.append(item);
   }
   const original = root.document.querySelector('#employment-external-original');
   root.addEventListener('cv-employment-session', () => {

@@ -36,6 +36,20 @@
   const status = text => { message.textContent = text; };
   function useGenerator(offer) {
     closeJobResults();
+    if (offer.description_verified === false) {
+      const external = $('#employment-external-form');
+      $('#employment-external-tools').open = true;
+      external.elements.namedItem('source').value = offer.source_key;
+      external.elements.namedItem('url').value = offer.url;
+      external.elements.namedItem('title').value = offer.title;
+      external.elements.namedItem('description').value = '';
+      $('#employment-external-original').hidden = false;
+      $('#employment-external-original').href = offer.url;
+      $('#employment-external-status').textContent = 'Abre la vacante original y pega sus requisitos antes de adaptar el CV.';
+      external.scrollIntoView({behavior:'smooth'});
+      external.elements.namedItem('description').focus();
+      return;
+    }
     const text=`${offer.title} · ${offer.company || ''}\n\n${offer.description}`.slice(0,40000);
     const event=new root.CustomEvent('cv-employment-vacancy',{detail:{text},cancelable:true});
     if (root.dispatchEvent(event)) {$('#job-text').value=text; $('#job-text').scrollIntoView({behavior:'smooth'}); $('#job-text').focus();}
@@ -117,6 +131,9 @@
     session++; user = nextUser; headers = getHeaders; confirmed = null; populate(null);
     $('#employment-results').replaceChildren(); $('#employment-applications').replaceChildren();
     latestPublications=null; publicationDay=''; calendarMonth='';
+    currentSearch=null;
+    $('#employment-sources').replaceChildren();
+    $('#employment-source-filter').value='';
     closeJobResults();
     $('#employment-results-open').hidden=true;
     $('#employment-results-status').textContent='';
@@ -215,6 +232,9 @@
     try {await request('location','DELETE'); confirmed = null; populate(null);
       $('#employment-results').replaceChildren(); $('#employment-applications').replaceChildren();
     latestPublications=null; publicationDay=''; calendarMonth='';
+    currentSearch=null;
+    $('#employment-sources').replaceChildren();
+    $('#employment-source-filter').value='';
     closeJobResults();
     $('#employment-results-open').hidden=true;
     $('#employment-results-status').textContent='';
@@ -242,6 +262,45 @@
       container.append(card);}
   }
   let latestPublications = null, publicationDay = '', calendarMonth = '';
+  let currentSearch = null;
+  const sourceKey = offer => offer.source_key || offer.source || 'chiripas';
+  function filteredSource(data) {
+    const selected = $('#employment-source-filter').value;
+    return selected ? data.offers.filter(offer => sourceKey(offer) === selected) : data.offers;
+  }
+  function trustedPortal(url) {
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'https:' && !parsed.username && !parsed.password && !parsed.port &&
+        ['chiripas.com','tuempleord.do','tuvacanterd.com','rdtrabaja.mt.gob.do','www.aldaba.com','do.computrabajo.com'].includes(parsed.hostname);
+    } catch {return false;}
+  }
+  function renderSources(data) {
+    const list = $('#employment-sources'); list.replaceChildren();
+    for (const source of data.sources || []) {
+      const item = root.document.createElement('div'); item.className = 'employment-source-row';
+      const info = root.document.createElement('span');
+      info.textContent = `${source.name}: ${source.status === 'ok' ? `${source.count} resultados${source.has_more ? ' · consulta el portal para ver más' : ''}` : source.status === 'external' ? 'consulta directa' : 'no disponible'}. ${source.message || ''}`;
+      item.append(info);
+      if (trustedPortal(source.url)) {
+        const link = root.document.createElement('a'); link.href = source.url;
+        link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = `Consultar ${source.name}`;
+        item.append(link);
+      }
+      list.append(item);
+    }
+    $('#employment-sources-summary').hidden = !data.sources?.length;
+    const select = $('#employment-source-filter'); select.replaceChildren();
+    const all = root.document.createElement('option'); all.value = ''; all.textContent = 'Todas las fuentes con resultados'; select.append(all);
+    const sources = new Map(data.offers.map(offer => [sourceKey(offer), offer.source || 'Chiripas']));
+    for (const [key,name] of sources) {
+      const option = root.document.createElement('option'); option.value = key; option.textContent = name; select.append(option);
+    }
+    select.value = '';
+  }
+  $('#employment-source-filter').addEventListener('change', () => {
+    if (currentSearch) renderNationalJobs(currentSearch.data, currentSearch.latest, currentSearch.query);
+  });
   const resultsDialog = $('#employment-results-dialog');
   function openJobResults() {
     if (!resultsDialog.open) resultsDialog.showModal();
@@ -267,7 +326,11 @@
   }
   function drawPublicationCalendar() {
     const calendar = $('#employment-calendar'); calendar.hidden = false;
-    const dates = (latestPublications?.offers || []).map(offer => publicationDate(offer.published_at)).filter(Boolean).sort().reverse();
+    const offers = latestPublications ? filteredSource(latestPublications) : [];
+    const dates = offers.map(offer => publicationDate(offer.published_at)).filter(Boolean).sort().reverse();
+    const undated = offers.filter(offer => !publicationDate(offer.published_at)).length;
+    $('#employment-calendar-undated').hidden = !undated;
+    $('#employment-calendar-undated').textContent = `Ver ofertas sin fecha (${undated})`;
     calendarMonth ||= (dates[0] || publicationDate(new Date().toISOString())).slice(0,7);
     const [year, month] = calendarMonth.split('-').map(Number);
     $('#employment-calendar-month').textContent = new Intl.DateTimeFormat('es-DO',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(year,month-1,1)));
@@ -295,28 +358,37 @@
   }
   function renderNationalJobs(data,latest,query) {
     const container=$('#employment-results'); container.replaceChildren();
-    const offers=latest && publicationDay ? data.offers.filter(offer=>publicationDate(offer.published_at)===publicationDay) : data.offers;
+    const available=filteredSource(data);
+    const offers=latest && publicationDay ? available.filter(offer=>publicationDay === 'undated' ? !publicationDate(offer.published_at) : publicationDate(offer.published_at)===publicationDay) : available;
     if (latest) drawPublicationCalendar(); else $('#employment-calendar').hidden=true;
         for (const offer of offers) {
           const card = root.document.createElement('article');
           const title = root.document.createElement('h3'); title.textContent = offer.title;
           const company = root.document.createElement('p'); company.textContent = offer.company || 'Empresa indicada en la oferta original';
+          const source = root.document.createElement('p'); source.className = 'employment-source-badge'; source.textContent = `Fuente: ${offer.source || 'Chiripas'}`;
           const date = root.document.createElement('p'); date.textContent = offer.published_at ? `Publicada: ${new Date(offer.published_at).toLocaleDateString('es-DO',{timeZone:'America/Santo_Domingo'})}` : 'Fecha no informada por la fuente';
           const description = root.document.createElement('details');
-          const summary = root.document.createElement('summary'); summary.textContent = 'Ver descripción y requisitos';
+          const summary = root.document.createElement('summary'); summary.textContent = offer.description_verified === false ? 'Ver información disponible' : 'Ver descripción y requisitos';
           const text = root.document.createElement('p'); text.textContent = offer.description; description.append(summary,text);
-          const link = root.document.createElement('a'); link.textContent = 'Ver vacante en Chiripas'; link.href = offer.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.className = 'employment-source';
-          const adapt = root.document.createElement('button'); adapt.type = 'button'; adapt.className = 'button button-secondary'; adapt.textContent = 'Adaptar mi CV'; adapt.addEventListener('click',()=>{closeJobResults(); useGenerator(offer);});
-          card.append(title,company,date,description,link,adapt); container.append(card);
+          const link = root.document.createElement('a'); link.textContent = `${offer.source_link_search ? 'Buscar esta vacante en' : 'Ver vacante en'} ${offer.source || 'Chiripas'}`;
+          if (trustedPortal(offer.url)) link.href = offer.url;
+          link.target = '_blank'; link.rel = 'noopener noreferrer'; link.className = 'employment-source';
+          const adapt = root.document.createElement('button'); adapt.type = 'button'; adapt.className = 'button button-secondary'; adapt.textContent = offer.description_verified === false ? 'Añadir requisitos y adaptar CV' : 'Adaptar mi CV'; adapt.addEventListener('click',()=>{closeJobResults(); useGenerator(offer);});
+          card.append(title,company,source,date,description,link,adapt); container.append(card);
         }
         if (!offers.length) {
-          const empty = root.document.createElement('p'); empty.textContent = latest ? (publicationDay ? `No hay publicaciones disponibles para el ${publicationDay}.` : 'No hay vacantes disponibles en la fuente en este momento.') : `No encontramos vacantes para «${query}». Prueba otro cargo o Ver últimas publicadas.`; container.append(empty);
+          const empty = root.document.createElement('p');
+          empty.textContent = data.sources?.filter(source=>source.status!=='external').every(source=>source.status==='unavailable')
+            ? 'No se pudieron consultar las fuentes integradas. Reintenta o abre sus portales.'
+            : latest ? (publicationDay === 'undated' ? 'No hay ofertas sin fecha en esta selección.' : publicationDay ? `No hay publicaciones disponibles para el ${publicationDay}.` : 'No hay vacantes disponibles en las fuentes consultadas en este momento.') : `No encontramos vacantes para «${query}». Prueba otro cargo o Ver últimas publicadas.`;
+          container.append(empty);
         }
-        searchStatus(`${offers.length} vacantes ${publicationDay && latest ? 'del ' + publicationDay : latest ? 'publicadas recientemente' : 'encontradas'} en RD. Fuente: Chiripas. Revisa la ciudad y disponibilidad en la oferta original.`);
+        searchStatus(`${offers.length} vacantes ${publicationDay === 'undated' && latest ? 'sin fecha' : publicationDay && latest ? 'del ' + publicationDay : latest ? 'en los listados recientes' : 'encontradas'} en RD.${data.partial ? ' Algunas fuentes no respondieron; consulta su estado arriba.' : ''} Revisa la ciudad y disponibilidad en la oferta original.`);
   }
   $('#employment-calendar-prev')?.addEventListener('click',()=>changePublicationMonth(-1));
   $('#employment-calendar-next')?.addEventListener('click',()=>changePublicationMonth(1));
   $('#employment-calendar-all')?.addEventListener('click',()=>{publicationDay=''; renderNationalJobs(latestPublications,true,'');});
+  $('#employment-calendar-undated')?.addEventListener('click',()=>{publicationDay='undated'; renderNationalJobs(latestPublications,true,'');});
   let searching = false;
   async function searchJobs(latest = false) {
     if (searching) return;
@@ -327,12 +399,17 @@
     const buttons = [$('#employment-search-button'), $('#employment-latest')].filter(Boolean);
     buttons.forEach(button => {button.disabled = true;});
     const container = $('#employment-results'); container.replaceChildren();
+    currentSearch = null;
+    $('#employment-sources').replaceChildren();
+    $('#employment-sources-summary').hidden = true;
+    $('#employment-source-filter').value = '';
     $('#employment-calendar').hidden=true;
     if (latest) latestPublications=null;
     searchStatus('Consultando las fuentes autorizadas…');
     try {const data = await request('search','POST',{query,source:'rd',latest});
       if (data.national) {
         if (latest) latestPublications = data;
+        currentSearch = {data, latest, query}; renderSources(data);
         renderNationalJobs(data, latest, query);
         return;
       }

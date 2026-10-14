@@ -10,7 +10,7 @@ function setup(response,fail=false){
  dialog.showModal=()=>{dialog.open=true;dialog.setAttribute('open','');};
  dialog.close=()=>{dialog.open=false;dialog.removeAttribute('open');};
  const calls=[],messages=[],adapted=[];
- const context=vm.createContext({root:{document},$:s=>document.querySelector(s),status:text=>messages.push(text),
+ const context=vm.createContext({URL,root:{document},$:s=>document.querySelector(s),status:text=>messages.push(text),
  request:async(path,method,payload)=>{calls.push({path,payload});if(fail)throw Error('Fuente no disponible');return response;},
  useGenerator:offer=>adapted.push(offer),renderApplications:async()=>{}});
  vm.runInContext(source.slice(source.indexOf('  let latestPublications = null'),source.indexOf("  $('#employment-revoke').addEventListener")),context);
@@ -103,4 +103,59 @@ test('closing while loading does not reopen the dialog when results arrive',asyn
  await pending;
  assert.equal(qa.document.querySelector('#employment-results-dialog').open,false);
  assert.equal(qa.document.querySelectorAll('#employment-results article').length,1);
+});
+
+test('unified cards display their own source, filtered calendar and undated offers',async()=>{
+ const official={...offer,id:'official',source_key:'rdtrabaja',source:'RD Trabaja',url:'https://rdtrabaja.mt.gob.do/empleo/buscar-empleo?titulo=Cajero',published_at:'2026-10-14T13:00:00Z',source_link_search:true};
+ const brief={...offer,id:'brief',source_key:'tuvacanterd',source:'TuVacanteRD',url:'https://tuvacanterd.com/empleo/cajero',published_at:null,description_verified:false};
+ const qa=setup({national:true,offers:[{...offer,source_key:'chiripas',source:'Chiripas'},official,brief],sources:[
+  {key:'chiripas',name:'Chiripas',status:'ok',count:1,url:'https://chiripas.com/'},
+  {key:'aldaba',name:'Aldaba',status:'external',count:0,url:'https://www.aldaba.com/buscar.php?q=Cajero',message:'Consulta directa'},
+  {key:'tuempleord',name:'TuEmpleoRD',status:'unavailable',count:0,url:'https://tuempleord.do/'}],partial:true});
+ await qa.context.searchJobs(true);
+ assert.equal(qa.document.querySelectorAll('#employment-sources .employment-source-row').length,3);
+ assert.match(qa.document.querySelector('#employment-results-status').textContent,/Algunas fuentes no respondieron/);
+ assert.match(qa.document.querySelectorAll('#employment-results .employment-source')[1].textContent,/Buscar esta vacante en RD Trabaja/);
+ const select=qa.document.querySelector('#employment-source-filter');
+ Object.defineProperty(select,'value',{value:'rdtrabaja',writable:true,configurable:true});
+ select.dispatchEvent(new qa.window.Event('change'));
+ assert.equal(qa.document.querySelectorAll('#employment-results article').length,1);
+ assert.equal(qa.document.querySelector('#employment-calendar-undated').hidden,true);
+ const days=[...qa.document.querySelectorAll('#employment-calendar-days button')];
+ assert.equal(days.find(day=>day.textContent==='14 · 1').getAttribute('aria-pressed'),'false');
+ select.value='';select.dispatchEvent(new qa.window.Event('change'));
+ qa.document.querySelector('#employment-calendar-undated').click();
+ assert.equal(qa.document.querySelectorAll('#employment-results article').length,1);
+ assert.match(qa.document.querySelector('#employment-results button').textContent,/Añadir requisitos/);
+ assert.equal(qa.calls.length,1);
+});
+
+test('all failed sources show consultation failure instead of no-vacancy success',async()=>{
+ const qa=setup({national:true,offers:[],sources:[{key:'chiripas',name:'Chiripas',status:'unavailable',count:0,url:'https://chiripas.com/'}],partial:true});
+ await qa.context.searchJobs(true);
+ assert.match(qa.document.querySelector('#employment-results').textContent,/No se pudieron consultar/);
+});
+
+test('untrusted destinations cannot become portal or offer links',async()=>{
+ const qa=setup({national:true,offers:[{...offer,url:'javascript:alert(1)'}],sources:[{key:'fixture',name:'Texto <script>',status:'external',url:'https://evil.invalid'}]});
+ await qa.context.searchJobs(true);
+ assert.equal(qa.document.querySelector('#employment-sources a'),null);
+ assert.equal(qa.document.querySelector('#employment-results .employment-source').hasAttribute('href'),false);
+ assert.equal(qa.document.querySelector('#employment-sources script'),null);
+});
+
+test('brief listings require pasted requirements before the CV generator is invoked',async()=>{
+ const brief={...offer,source_key:'tuvacanterd',source:'TuVacanteRD',url:'https://tuvacanterd.com/empleo/cajero',description_verified:false};
+ const qa=setup({national:true,offers:[brief]});await qa.context.searchJobs(true);
+ const form=qa.document.querySelector('#employment-external-form');
+ const fields=Object.fromEntries(['source','url','title','description'].map(name=>[name,{value:'old',focus(){}}]));
+ form.elements={namedItem:name=>fields[name]};form.scrollIntoView=()=>{};
+ vm.runInContext(source.slice(source.indexOf('  function useGenerator(offer)'),source.indexOf('  async function request(')),qa.context);
+ qa.document.querySelector('#employment-results button').click();
+ assert.equal(fields.source.value,'tuvacanterd');assert.equal(fields.description.value,'');
+ assert.equal(fields.url.value,brief.url);assert.equal(fields.title.value,brief.title);
+ assert.equal(qa.document.querySelector('#employment-external-tools').open,true);
+ assert.equal(qa.document.querySelector('#employment-external-original').getAttribute('href'),brief.url);
+ assert.equal(qa.document.querySelector('#employment-results-dialog').open,false);
+ assert.equal(qa.adapted.length,0);
 });

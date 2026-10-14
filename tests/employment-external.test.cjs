@@ -24,7 +24,8 @@ test('interfaz etiquetada transfiere texto al generador sin consultar portales n
   window.addEventListener('cv-employment-vacancy', event => {detail = event.detail;});
   window.fetch = () => {throw new Error('No debe consultar portales');};
   vm.runInNewContext(fs.readFileSync('static/employment-external.js', 'utf8'), {window, URL, Object, Error});
-  assert.equal(window.document.querySelectorAll('#employment-external-portals a').length, 6);
+  assert.equal(fields.source.querySelectorAll('option').length, 6);
+  assert.equal(window.document.querySelector('#employment-external-portals'), null);
   for (const element of Object.values(fields)) assert.ok(element.closest('label'));
   fields.source.querySelector('[value="chiripas"]').setAttribute('selected', ''); fields.url.value = 'https://chiripas.com/empleo';
   fields.title.value = 'Chef'; fields.description.value = '<script>datos de vacante</script>';

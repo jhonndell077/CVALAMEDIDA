@@ -38,7 +38,7 @@
             <button id="employment-latest" type="button" class="button button-secondary">Ver últimas publicadas</button>
           </div>
         </form>
-        <p class="microcopy">Vacantes de RD publicadas por Chiripas. No necesitas GPS para buscar. Las ofertas se ordenan de la más reciente a la más antigua cuando la fuente proporciona una fecha.</p>
+        <p class="microcopy">Una búsqueda para las fuentes de RD. Consulta ofertas de Chiripas, TuEmpleoRD, RD Trabaja y resúmenes de TuVacanteRD. Aldaba y Computrabajo tienen acceso directo al portal. No necesitas GPS.</p>
         <p id="employment-status" role="status" aria-live="polite">Escribe un cargo o consulta las últimas publicadas.</p>
         <a class="employment-login-link" href="#auth-panel">Iniciar sesión con Google para buscar empleos</a>
         <button id="employment-results-open" type="button" class="button button-secondary" hidden>Volver a ver las ofertas</button>
@@ -49,6 +49,13 @@
           </div>
           <div class="employment-results-body">
             <p id="employment-results-status" role="status" aria-live="polite"></p>
+            <details id="employment-sources-summary" open>
+              <summary>Fuentes consultadas y acceso a sus portales</summary>
+              <div id="employment-sources"></div>
+            </details>
+            <label class="employment-source-filter" for="employment-source-filter">Mostrar ofertas de
+              <select id="employment-source-filter"><option value="">Todas las fuentes con resultados</option></select>
+            </label>
         <section id="employment-calendar" aria-label="Calendario de publicaciones" hidden>
           <div class="employment-calendar-navigation">
             <button id="employment-calendar-prev" type="button" aria-label="Mes anterior">←</button>
@@ -59,7 +66,8 @@
           <div class="employment-calendar-week" aria-hidden="true"><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span></div>
           <div id="employment-calendar-days"></div>
           <button id="employment-calendar-all" type="button" class="text-button">Ver todas las últimas</button>
-          <p class="microcopy">Fechas de República Dominicana. El calendario muestra las vacantes que siguen disponibles en la fuente; no es un archivo histórico completo.</p>
+          <button id="employment-calendar-undated" type="button" class="text-button" hidden>Ver ofertas sin fecha</button>
+          <p class="microcopy">Fechas de República Dominicana. Hasta 50 resultados recientes por fuente integrada. Las ofertas sin fecha se consultan por separado. No es un archivo histórico completo.</p>
         </section>
         <div id="employment-results" aria-live="polite"></div>
           </div>
@@ -102,11 +110,9 @@
           <div id="employment-geocode-results"></div>
         </form>
         </details>
-        <details><summary>Otros portales de RD y añadir una vacante externa</summary>
-        <section aria-labelledby="employment-external-title">
-          <h3 id="employment-external-title">Fuentes dominicanas · búsqueda externa</h3>
-          <p>Puedes consultar otras fuentes de RD y traer una oferta para adaptar tu CV. Los resultados de la búsqueda principal provienen de Chiripas.</p>
-          <ul id="employment-external-portals"></ul>
+        <details id="employment-external-tools">
+          <summary id="employment-external-title">Adaptar mi CV con una oferta de cualquier portal</summary>
+          <p>Pega el enlace y los requisitos de una vacante para adaptar tu CV. Las fuentes y sus resultados se consultan en la ventana de búsqueda.</p>
           <form id="employment-external-form">
             <label>Fuente<select name="source" required></select></label>
             <label>Enlace original de la vacante<input name="url" type="url" maxlength="2000" required></label>
@@ -116,7 +122,6 @@
           </form>
           <p id="employment-external-status" role="status" aria-live="polite">No hay candidatura enviada. Revisa datos y preguntas personales en la fuente.</p>
           <a id="employment-external-original" target="_blank" rel="noopener noreferrer" hidden>Abrir la vacante original para postular (otra pestaña)</a>
-        </section>
         </details>
         <details><summary>Mis postulaciones y seguimiento</summary><div id="employment-applications"></div>
         <h3>Postulación supervisada</h3><p>Revisa la descripción, adapta tu CV y aprueba la apertura del portal original. Completa allí los campos y el envío. Solo registraremos una aceptación confirmada cuando el destino proporcione evidencia.</p>

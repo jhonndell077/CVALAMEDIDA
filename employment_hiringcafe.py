@@ -96,8 +96,8 @@ class HiringCafe:
 
 class Sources:
     def __init__(self,store_factory):
-        from employment_rd import DominicanJobs
-        self.sources={'rd':DominicanJobs(store_factory)}
+        from employment_unified import UnifiedDominicanJobs
+        self.sources={'rd':UnifiedDominicanJobs(store_factory)}
     def for_source(self,name):
         if name=='nearby': raise PolicyError('HiringCafe requiere permiso de redistribucion del proveedor. Consulta su portal original.')
         if name not in self.sources: raise PolicyError('Fuente no permitida.')

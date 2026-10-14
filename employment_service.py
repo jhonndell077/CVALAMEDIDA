@@ -105,6 +105,10 @@ class Employment:
             try:
                 url = canonical(offer.get('url', ''))
                 identifier = hashlib.sha256(url.encode()).hexdigest()[:32]
+                # RD Trabaja opens details in a modal and shares a search URL
+                # across different employers advertising the same job title.
+                if source == 'rd' and offer.get('source_key') == 'rdtrabaja':
+                    identifier = hashlib.sha256(('rdtrabaja:' + str(offer.get('source_job_id'))).encode()).hexdigest()[:32]
                 if identifier in seen:
                     continue
                 if not offer.get('source') or not offer.get('title') or not offer.get('description'):
@@ -147,7 +151,12 @@ class Employment:
             pinned={item['offer_id'] for item in current['applications'].values() if item['status']!='CANCELADA'}
             retained={identifier:offer for identifier,offer in current['offers'].items() if identifier in pinned}
             current['offers'] = {**retained,**records}
-            return {'offers': accepted, 'excluded': excluded, 'unverified': unknown, 'national':source=='rd','latest':latest}
+            result = {'offers': accepted, 'excluded': excluded, 'unverified': unknown, 'national':source=='rd','latest':latest}
+            if source == 'rd' and hasattr(offers, 'sources'):
+                result['sources'] = [{**item, 'count': sum(job.get('source_key') == item['key'] for job in accepted)}
+                                     for item in offers.sources]
+                result['partial'] = any(item['status'] == 'unavailable' for item in offers.sources)
+            return result
         return self.mutate(uid, save)
 
     def prepare(self, uid, offer_id, reviewed_no_travel=False):
