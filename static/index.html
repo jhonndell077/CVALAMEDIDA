@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta name="cv-build" content="20261014T033708Z-cd5e98d2">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f8f5eb">
+    <meta name="application-name" content="CV a la medida">
+    <meta name="apple-mobile-web-app-title" content="CV a la medida">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>CV a la medida</title>
+    <link rel="icon" type="image/png" href="/app-icon.png">
+    <link rel="apple-touch-icon" href="/app-icon.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/employment.css">
+    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="CV a la medida">
+        <img class="brand-logo" src="/logo-cv-a-la-medida.png" alt="CV a la medida" width="2172" height="724">
+      </a>
+      <div class="privacy-pill"><span class="status-dot"></span><span id="privacy-status">Comprobando el servicio de IA…</span></div>
+      <a class="employment-nav" href="#employment-panel" hidden>EMPLEO INTELIGENTE</a>
+    </header>
+
+    <main class="shell">
+      <section class="panel" id="employment-panel" aria-labelledby="employment-title" hidden>
+        <div class="eyebrow">EMPLEO INTELIGENTE</div>
+        <h2 id="employment-title">Encuentra empleo en República Dominicana</h2>
+        <p>Escribe el cargo que buscas o consulta las últimas vacantes. Abre la oferta original y adapta tu CV desde aquí.</p>
+        <form id="employment-search-form" class="employment-search-simple">
+          <label for="employment-query">¿Qué empleo buscas?</label>
+          <input id="employment-query" maxlength="120" placeholder="Ejemplo: camarero, cajero, auxiliar de almacén" autocomplete="off">
+          <div class="employment-actions">
+            <button id="employment-search-button" type="submit" class="button button-primary">Buscar vacantes</button>
+            <button id="employment-latest" type="button" class="button button-secondary">Ver últimas publicadas</button>
+          </div>
+        </form>
+        <p class="microcopy">Vacantes de RD publicadas por Chiripas. No necesitas GPS para buscar. Las ofertas se ordenan de la más reciente a la más antigua cuando la fuente proporciona una fecha.</p>
+        <p id="employment-status" role="status" aria-live="polite">Escribe un cargo o consulta las últimas publicadas.</p>
+        <a class="employment-login-link" href="#auth-panel">Iniciar sesión con Google para buscar empleos</a>
+        <section id="employment-calendar" aria-label="Calendario de publicaciones" hidden>
+          <div class="employment-calendar-navigation">
+            <button id="employment-calendar-prev" type="button" aria-label="Mes anterior">←</button>
+            <h3 id="employment-calendar-month" aria-live="polite"></h3>
+            <button id="employment-calendar-next" type="button" aria-label="Mes siguiente">→</button>
+          </div>
+          <p>Elige una fecha. El número junto al día indica sus publicaciones disponibles.</p>
+          <div class="employment-calendar-week" aria-hidden="true"><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span></div>
+          <div id="employment-calendar-days"></div>
+          <button id="employment-calendar-all" type="button" class="text-button">Ver todas las últimas</button>
+          <p class="microcopy">Fechas de República Dominicana. El calendario muestra las vacantes que siguen disponibles en la fuente; no es un archivo histórico completo.</p>
+        </section>
+        <div id="employment-results" aria-live="polite"></div>
+        <details id="employment-location-options"><summary>Mi ubicación y distancia (opcional)</summary>
+        <p>Guarda tu ubicación si quieres usarla para revisar distancias. La búsqueda general incluye República Dominicana completa.</p>
+        <button class="button button-secondary" id="employment-location-button" type="button" disabled>Usar mi ubicación</button>
+        <p class="microcopy">Al pulsar «Usar mi ubicación» autorizas obtener tu ubicación GPS y compartir sus coordenadas aproximadas con Nominatim (OpenStreetMap) para identificar automáticamente país y ciudad. Al confirmar también se identifica el punto si corriges el marcador. El navegador solicitará permiso de ubicación si es necesario.</p>
+        <p id="employment-confirmed">Usa tu ubicación para comenzar.</p>
+        <form id="employment-location-form">
+          <div hidden>
+            <input name="country" type="hidden"><input name="region" type="hidden">
+            <input name="city" type="hidden"><input name="reference" type="hidden">
+            <input name="public_place" type="hidden"><input name="lat" type="hidden">
+            <input name="lng" type="hidden"><input name="accuracy_m" type="hidden" value="100">
+            <input name="radius_m" type="hidden" value="10000"><input name="allowed_countries" type="hidden">
+            <input name="allow_remote" type="checkbox"><input name="allow_travel" type="checkbox">
+          </div>
+          <label>Distancia máxima (km)<input name="radius_km" type="number" min="0.5" max="100" step="0.1" value="10" required disabled></label>
+          <div class="employment-actions" aria-label="Radios rápidos">
+            <button type="button" data-radius="1000" disabled>1 km</button><button type="button" data-radius="5000" disabled>5 km</button>
+            <button type="button" data-radius="10000" disabled>10 km</button><button type="button" data-radius="25000" disabled>25 km</button>
+            <button type="button" data-radius="50000" disabled>50 km</button><button type="button" data-radius="100000" disabled>100 km</button>
+          </div>
+          <p>Arrastra el marcador para corregir el punto y confirma la ubicación para buscar empleos.</p>
+          <p class="microcopy">El mapa carga cartografía de OpenStreetMap.</p>
+          <div id="employment-map-live" role="region" aria-label="Mapa interactivo de ubicación laboral" hidden></div>
+          <svg id="employment-map" viewBox="0 0 600 320" role="group" aria-label="Mapa de radio editable" hidden>
+            <path d="M0 80H600 M0 160H600 M0 240H600 M150 0V320 M300 0V320 M450 0V320" stroke="#d4dfd2" fill="none"/>
+            <circle id="employment-radius" cx="300" cy="160" r="105" fill="#315d4620" stroke="#315d46" stroke-width="2"/>
+            <circle id="employment-marker" cx="300" cy="160" r="10" tabindex="0" role="button" aria-label="Punto de búsqueda: arrastra o usa las flechas"/>
+            <text x="16" y="24" fill="#315d46">N ↑</text><text id="employment-scale" x="16" y="292" fill="#315d46"></text>
+            <text id="employment-map-coordinates" x="16" y="312" fill="#315d46"></text>
+          </svg>
+          <div class="employment-actions">
+            <button id="employment-geocode" hidden type="button" class="button button-secondary" disabled>Localizar dirección</button>
+            <button type="submit" class="button button-primary" disabled>Confirmar ubicación</button>
+            <button id="employment-delete" type="button" class="text-button" disabled>Eliminar ubicación guardada</button>
+          </div>
+          <div id="employment-geocode-results"></div>
+        </form>
+        </details>
+        <details><summary>Otros portales de RD y añadir una vacante externa</summary>
+        <section aria-labelledby="employment-external-title">
+          <h3 id="employment-external-title">Fuentes dominicanas · búsqueda externa</h3>
+          <p>Puedes consultar otras fuentes de RD y traer una oferta para adaptar tu CV. Los resultados de la búsqueda principal provienen de Chiripas.</p>
+          <ul id="employment-external-portals"></ul>
+          <form id="employment-external-form">
+            <label>Fuente<select name="source" required></select></label>
+            <label>Enlace original de la vacante<input name="url" type="url" maxlength="2000" required></label>
+            <label>Cargo publicado<input name="title" maxlength="160" required></label>
+            <label>Descripción publicada<textarea name="description" maxlength="40000" rows="6" required></textarea></label>
+            <button type="submit" class="button button-secondary">Preparar descripción para adaptar mi CV</button>
+          </form>
+          <p id="employment-external-status" role="status" aria-live="polite">No hay candidatura enviada. Revisa datos y preguntas personales en la fuente.</p>
+          <a id="employment-external-original" target="_blank" rel="noopener noreferrer" hidden>Abrir la vacante original para postular (otra pestaña)</a>
+        </section>
+        </details>
+        <details><summary>Mis postulaciones y seguimiento</summary><div id="employment-applications"></div>
+        <h3>Postulación supervisada</h3><p>Revisa la descripción, adapta tu CV y aprueba la apertura del portal original. Completa allí los campos y el envío. Solo registraremos una aceptación confirmada cuando el destino proporcione evidencia.</p>
+        </details>
+        <details hidden><summary>Configurar autorización para simulación automática</summary>
+          <form id="employment-authorization-form">
+            <div class="employment-grid">
+              <label>Cargos exactos (separados por coma)<input name="titles" required maxlength="400"></label>
+              <label>Países permitidos<input name="countries" placeholder="DO" required maxlength="60"></label>
+              <label>Modalidades permitidas<input name="modes" placeholder="onsite,hybrid,remote" required maxlength="30"></label>
+              <label>Fuentes permitidas<input name="sources" placeholder="fixture (solo staging)" required maxlength="200"></label>
+              <label>Empresas excluidas<input name="excluded_companies" maxlength="400"></label>
+              <label>Compatibilidad mínima (cobertura de habilidades)<input name="minimum_score" type="number" min="0" max="100" value="80" required></label>
+              <label>Salario mensual mínimo publicado<input name="minimum_salary" type="number" min="0" value="20000" required></label>
+              <label>Moneda<input name="currency" maxlength="3" placeholder="DOP" required></label>
+              <label>Límite diario (1 a 10)<input name="daily_limit" type="number" min="1" max="10" value="1" required></label>
+              <label>Hora inicial (Santo Domingo)<input name="start_hour" type="number" min="0" max="23" value="8" required></label>
+              <label>Hora final (Santo Domingo)<input name="end_hour" type="number" min="1" max="24" value="18" required></label>
+              <label>Caducidad (fecha ISO con zona horaria)<input name="expires_at" placeholder="2026-10-13T18:00:00-04:00" required maxlength="40"></label>
+            </div>
+            <label><input name="use_cover_letter" type="checkbox"> Exigir carta (detendrá la simulación hasta validarla)</label><br>
+            <label><input name="confirmed" type="checkbox" required> Autorizo exclusivamente simulaciones dentro de este alcance y del radio confirmado.</label>
+            <button type="submit" class="button button-secondary">Activar simulación autorizada</button>
+          </form>
+        </details>
+        <p id="employment-authorization-status" role="status" hidden>Sin autorización automática.</p>
+        <button id="employment-revoke" type="button" class="text-button">Revocar autorización</button>
+      </section>
+      <section class="panel sync-panel" id="sync-panel" aria-label="Sincronización de tu cuenta" hidden>
+        <button id="sync-bank" class="button button-primary" type="button" disabled>Sincronizar todo</button>
+        <p class="sync-help">Actualiza tu banco profesional en Google Drive desde el navegador, sin instalar aplicaciones.</p>
+        <p id="bank-status" role="status" aria-live="polite">Inicia sesión para consultar tu banco.</p>
+      </section>
+
+      <section class="intro">
+        <img class="intro-logo" src="/logo-cv-a-la-medida.png" alt="CV a la medida" width="2172" height="724" fetchpriority="high">
+        <div class="eyebrow">TU PERFIL PROFESIONAL, UNA VACANTE A LA VEZ</div>
+        <h1>Una hoja de vida<br><em>hecha para el puesto.</em></h1>
+        <p>Comparte una vacante o pega sus requisitos. La app cruza esa oportunidad con tu banco profesional, selecciona la evidencia relevante y prepara un CV sin inventar experiencia.</p>
+      </section>
+
+      <div class="steps" aria-label="Pasos">
+        <div class="step active" data-step-indicator="1"><span>01</span> Vacante</div>
+        <div class="step" data-step-indicator="2"><span>02</span> Análisis</div>
+        <div class="step" data-step-indicator="3"><span>03</span> Tu CV</div>
+      </div>
+
+      <section class="panel auth-panel" id="auth-panel" hidden>
+        <div class="eyebrow">ACCESO PRIVADO</div>
+        <h2>Inicia sesión para usar tu perfil</h2>
+        <p id="auth-help">Conecta tu cuenta comprobada para consultar tu perfil, guardar CV en Drive y enviarlos por Gmail. Los permisos concedidos se reutilizan.</p>
+        <p id="auth-user" hidden></p>
+        <button id="google-sign-in" class="button button-primary" type="button">Continuar con Google</button>
+        <button id="google-sign-out" class="text-button" type="button" hidden>Cerrar sesión</button>
+      </section>
+
+      <section class="panel" id="background-panel" hidden>
+        <h2>Tus procesos</h2>
+        <p>Una vez guardada la solicitud, el servidor sigue trabajando aunque salgas de la app. Al volver, recuperamos tus resultados.</p>
+        <button id="enable-notifications" class="button button-secondary" type="button" disabled>Activar notificaciones</button>
+        <p id="notifications-status" role="status"></p>
+        <div id="background-processes" aria-live="polite"></div>
+      </section>
+
+      <section class="panel telegram-panel" id="telegram-panel" aria-labelledby="telegram-title" hidden>
+        <div class="eyebrow">TU ASISTENTE PRIVADO</div>
+        <h2 id="telegram-title">CV a la medida en Telegram</h2>
+        <p>El mismo bot atiende a cada usuario en su conversación privada y utiliza únicamente el Banco de Datos y CV Generados de su cuenta de Google.</p>
+        <p class="microcopy">Telegram es opcional. Pulsa Vincular mi Telegram y Drive: si falta el permiso de Google, se solicitar&#225; en ese mismo paso. Luego abre el bot, pulsa Iniciar y confirma aqu&#237; tu cuenta. Si ya est&#225; vinculada y falta Drive, pulsa Autorizar Drive para Telegram.</p>
+        <div class="telegram-actions">
+          <button id="telegram-authorize-drive" hidden class="button button-secondary" type="button" disabled>Autorizar Drive para Telegram</button>
+          <button id="telegram-link" class="button button-secondary" type="button" hidden>Vincular mi Telegram y Drive</button>
+          <a id="telegram-open-bot" class="button button-primary" target="_blank" rel="noopener noreferrer" hidden>Abrir mi espacio privado en el bot</a>
+          <button id="telegram-check-link" class="button button-secondary" type="button" hidden>Ya pulsé Iniciar: revisar vinculación</button>
+          <button id="telegram-confirm-link" class="button button-primary" type="button" hidden>Confirmar esta cuenta de Telegram</button>
+          <button id="telegram-disconnect" class="text-button" type="button" hidden>Desvincular Telegram</button>
+        </div>
+        <p id="telegram-status" role="status"></p>
+        <p id="telegram-error" class="error-message" role="alert" hidden></p>
+      </section>
+
+      <section class="panel" id="bank-panel" hidden>
+        <div class="eyebrow">FUENTE DE TU INFORMACIÓN</div>
+        <h2>Banco de Datos en Drive</h2>
+        <p>Añade documentos y fotografías de certificados a <a id="bank-folder" target="_blank" rel="noopener">Banco de Datos</a> o sus subcarpetas. Se revisan al iniciar sesión y antes de analizar una vacante.</p>
+        <p>Al sincronizar, la app muestra los archivos actuales del banco y utiliza sus datos legibles. Si retiras un documento, desaparece de la lista y sus datos extraídos dejan de formar parte del perfil. Los datos registrados en perfil_base.json también pertenecen al banco.</p>
+        <button id="select-account-folders" class="button button-secondary" type="button" hidden>Seleccionar mis carpetas manualmente</button>
+        <button id="open-onboarding" class="button button-secondary" type="button" hidden>Completar mis datos para el CV</button>
+        <details><summary>Documentos y avisos de lectura</summary><div id="bank-documents"></div><div id="bank-warnings"></div></details>
+      </section>
+
+      <section class="panel" id="drive-panel" hidden>
+        <div class="eyebrow">DESTINO DE TUS CV</div>
+        <h2>Guardar en Google Drive</h2>
+        <p>Los PDF y Word se guardan en <a id="drive-folder" target="_blank" rel="noopener">tu carpeta CV GENERADOS</a>. Al iniciar sesión o sincronizar se conectan Gmail y Drive en una autorización compartida. Los permisos concedidos se reutilizan al enviar y descargar. Selecciona CV GENERADOS si Google solicita elegir la carpeta.</p>
+        <button id="connect-drive" hidden class="button button-secondary" type="button" disabled>Conectar Google Drive</button>
+        <p id="drive-status" role="status">Conecta Drive para guardar los CV en CV GENERADOS.</p>
+      </section>
+
+      <section class="panel profile-panel" id="profile-panel" aria-labelledby="profile-title" hidden>
+        <div class="panel-heading">
+          <div>
+            <div class="eyebrow">BANCO PROFESIONAL</div>
+            <h2 id="profile-title">Mi árbol de información</h2>
+          </div>
+          <span id="profile-status" class="step-number" role="status">Cargando perfil…</span>
+        </div>
+        <p class="panel-lead">Explora tus datos, experiencias, funciones, estudios, cursos, habilidades y proyectos. En la versión en línea, añade documentos a Banco de Datos para ampliar tu perfil.</p>
+        <button id="new-information" class="button button-primary" type="button" aria-expanded="false" aria-controls="new-information-form">＋ Nueva información</button>
+        <form id="new-information-form" class="new-information-form" hidden>
+          <h3>Añade a tu banco profesional</h3>
+          <p>Los datos que guardes se usarán para generar tus próximos CV.</p>
+          <label>Tipo de información<select name="type"><option value="experiences">Nueva experiencia</option><option value="courses">Nuevo curso</option><option value="education">Nueva educación</option><option value="projects">Nuevo proyecto</option><option value="references">Nueva referencia</option></select></label>
+          <label data-information-types="experiences courses education projects">Título o nombre<input name="title" maxlength="200" required></label>
+          <div data-information-types="references" hidden>
+            <label>Nombre de la referencia<input name="name" maxlength="200" required disabled></label>
+            <label>Cargo o relación profesional<input name="role" maxlength="200" required disabled></label>
+            <label>Teléfono<input name="phone" type="tel" maxlength="100" required disabled></label>
+          </div>
+          <div data-information-types="experiences">
+            <label>Empresa o empleador<input name="employer" maxlength="200" required></label>
+            <label>Área o sector<input name="category" maxlength="200" placeholder="Por ejemplo: cocina, administración" required></label>
+            <label>Fecha de inicio<input name="start_date" maxlength="100" placeholder="Por ejemplo: enero de 2024"></label>
+            <label>Fecha de finalización<input name="end_date" maxlength="100" placeholder="Por ejemplo: actualidad"></label>
+            <div data-repeater="responsibilities" aria-describedby="responsibilities-help"></div>
+            <p id="responsibilities-help" class="muted">Escribe con tus propias palabras. Al generar el CV, mejoraremos la redacción según el puesto, sin añadir funciones que no hayas indicado.</p>
+          </div>
+          <div data-information-types="courses education" hidden>
+            <label>Institución<input name="institution" maxlength="200" required disabled></label>
+            <label>Fecha o período<input name="date" maxlength="100" disabled></label>
+          </div>
+          <div data-information-types="projects" hidden>
+            <label>Descripción del proyecto<textarea name="description" maxlength="3000" rows="4" required disabled></textarea></label>
+            <div data-repeater="technologies"></div>
+            <label>Enlace del proyecto · opcional<input name="url" type="url" maxlength="1000" disabled></label>
+          </div>
+          <div class="new-information-actions"><button id="save-information" class="button button-primary" type="submit">Guardar en mi banco</button><button id="cancel-information" class="button button-secondary" type="button">Cerrar</button></div>
+          <p id="information-error" class="error-message" role="alert" hidden></p>
+        </form>
+        <p id="information-status" role="status"></p>
+        <div id="profile-tree" class="profile-tree" aria-live="polite"></div>
+        <div class="profile-actions">
+          <button id="save-profile" class="button button-primary" type="button" disabled>Guardar cambios</button>
+          <button id="discard-profile" class="button button-secondary" type="button" disabled>Descartar cambios</button>
+        </div>
+        <div id="profile-error" class="error-message" role="alert" hidden></div>
+        <section class="knowledge-section" aria-labelledby="knowledge-title">
+          <div class="knowledge-heading">
+            <div>
+              <div class="eyebrow">HISTORIAL DOCUMENTAL</div>
+              <h3 id="knowledge-title">Mapa de conocimiento profesional</h3>
+            </div>
+            <span id="knowledge-status" class="step-number" role="status">Cargando mapa…</span>
+          </div>
+          <p class="panel-lead">Registra documentos históricos y conserva sus revisiones. Cada fragmento queda como evidencia pendiente; solo el banco maestro puede aportar hechos a un CV.</p>
+          <div id="knowledge-local-controls">
+            <label class="field-label" for="knowledge-files">Documentos históricos</label>
+            <input id="knowledge-files" type="file" accept=".pdf,.docx,.txt" multiple>
+            <p class="microcopy">PDF, DOCX o TXT · hasta 10 MB por archivo · procesamiento local. Los documentos no se envían a la IA.</p>
+            <button id="update-knowledge-map" class="button button-secondary" type="button">Actualizar mapa</button>
+          </div>
+          <p id="knowledge-local-note" class="profile-locked" hidden>En la versión en línea, los documentos se incorporan desde Banco de Datos en Drive. Usa Sincronizar banco para ver los nuevos datos.</p>
+          <p id="knowledge-sync-summary" class="profile-locked" role="status"></p>
+          <div id="knowledge-results" class="knowledge-results" aria-live="polite"></div>
+          <div id="knowledge-error" class="error-message" role="alert" hidden></div>
+        </section>
+      </section>
+
+      <section class="panel" id="job-panel">
+        <div class="panel-heading">
+          <div><div class="eyebrow">PASO 1</div><h2>Cuéntame sobre la oportunidad</h2></div>
+          <span class="step-number">1 / 3</span>
+        </div>
+        <label class="field-label" for="job-text">Descripción del puesto</label>
+        <textarea id="job-text" rows="9" placeholder="Pega aquí el texto de la vacante, el puesto, las funciones y los requisitos…"></textarea>
+        <button id="remove-job-text" class="remove-job-file remove-job-text" type="button" disabled><span aria-hidden="true">×</span> Quitar texto</button>
+        <div class="upload-row">
+          <label class="file-picker" for="job-file"><span aria-hidden="true">＋</span> Adjuntar PDF, Word, imagen o texto</label>
+          <input id="job-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp">
+          <button id="remove-job-file" class="remove-job-file" type="button" hidden><span aria-hidden="true">×</span> Quitar archivo</button>
+          <span id="file-name" class="file-name" role="status">También puedes pegar el texto directamente.</span>
+        </div>
+        <div class="model-row">
+          <label class="field-label" for="model-select">Modelo de IA</label>
+          <select id="model-select"><option value="">Buscando modelos Ollama…</option></select>
+          <span id="model-help" class="microcopy">La app seleccionará el modelo disponible.</span>
+        </div>
+        <div class="privacy-note"><span class="lock-icon">⌑</span><span id="privacy-note"><b>Privacidad.</b> El historial de postulaciones se guarda en tu Drive.</span></div>
+        <button id="analyze-button" class="button button-primary" type="button" disabled>Analizar vacante <span aria-hidden="true">→</span></button>
+        <section id="vacancy-choice" class="analysis-card" aria-labelledby="vacancy-choice-title" hidden>
+          <h3 id="vacancy-choice-title">¿A qué vacante quieres aplicar?</h3>
+          <p>El anuncio incluye varios puestos. Elige uno para adaptar tu CV exclusivamente a esa oportunidad.</p>
+          <div id="vacancy-choice-options" class="vacancy-choice-options"></div>
+        </section>
+        <div id="app-error" class="error-message" role="alert" hidden></div>
+      </section>
+
+      <section class="panel results-panel" id="analysis-panel" hidden>
+        <div class="panel-heading">
+          <div><div class="eyebrow">PASO 2</div><h2 id="job-title">Análisis de la oportunidad</h2></div>
+          <button class="text-button" id="back-to-job" type="button">← Cambiar vacante</button>
+        </div>
+        <p class="panel-lead">Revisa el análisis y la evidencia antes de crear el CV.</p>
+        <div id="vacancy-summary" class="vacancy-summary"></div>
+        <div id="vacancy-details" class="vacancy-details"></div>
+        <div class="analysis-grid">
+          <article class="analysis-card">
+            <h3>Qué busca la empresa</h3>
+            <p id="ideal-candidate"></p>
+          </article>
+          <article class="analysis-card">
+            <h3>Palabras clave</h3>
+            <div id="keywords" class="tag-list"></div>
+          </article>
+        </div>
+        <div class="evidence-section">
+          <h3>Cruce entre requisitos y evidencia</h3>
+          <div id="evidence-list" class="evidence-list"></div>
+        </div>
+        <div id="gap-box" class="gap-box" hidden></div>
+        <div class="strategy-row"><span class="template-chip" id="template-name"></span><span id="template-reason"></span></div>
+        <button id="create-button" class="button button-primary" type="button">Crear y enviar mi CV <span aria-hidden="true">→</span></button>
+      </section>
+
+      <section class="panel results-panel" id="cv-panel" hidden>
+        <div class="panel-heading">
+          <div><div class="eyebrow">PASO 3</div><h2 id="draft-title">Tu CV personalizado</h2></div>
+          <button class="text-button" id="back-to-analysis" type="button">← Volver al análisis</button>
+        </div>
+        <div class="success-banner"><span>✓</span><span id="template-confirmation">El CV se adapta a la vacante y se archiva en la carpeta «CV generados». Revisa las fechas laborales antes de postular: no constan en las fuentes.</span></div>
+        <div id="draft-preview" class="draft-preview"></div>
+        <div class="download-row">
+          <button id="download-pdf" class="button button-primary" type="button">Descargar PDF</button>
+          <button id="download-docx" class="button button-secondary" type="button">Descargar Word</button>
+        </div>
+        <p id="drive-saved" role="status" hidden></p>
+        <section class="application-send" aria-labelledby="send-title">
+          <div class="eyebrow">TU PRÓXIMO PASO</div>
+          <h3 id="send-title">Postular a esta vacante</h3>
+          <p>Al crear tu CV, Gmail envía automáticamente el mensaje y el PDF adjunto al primer correo detectado en la vacante. WhatsApp abre el chat para que adjuntes el PDF y completes el envío.</p>
+          <div class="send-fields">
+            <label class="field-label">Correo de la vacante<input id="application-email" type="email" readonly placeholder="Correo no indicado en el anuncio"></label>
+            <label class="field-label">WhatsApp de la vacante<input id="application-phone" type="tel" placeholder="Número con código de país, ej. +1 809…"></label>
+          </div>
+          <p id="application-contacts" class="microcopy"></p>
+          <label class="field-label">Asunto<input id="application-subject" type="text" readonly></label>
+          <label class="field-label">Mensaje para Gmail<textarea id="application-message" rows="5" maxlength="5000" readonly></textarea></label>
+          <div class="download-row">
+            <button id="send-whatsapp" class="button button-secondary" type="button">◉ Abrir WhatsApp</button>
+          </div>
+          <p id="application-send-status" role="status"></p>
+        </section>
+        <div id="cv-error" class="error-message" role="alert" hidden></div>
+      </section>
+
+      <section class="panel" id="application-history-panel" aria-labelledby="application-history-title">
+        <details id="application-history-details"><summary><span class="eyebrow">MIS POSTULACIONES</span><h2 id="application-history-title">Historial de env&#237;o</h2><span class="history-expand">Desplegar historial</span><span class="history-collapse">Minimizar historial</span></summary>
+        <p class="panel-lead">Guardado en CV GENERADOS de Drive. Gmail registra el envío confirmado por Google. En WhatsApp, confirma aquí cuando hayas enviado el CV.</p>
+        <button id="refresh-application-history" class="button button-secondary" type="button">Consultar historial en Drive</button>
+        <p id="application-history-status" role="status">Conecta Drive para consultar tus postulaciones.</p>
+        <div id="application-history" class="application-history"></div>
+        </details>
+      </section>
+
+      <footer><span>CV a la medida</span><span>Tu banco personal. Cada vacante, una adaptación.</span></footer>
+    </main>
+    <dialog id="onboarding-dialog" aria-labelledby="onboarding-title">
+      <form id="onboarding-form">
+        <div class="onboarding-header">
+          <div class="eyebrow">TU PRIMER CV</div>
+          <button id="onboarding-close" type="button" aria-label="Cerrar ventana" title="Cerrar ventana">&times;</button>
+        </div>
+        <h2 id="onboarding-title">Consolida tu banco de informaci&#243;n</h2>
+        <p>Completa lo que tengas disponible para comenzar o ampliar tu perfil: todos los campos son opcionales. M&#225;s informaci&#243;n ayuda a crear un CV con mayor peso y credibilidad.</p>
+        <p class="microcopy">Guardaremos tus datos en las cinco carpetas de tu Banco de Datos. Puedes editar o reemplazar esos archivos y seguir agregando documentos, notas e im&#225;genes. Despu&#233;s pulsa Sincronizar todo; la web y tu bot usar&#225;n el banco actualizado.</p>
+        <fieldset><legend>1. Datos personales</legend>
+          <div class="onboarding-grid">
+            <label class="field-label">Nombre completo<input name="name" autocomplete="name" maxlength="500"></label>
+            <label class="field-label">Direcci&#243;n<input name="address" autocomplete="street-address" maxlength="500"></label>
+            <div data-repeater="phones"></div>
+            <label class="field-label">C&#233;dula<input name="national_id" maxlength="500"></label>
+            <label class="field-label">Gmail / correo electr&#243;nico<input name="email" type="email" autocomplete="email" maxlength="500"></label>
+          </div>
+        </fieldset>
+        <fieldset><legend>2. Foto de perfil</legend>
+          <label class="field-label">Foto (JPG, PNG o WebP; hasta 8 MB)<input id="onboarding-photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
+          <img id="onboarding-photo-preview" alt="Vista previa de tu foto" hidden>
+        </fieldset>
+        <fieldset><legend>Hoja de vida de referencia (opcional)</legend>
+          <label class="field-label">Tu CV anterior (PDF o Word .docx; hasta 10 MB)<input id="onboarding-reference-cv" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></label>
+          <button id="onboarding-reference-remove" class="text-button" type="button">Quitar CV de referencia y continuar con mis datos</button>
+          <p class="microcopy">Al subir tu CV, sus datos se leen y rellenan este formulario. Revisa y modifica los campos antes de guardar. El archivo es opcional.</p>
+          <p class="microcopy">Sube una hoja de vida con tus propios datos. La guardaremos en tu Banco de Datos y leeremos su contenido para ampliar tu perfil junto con los datos del formulario. Al terminar, revisa la experiencia, los estudios y los dem&#225;s datos incorporados. Usa un documento legible y sin contrase&#241;a.</p>
+        </fieldset>
+        <fieldset><legend>3. Habilidades</legend>
+          <div data-repeater="skills"></div>
+          <p class="microcopy">Si las dejas vac&#237;as, propondremos habilidades generales seg&#250;n tu experiencia y estudios. Podr&#225;s revisarlas y registrar tus propias habilidades en Conocimiento o aprendizaje.</p>
+        </fieldset>
+        <fieldset><legend>4. Formaci&#243;n acad&#233;mica</legend><div data-repeater="education"></div></fieldset>
+        <fieldset><legend>5. Cursos realizados</legend><div data-repeater="courses"></div></fieldset>
+        <fieldset><legend>6. Experiencias laborales</legend><div data-repeater="experiences"></div><p class="microcopy">Los puestos registrados pueden complementarse con funciones habituales relacionadas.</p></fieldset>
+        <fieldset><legend>7. Proyectos y experiencia pr&#225;ctica</legend><div data-repeater="projects"></div></fieldset>
+        <fieldset><legend>8. Referencias personales</legend><div data-repeater="references"></div></fieldset>
+        <p id="onboarding-status" role="status" aria-live="polite"></p>
+        <p id="onboarding-error" class="error-message" role="alert" hidden></p>
+        <div class="onboarding-actions">
+          <button id="onboarding-save" class="button button-primary" type="submit">Guardar y consolidar mi banco</button>
+          <button id="onboarding-preview-open" class="button button-secondary" type="button">Ver mi hoja de vida</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="onboarding-cv-dialog" aria-labelledby="onboarding-cv-title">
+      <div class="onboarding-header"><h2 id="onboarding-cv-title">Mi hoja de vida</h2><button id="onboarding-preview-close" class="button button-secondary" type="button" aria-label="Cerrar vista previa">Cerrar</button></div>
+      <p class="microcopy">Vista previa con los datos actuales del formulario. Puedes seguir complet&#225;ndolos antes de guardar tu banco.</p>
+      <div id="onboarding-cv-preview" class="draft-preview kitchen-preview"></div>
+      <button id="onboarding-preview-back" class="button button-primary" type="button">Seguir editando</button>
+    </dialog>
+    <div id="loading-overlay" class="loading-overlay" role="dialog" aria-modal="true" aria-labelledby="loading-label" tabindex="-1" hidden>
+      <div class="loading-window">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <h2 id="loading-label" role="status" aria-live="polite" aria-atomic="true">Cargando</h2>
+        <strong id="loading-percent">1%</strong>
+        <progress id="loading-progress" max="100" value="1" aria-label="Etapas completadas"></progress>
+        <p id="loading-detail">Solicitud iniciada</p>
+        <button id="loading-background" class="button button-secondary" type="button" hidden>Continuar en segundo plano</button>
+      </div>
+    </div>
+    <script src="/loading.js" defer></script>
+    <script src="/background.js" defer></script>
+    <script src="/app-version.js" defer></script>
+    <script src="/drive.js" defer></script>
+    <script src="/gmail.js" defer></script>
+    <script src="/telegram.js" defer></script>
+    <script src="/repeaters.js" defer></script>
+    <script src="/onboarding.js" defer></script>
+    <script src="/app.js" defer></script>
+    <script src="/vendor/leaflet/leaflet.js" defer></script>
+    <script src="/employment.js" defer></script>
+    <script src="/employment-external.js" defer></script>
+  </body>
+</html>

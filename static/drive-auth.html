@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Conectar Google Drive</title><link rel="stylesheet" href="/styles.css"></head>
+<body><main class="shell"><section class="panel">
+  <h1>Conectar Google Drive</h1>
+  <p>Autoriza la misma cuenta de Google con la que iniciaste sesión. La aplicación conectará su Banco de Datos y guardará los CV en su carpeta CV Generados.</p>
+  <button id="authorize" class="button button-primary" disabled>Autorizar Google Drive</button>
+  <p id="oauth-status" role="status">Cargando autorización…</p>
+</section></main><script src="https://accounts.google.com/gsi/client" defer></script><script src="/drive-auth.js" defer></script></body>
+</html>

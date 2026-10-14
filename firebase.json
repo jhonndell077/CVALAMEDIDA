@@ -1,0 +1,110 @@
+{
+  "functions": {
+    "source": ".",
+    "codebase": "default",
+    "runtime": "python313",
+    "predeploy": [
+      "python generate_manifest.py"
+    ],
+    "ignore": [
+      ".git",
+      ".venv",
+      "venv",
+      "node_modules",
+      "package.json",
+      "package-lock.json",
+      "__pycache__",
+      "firebase-debug.log",
+      "tests",
+      "tmp",
+      "auditoria",
+      "*.pdf",
+      "*.docx",
+      "data/knowledge_map.json",
+      "gha-creds-*.json",
+      ".github",
+      "scripts",
+      "Deploy.ps1"
+    ]
+  },
+  "hosting": [
+    {
+      "predeploy": [
+        "python generate_version.py"
+      ],
+      "public": "static",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/telegram/**",
+          "function": {
+            "functionId": "api",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/**",
+          "function": {
+            "functionId": "api",
+            "region": "us-central1"
+          }
+        }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-store"
+            }
+          ]
+        }
+      ],
+      "site": "cv-a-la-medida-jhonn"
+    },
+    {
+      "predeploy": [
+        "python generate_version.py"
+      ],
+      "public": "static",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/telegram/**",
+          "function": {
+            "functionId": "api",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/**",
+          "function": {
+            "functionId": "api",
+            "region": "us-central1"
+          }
+        }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-store"
+            }
+          ]
+        }
+      ],
+      "site": "cvalamedida"
+    }
+  ]
+}

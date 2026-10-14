@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "CV a la medida",
+  "short_name": "CV a la medida",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f5eb",
+  "theme_color": "#315d46",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

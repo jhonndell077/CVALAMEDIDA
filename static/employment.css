@@ -1,0 +1,36 @@
+#employment-panel { scroll-margin-top: 24px; }
+#employment-calendar {max-width:540px; margin:20px 0; padding:16px; border:1px solid var(--line); border-radius:14px;}
+.employment-calendar-navigation {display:flex; align-items:center; justify-content:space-between; gap:12px;}
+.employment-calendar-navigation h3 {text-transform:capitalize; margin:0;}
+.employment-calendar-week, #employment-calendar-days {display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; text-align:center;}
+.employment-calendar-week {font-size:12px; margin:12px 0 6px;}
+.employment-calendar-day, .employment-calendar-navigation button {min-height:44px; border:1px solid var(--line); border-radius:8px; background:white; cursor:pointer; color:var(--green); font:inherit;}
+.employment-calendar-day.has-publications {background:#edf5ee; font-weight:700;}
+.employment-calendar-day[aria-pressed="true"] {background:#315d46; color:white;}
+.employment-calendar-day:focus-visible, .employment-calendar-navigation button:focus-visible {outline:3px solid #518ecb; outline-offset:2px;}
+.employment-search-simple {display:grid; gap:10px; margin:20px 0;}
+.employment-search-simple input {width:100%; padding:14px; border-radius:10px; border:1px solid var(--line); font:inherit;}
+#employment-location-options, #employment-panel > details {margin:20px 0; padding:14px; border:1px solid var(--line); border-radius:12px;}
+#employment-panel > details > summary {cursor:pointer; font-weight:700;}
+#employment-results article {padding:20px; margin:14px 0; border:1px solid var(--line); border-radius:14px;}
+#employment-results details p {white-space:pre-line; overflow-wrap:anywhere;}
+.employment-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:18px 0; }
+.employment-grid label {display:flex; flex-direction:column; gap:6px; font-size:14px;}
+.employment-grid input {width:100%; padding:12px; border:1px solid var(--line); border-radius:10px; font:inherit;}
+.employment-actions {display:flex; flex-wrap:wrap; gap:10px; margin:14px 0;}
+#employment-map {width:100%; height:auto; border:1px solid var(--line); border-radius:16px; background:var(--soft);}
+#employment-marker {cursor:grab; touch-action:none; fill:var(--green); stroke:white; stroke-width:3;}
+#employment-marker:focus {stroke:#d57d21; stroke-width:5; outline:none;}
+#employment-results article, #employment-applications article {padding:16px; margin-top:12px; border:1px solid var(--line); border-radius:12px;}
+#employment-results button, #employment-applications button {display:inline-block; margin:8px; padding:8px;}
+#employment-status {min-height:2em; overflow-wrap:anywhere;}
+#employment-map-live {height:380px; border-radius:14px; border:1px solid var(--line); margin:12px 0; z-index:0;}
+#employment-results .employment-source {display:block; margin:8px 0; color:var(--green);}
+#employment-results .employment-review {display:flex; align-items:start; gap:8px; margin:12px 0; font-size:14px;}
+#employment-results .button {margin:6px 6px 6px 0;}
+@media(max-width:540px) {#employment-map-live {height:300px;}}
+.employment-nav {color:var(--green); font-size:12px; margin:0 12px;}
+@media(max-width:540px) {.employment-grid {grid-template-columns:1fr;} .employment-nav {font-size:10px;} .employment-actions .button {width:100%;}}
+
+#employment-search-form label {display:flex; flex-direction:column; gap:6px; min-width:0;}
+#employment-source {width:100%; max-width:100%; min-width:0;}

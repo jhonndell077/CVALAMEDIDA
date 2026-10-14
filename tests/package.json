@@ -1,0 +1,10 @@
+{
+  "name": "cv-a-la-medida",
+  "private": true,
+  "scripts": {
+    "test": "cd .. && node --test tests/*.test.js tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "linkedom": "0.18.13"
+  }
+}
