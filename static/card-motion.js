@@ -13,8 +13,7 @@
     for(const entry of entries) {
       if(!entry.isIntersecting || entry.target.hidden || active.has(entry.target)) continue;
       const element=entry.target;
-      if(enabled()) animate(element,[{opacity:.1,transform:'translateY(140px) scale(.8) rotate(-3.5deg)'},
-        {opacity:1,transform:'translateY(-18px) scale(1.045) rotate(.8deg)',offset:.75},
+      if(enabled()) animate(element,[{opacity:.75,transform:'translateY(20px) scale(.99)'},
         {opacity:1,transform:'translateY(0) scale(1) rotate(0)'}],{duration:tokens.slow});
       // Keep observing: re-entry while scrolling must remain animated.
     }
@@ -44,19 +43,19 @@
   }
   doc.addEventListener('pointerdown',event=>{
     const button=event.target.closest?.('button');
-    if(button && !button.disabled) animate(button,[{transform:'scale(1)'},{transform:'scale(.9) translateY(3px)'}],{duration:tokens.fast});
+    if(button && !button.disabled) animate(button,[{transform:'scale(1)'},{transform:'scale(.98)'}],{duration:tokens.fast});
   },true);
   doc.addEventListener('click',event=>{
     const button=event.target.closest?.('button');
     if(button && !button.disabled && enabled()) {
-      animate(button,[{transform:'scale(.9)'},{transform:'scale(1.09) translateY(-5px)',offset:.5},{transform:'scale(1)'}],{duration:tokens.slow});
+      animate(button,[{transform:'scale(.98)'},{transform:'scale(1)'}],{duration:tokens.fast});
       const wave=doc.createElement('span');wave.className='cv-button-wave';wave.setAttribute('aria-hidden','true');
       const box=rect(button);
       if(box) {
         const size=Math.max(box.width,box.height)*2;
         Object.assign(wave.style,{width:size+'px',height:size+'px',left:((event.detail && Number.isFinite(event.clientX) ? event.clientX-box.left : box.width/2)-size/2)+'px',top:((event.detail && Number.isFinite(event.clientY) ? event.clientY-box.top : box.height/2)-size/2)+'px'});
         button.append(wave);ghosts.add(wave);
-        const motion=animate(wave,[{transform:'scale(0)',opacity:.65},{transform:'scale(1)',opacity:0}],{duration:tokens.slow});
+        const motion=animate(wave,[{transform:'scale(0)',opacity:.22},{transform:'scale(1)',opacity:0}],{duration:tokens.slow});
         const remove=()=>{wave.remove();ghosts.delete(wave);};
         if(motion)motion.finished.then(remove,remove);else remove();
       }
@@ -118,27 +117,6 @@
     for(const record of records)if(record.type==='attributes' && record.target.tagName==='DIALOG')dialogChanged(record.target);
   });
   scan();observer.observe(doc.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});
-  let lastScroll=root.scrollY || 0, lastPulse=0, scrollFrame=false;
-  root.addEventListener('scroll',()=>{
-    if(scrollFrame || !enabled())return;
-    scrollFrame=true;
-    (root.requestAnimationFrame || (callback=>root.setTimeout(callback,16)))(()=>{
-      scrollFrame=false;
-      const position=root.scrollY || 0, delta=position-lastScroll;lastScroll=position;
-      const now=Date.now();
-      if(!delta || now-lastPulse<220)return;lastPulse=now;
-      const direction=delta>0 ? 1 : -1;
-      for(const panel of doc.querySelectorAll('.shell > .panel,.shell > .hero')) {
-        const box=rect(panel);
-        if(panel.hidden || !box || box.top>=root.innerHeight || box.top+box.height<=0)continue;
-        // Keep editing stable when a text field is focused.
-        if(panel.contains(doc.activeElement) && doc.activeElement?.matches?.('input,textarea,select'))continue;
-        animate(panel,[{transform:'translateY(0) scale(1) rotate(0)'},
-          {transform:`translateY(${-direction*28}px) scale(1.025) rotate(${direction*.7}deg)`,offset:.45},
-          {transform:'translateY(0) scale(1) rotate(0)'}],{duration:220});
-      }
-    });
-  },{passive:true});
   root.addEventListener('resize',clearMotion);
   doc.addEventListener('visibilitychange',()=>{if(doc.hidden)clearMotion();});
   reduced?.addEventListener?.('change',clearMotion);

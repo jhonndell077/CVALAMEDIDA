@@ -45,21 +45,12 @@ test('button feedback is visible without blocking its action and clears the wave
  const click=new qa.window.Event('click',{bubbles:true,cancelable:true});button.dispatchEvent(click);
  assert.equal(actions,1);assert.equal(click.defaultPrevented,false);
  const feedback=qa.animations.find(item=>item.element===button);
- assert.match(feedback.frames[1].transform,/scale\(1\.09\)/);
+ assert.equal(feedback.frames[0].transform,'scale(.98)');
+ assert.equal(feedback.frames[1].transform,'scale(1)');
  assert.equal(button.querySelector('.cv-button-wave').getAttribute('aria-hidden'),'true');
  await new Promise(setImmediate);assert.equal(button.querySelector('.cv-button-wave'),null);
 });
 
-test('scroll feedback repeats in both directions instead of stopping after the first reveal',()=>{
- const qa=setup();const shell=qa.document.createElement('main');shell.className='shell';
- const panel=qa.document.createElement('section');panel.className='panel';shell.append(panel);qa.document.body.append(shell);
- qa.root.innerHeight=800;qa.root.requestAnimationFrame=callback=>callback();
- qa.document.activeElement=qa.document.body;
- qa.root.scrollY=100;qa.listeners.scroll();
- qa.tick();qa.root.scrollY=200;qa.listeners.scroll();
- qa.tick();qa.root.scrollY=80;qa.listeners.scroll();
- const pulses=qa.animations.filter(item=>item.element===panel);
- assert.equal(pulses.length,3);
- assert.match(pulses[0].frames[1].transform,/translateY\(-28px\)/);
- assert.match(pulses[2].frames[1].transform,/translateY\(28px\)/);
+test('scroll no longer starts a continuous bounce loop',()=>{
+ const qa=setup();assert.equal(qa.listeners.scroll,undefined);
 });
