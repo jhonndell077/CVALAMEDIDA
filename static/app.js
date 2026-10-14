@@ -892,6 +892,7 @@ async function updateGoogleUserWork(user) {
   if (changed) {
     window.cvDrive.reset(); window.cvGmail.reset(); window.cvOnboarding?.reset();
     state.analysis = null; state.draft = null; state.pdf = null; state.profile = null; state.profileDraft = null;
+    state.employmentContact=null;
     state.applications = []; state.accountReady = false; state.gmailAttempt = null;
     state.bankSyncPromise = null;
     $('#select-account-folders').hidden = true;
@@ -1115,13 +1116,16 @@ async function analyzeVacancyRequest(payload) {
   }
   throw new Error("El análisis sigue en la cola de procesamiento. Espera unos minutos antes de volver a intentarlo.");
 }
-jobTextInput.addEventListener("input", () => { updateRemoveTextButton(); resetVacancyChoice(); });
+jobTextInput.addEventListener("input", () => { state.employmentContact=null; updateRemoveTextButton(); resetVacancyChoice(); });
 window.addEventListener('cv-employment-vacancy', event => {
   const text=event.detail?.text;
   if (typeof text!=='string' || !text.trim() || text.length>40000) return;
   event.preventDefault();
   state.analysis=null; state.draft=null; state.pdf=null;
   jobTextInput.value=text; fileInput.value='';
+  const contact=event.detail?.contact;
+  state.employmentContact=contact && typeof contact.email==='string' && typeof contact.whatsapp==='string'
+    ? {email:contact.email,whatsapp:contact.whatsapp,text} : null;
   $('#remove-job-file').hidden=true; $('#file-name').textContent='Vacante seleccionada en Empleo Inteligente.';
   resetVacancyChoice(); updateRemoveTextButton();
   jobPanel.hidden=false; analysisPanel.hidden=true; cvPanel.hidden=true; setActiveStep(1);
@@ -1139,6 +1143,7 @@ removeJobTextButton.addEventListener("click", () => {
 updateRemoveTextButton();
 
 fileInput.addEventListener("change", () => {
+  state.employmentContact=null;
   resetVacancyChoice();
   const file = fileInput.files?.[0];
   $("#remove-job-file").hidden = !file;
@@ -1236,6 +1241,12 @@ function handleVacancyResponse(response, payload, revision = 0) {
   choice.hidden = true;
   options.replaceChildren();
   state.analysis = response.analysis;
+  if (state.employmentContact && state.employmentContact.text === jobTextInput.value) {
+    const contact=state.employmentContact;
+    state.analysis.vacancy ||= {};
+    if (contact.email) state.analysis.vacancy.application_emails=[contact.email];
+    if (contact.whatsapp) state.analysis.vacancy.application_whatsapp=[contact.whatsapp];
+  }
   state.model = response.model;
   renderAnalysis(response.analysis);
   jobPanel.hidden = true;

@@ -34,10 +34,17 @@
   const form = $('#employment-location-form'), message = $('#employment-status');
   const field = name => form.elements.namedItem(name);
   const status = text => { message.textContent = text; };
-  function useGenerator(offer) {
+  async function useGenerator(offer, contact) {
+    if (contact === undefined && offer.id) {
+      try {contact=(await request(`offers/${offer.id}/contact`)).contact || {};}
+      catch(error) {searchStatus(error.message); return;}
+    }
+    contact ||= {};
     closeJobResults();
     if (offer.description_verified === false) {
       const external = $('#employment-external-form');
+      external.cvOfferContact=contact;
+      external.cvOfferContactKey={source:offer.source_key,url:offer.url,title:offer.title};
       $('#employment-external-tools').open = true;
       external.elements.namedItem('source').value = offer.source_key;
       external.elements.namedItem('url').value = offer.url;
@@ -50,8 +57,9 @@
       external.elements.namedItem('description').focus();
       return;
     }
-    const text=`${offer.title} · ${offer.company || ''}\n\n${offer.description}`.slice(0,40000);
-    const event=new root.CustomEvent('cv-employment-vacancy',{detail:{text},cancelable:true});
+    const contactText=[contact.email ? `Correo de postulación: ${contact.email}` : '', contact.whatsapp ? `WhatsApp de postulación: ${contact.whatsapp}` : ''].filter(Boolean).join('\n');
+    const text=`${offer.title} · ${offer.company || ''}\n\n${offer.description}`.slice(0,39000)+(contactText ? '\n\n'+contactText : '');
+    const event=new root.CustomEvent('cv-employment-vacancy',{detail:{text,contact},cancelable:true});
     if (root.dispatchEvent(event)) {$('#job-text').value=text; $('#job-text').scrollIntoView({behavior:'smooth'}); $('#job-text').focus();}
   }
   async function request(path, method = 'GET', payload) {
@@ -134,7 +142,7 @@
     currentSearch=null;
     $('#employment-sources').replaceChildren();
     $('#employment-source-filter').value='';
-    closeOfferContact();
+    closeOfferContact(false);
     closeJobResults();
     $('#employment-results-open').hidden=true;
     $('#employment-results-status').textContent='';
@@ -264,7 +272,7 @@
   }
   let latestPublications = null, publicationDay = '', calendarMonth = '';
   let currentSearch = null;
-  let contactOffer = null, contactRevision = 0;
+  let contactOffer = null, contactRevision = 0, returnToResults = false;
   const contactDialog = $('#employment-contact-dialog');
   function resetOfferContact() {
     contactRevision++; contactOffer=null;
@@ -273,15 +281,20 @@
     $('#employment-contact-source').textContent=''; $('#employment-contact-status').textContent='';
     $('#employment-contact-original').hidden=true; $('#employment-contact-original').removeAttribute('href');
     $('#employment-contact-save').disabled=true;
+    $('#employment-contact-adapt').disabled=true;
   }
-  function closeOfferContact() {
-    resetOfferContact();
+  function closeOfferContact(showResults=true) {
+    const restore=showResults && returnToResults && currentSearch;
+    returnToResults=false; resetOfferContact();
     if (contactDialog.open) contactDialog.close();
+    if (restore) openJobResults();
   }
-  contactDialog.addEventListener('close',()=>{if (!contactDialog.open) resetOfferContact();});
-  $('#employment-contact-close').addEventListener('click',closeOfferContact);
+  contactDialog.addEventListener('cancel',event=>{event.preventDefault();closeOfferContact();});
+  contactDialog.addEventListener('close',()=>{if (!contactDialog.open && contactOffer) closeOfferContact();});
+  $('#employment-contact-close').addEventListener('click',()=>closeOfferContact());
   contactDialog.addEventListener('click',event=>{if(event.target===contactDialog) closeOfferContact();});
   async function openOfferContact(offer) {
+    returnToResults=$('#employment-results-dialog').open;
     resetOfferContact(); contactOffer=offer;
     const revision=contactRevision;
     closeJobResults();
@@ -301,22 +314,33 @@
       $('#employment-contact-whatsapp').value=data.contact?.whatsapp || '';
       $('#employment-contact-status').textContent='Añade o actualiza el contacto de esta oferta.';
       $('#employment-contact-save').disabled=false;
+      $('#employment-contact-adapt').disabled=false;
       $('#employment-contact-email').disabled=false; $('#employment-contact-whatsapp').disabled=false;
     } catch(error) {if(revision===contactRevision) $('#employment-contact-status').textContent=error.message;}
   }
-  $('#employment-contact-form').addEventListener('submit',async event=>{
-    event.preventDefault(); if(!contactOffer || $('#employment-contact-save').disabled) return;
+  async function saveOfferContact(adapt=false) {
+    if(!contactOffer || $('#employment-contact-save').disabled) return;
+    if (!$('#employment-contact-form').reportValidity()) return;
     const revision=contactRevision, offer=contactOffer;
-    $('#employment-contact-save').disabled=true;
+    $('#employment-contact-save').disabled=true; $('#employment-contact-adapt').disabled=true;
+    $('#employment-contact-email').disabled=true; $('#employment-contact-whatsapp').disabled=true;
     try {
       const data=await request(`offers/${offer.id}/contact`,'PUT',{
         email:$('#employment-contact-email').value.trim(), whatsapp:$('#employment-contact-whatsapp').value.trim()});
       if(revision!==contactRevision) return;
       $('#employment-contact-email').value=data.contact.email; $('#employment-contact-whatsapp').value=data.contact.whatsapp;
-      $('#employment-contact-status').textContent='Contacto guardado para esta oferta.';
+      $('#employment-contact-status').textContent='Contacto guardado. Puedes adaptar tu CV desde esta ventana.';
+      if (adapt) {closeOfferContact(false); await useGenerator(offer, data.contact);}
     } catch(error) {if(revision===contactRevision) $('#employment-contact-status').textContent=error.message;}
-    finally {if(revision===contactRevision) $('#employment-contact-save').disabled=false;}
-  });
+    finally {
+      if(revision===contactRevision) {
+        $('#employment-contact-save').disabled=false; $('#employment-contact-adapt').disabled=false;
+        $('#employment-contact-email').disabled=false; $('#employment-contact-whatsapp').disabled=false;
+      }
+    }
+  }
+  $('#employment-contact-form').addEventListener('submit',event=>{event.preventDefault();saveOfferContact();});
+  $('#employment-contact-adapt').addEventListener('click',()=>saveOfferContact(true));
   const sourceKey = offer => offer.source_key || offer.source || 'chiripas';
   function filteredSource(data) {
     const selected = $('#employment-source-filter').value;
@@ -433,7 +457,7 @@
             if(offer.source_key==='rdtrabaja' || !trustedPortal(offer.url)) event.preventDefault();
             openOfferContact(offer);
           });
-          const adapt = root.document.createElement('button'); adapt.type = 'button'; adapt.className = 'button button-secondary'; adapt.textContent = offer.description_verified === false ? 'Añadir requisitos y adaptar CV' : 'Adaptar mi CV'; adapt.addEventListener('click',()=>{closeJobResults(); useGenerator(offer);});
+          const adapt = root.document.createElement('button'); adapt.type = 'button'; adapt.className = 'button button-secondary'; adapt.textContent = offer.description_verified === false ? 'Añadir requisitos y adaptar CV' : 'Adaptar mi CV'; adapt.addEventListener('click',()=>useGenerator(offer));
           const contact=root.document.createElement('button'); contact.type='button'; contact.className='button button-secondary'; contact.textContent='Datos de contacto';
           contact.addEventListener('click',()=>openOfferContact(offer));
           card.append(title,company,source,date,description,link,adapt,contact); container.append(card);

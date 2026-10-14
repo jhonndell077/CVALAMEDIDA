@@ -11,10 +11,11 @@ function setup(response,fail=false,handler=null){
  dialog.close=()=>{dialog.open=false;dialog.removeAttribute('open');};
  const contactDialog=document.querySelector('#employment-contact-dialog');
  contactDialog.showModal=()=>{contactDialog.open=true;};contactDialog.close=()=>{contactDialog.open=false;};
+ document.querySelector('#employment-contact-form').reportValidity=()=>true;
  const calls=[],messages=[],adapted=[];
  const context=vm.createContext({URL,root:{document},$:s=>document.querySelector(s),status:text=>messages.push(text),
  request:async(path,method,payload)=>{calls.push({path,method,payload});if(fail)throw Error('Fuente no disponible');return handler ? handler(path,method,payload) : response;},
- useGenerator:offer=>adapted.push(offer),renderApplications:async()=>{}});
+ useGenerator:(offer,contact)=>{adapted.push({...offer,contact});dialog.close();},renderApplications:async()=>{}});
  vm.runInContext(source.slice(source.indexOf('  let latestPublications = null'),source.indexOf("  $('#employment-revoke').addEventListener")),context);
  return {context,window,document,calls,messages,adapted};
 }
@@ -152,8 +153,9 @@ test('brief listings require pasted requirements before the CV generator is invo
  const form=qa.document.querySelector('#employment-external-form');
  const fields=Object.fromEntries(['source','url','title','description'].map(name=>[name,{value:'old',focus(){}}]));
  form.elements={namedItem:name=>fields[name]};form.scrollIntoView=()=>{};
- vm.runInContext(source.slice(source.indexOf('  function useGenerator(offer)'),source.indexOf('  async function request(')),qa.context);
+ vm.runInContext(source.slice(source.indexOf('  async function useGenerator(offer'),source.indexOf('  async function request(')),qa.context);
  qa.document.querySelector('#employment-results button').click();
+ await new Promise(setImmediate);
  assert.equal(fields.source.value,'tuvacanterd');assert.equal(fields.description.value,'');
  assert.equal(fields.url.value,brief.url);assert.equal(fields.title.value,brief.title);
  assert.equal(qa.document.querySelector('#employment-external-tools').open,true);
@@ -202,4 +204,51 @@ test('late contact replies cannot repopulate a dismissed popup',async()=>{
  assert.equal(qa.document.querySelector('#employment-contact-email').value,'');
  assert.equal(qa.document.querySelector('#employment-contact-dialog').open,false);
  assert.equal(qa.document.querySelector('#employment-contact-save').disabled,true);
+});
+
+test('closing contact restores the same search and date without another query',async()=>{
+ const qa=setup({national:true,offers:[offer]});await qa.context.searchJobs(true);
+ const day=[...qa.document.querySelectorAll('#employment-calendar-days button')].find(button=>button.textContent==='13 · 1');day.click();
+ await qa.context.openOfferContact(offer);
+ qa.document.querySelector('#employment-contact-close').click();
+ assert.equal(qa.document.querySelector('#employment-results-dialog').open,true);
+ assert.equal(qa.document.querySelector('#employment-contact-dialog').open,false);
+ assert.equal(qa.document.querySelector('[aria-pressed="true"]').textContent,'13 · 1');
+ assert.equal(qa.calls.filter(call=>call.path==='search').length,1);
+});
+
+test('adapt from contact saves before generation and passes normalized contact for the selected job',async()=>{
+ const qa=setup({national:true,offers:[offer]},false,(path,method)=>path==='search' ? {national:true,offers:[offer]} : {contact:method==='PUT' ? {email:'recruiter@example.invalid',whatsapp:'+18095550123'} : {email:'',whatsapp:''}});
+ await qa.context.searchJobs(true);await qa.context.openOfferContact(offer);
+ qa.document.querySelector('#employment-contact-email').value='recruiter@example.invalid';
+ qa.document.querySelector('#employment-contact-whatsapp').value='8095550123';
+ qa.document.querySelector('#employment-contact-adapt').click();await new Promise(setImmediate);
+ assert.equal(qa.calls.at(-1).method,'PUT');assert.equal(qa.calls.at(-1).path,'offers/fixture/contact');
+ assert.equal(qa.adapted.length,1);assert.equal(qa.adapted[0].id,offer.id);
+ assert.equal(qa.adapted[0].contact.whatsapp,'+18095550123');
+ assert.equal(qa.document.querySelector('#employment-results-dialog').open,false);
+ assert.equal(qa.document.querySelector('#employment-contact-dialog').open,false);
+});
+
+test('save failure preserves contact input and blocks generation',async()=>{
+ const qa=setup({national:true,offers:[offer]},false,(path,method)=>{if(method==='PUT')throw Error('No se pudo guardar');return path==='search' ? {national:true,offers:[offer]} : {contact:{email:'',whatsapp:''}};});
+ await qa.context.searchJobs(true);await qa.context.openOfferContact(offer);
+ qa.document.querySelector('#employment-contact-email').value='recruiter@example.invalid';
+ qa.document.querySelector('#employment-contact-adapt').click();await new Promise(setImmediate);
+ assert.equal(qa.adapted.length,0);assert.equal(qa.document.querySelector('#employment-contact-dialog').open,true);
+ assert.equal(qa.document.querySelector('#employment-contact-email').value,'recruiter@example.invalid');
+ assert.equal(qa.document.querySelector('#employment-contact-adapt').disabled,false);
+});
+
+test('adaptation from a result retrieves saved contact and includes it in the analysis text',async()=>{
+ const contact={email:'recruiter@example.invalid',whatsapp:'+18095550123'};
+ const qa=setup({national:true,offers:[offer]},false,path=>path==='search' ? {national:true,offers:[offer]} : {contact});
+ let detail;
+ qa.context.root.CustomEvent=qa.window.CustomEvent;qa.context.root.dispatchEvent=event=>{detail=event.detail;return false;};
+ vm.runInContext(source.slice(source.indexOf('  async function useGenerator(offer'),source.indexOf('  async function request(')),qa.context);
+ await qa.context.searchJobs();
+ await qa.context.useGenerator(offer);
+ assert.equal(qa.calls.at(-1).path,'offers/fixture/contact');
+ assert.equal(detail.contact.email,contact.email);assert.match(detail.text,/Correo de postulación: recruiter@example.invalid/);
+ assert.match(detail.text,/WhatsApp de postulación: \+18095550123/);
 });

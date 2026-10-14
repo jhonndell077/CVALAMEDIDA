@@ -88,7 +88,10 @@
               <label for="employment-contact-whatsapp">WhatsApp del reclutador o empresa</label>
               <input id="employment-contact-whatsapp" type="tel" maxlength="30" placeholder="Ejemplo: +1 809 555 0123" autocomplete="off">
               <p class="microcopy">Se guardan para esta oferta en tu cuenta. Puedes guardar uno o ambos. Para eliminar los datos, vacía los campos y guarda.</p>
-              <button id="employment-contact-save" type="submit" class="button button-primary" disabled>Guardar contacto</button>
+              <div class="employment-actions">
+                <button id="employment-contact-save" type="submit" class="button button-secondary" disabled>Guardar contacto</button>
+                <button id="employment-contact-adapt" type="button" class="button button-primary" disabled>Adaptar mi CV</button>
+              </div>
             </form>
             <p id="employment-contact-status" role="status" aria-live="polite"></p>
           </div>

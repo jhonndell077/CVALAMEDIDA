@@ -43,3 +43,21 @@ test('editing the announcement discards stale selection responses',()=>{
   assert.equal($('#vacancy-choice').hidden,true);
   assert.equal(context.rendered,undefined);
 });
+
+test('saved contact overrides model guesses before creating and sending the CV',()=>{
+ const {context}=setup();
+ context.jobTextInput={value:'Vacante con contacto'};
+ context.state.employmentContact={text:'Vacante con contacto',email:'recruiter@example.invalid',whatsapp:'+18095550123'};
+ context.handleVacancyResponse({analysis:{vacancy:{position:'Cajero',application_emails:['wrong@example.invalid'],application_whatsapp:[]}},model:'test'},{text:'Vacante con contacto'});
+ assert.equal(context.state.analysis.vacancy.application_emails[0],'recruiter@example.invalid');
+ assert.equal(context.state.analysis.vacancy.application_whatsapp[0],'+18095550123');
+ assert.equal(context.rendered.vacancy.application_emails[0],'recruiter@example.invalid');
+});
+
+test('a contact from another announcement never overrides its recipients',()=>{
+ const {context}=setup();context.jobTextInput={value:'Otra vacante'};
+ context.state.employmentContact={text:'Vacante anterior',email:'old@example.invalid',whatsapp:'+18095550123'};
+ context.handleVacancyResponse({analysis:{vacancy:{position:'Chef',application_emails:['chef@example.invalid']}},model:'test'},{text:'Otra vacante'});
+ assert.equal(context.state.analysis.vacancy.application_emails[0],'chef@example.invalid');
+ assert.equal(context.state.analysis.vacancy.application_whatsapp,undefined);
+});

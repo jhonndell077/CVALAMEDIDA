@@ -47,6 +47,14 @@ fixtures locales y no consultan Firebase ni portales reales.
 Los enlaces individuales de Chiripas, TuEmpleoRD y TuVacanteRD abren el anuncio
 original en otra pestaña y muestran una ventana de contacto en CV a la medida.
 También hay un botón Datos de contacto para editar sin abrir el portal.
+La ventana incluye Guardar contacto y Adaptar mi CV. Adaptar guarda primero el
+contacto; si el guardado falla, mantiene la ventana y no inicia la generación.
+Cerrar o pulsar Escape vuelve a los mismos resultados y conserva la fecha y el
+filtro, sin volver a consultar las fuentes. Guardar conserva la ventana abierta.
+El contacto guardado acompaña la vacante al análisis y tiene prioridad sobre los
+contactos detectados por el modelo al preparar la generación y los destinatarios
+de la postulación. Elegir otra vacante, editar el anuncio, cambiar el archivo o
+cambiar de cuenta descarta esa asociación para evitar destinatarios cruzados.
 RD Trabaja muestra el anuncio exacto seleccionado dentro de esa ventana y
 ofrece, por separado, el enlace original de búsqueda por cargo.
 

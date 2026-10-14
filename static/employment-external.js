@@ -31,6 +31,7 @@
   const original = root.document.querySelector('#employment-external-original');
   root.addEventListener('cv-employment-session', () => {
     for (const name of ['url', 'title', 'description']) field(name).value = '';
+    form.cvOfferContact=null; form.cvOfferContactKey=null;
     original.hidden = true; original.removeAttribute('href');
     status.textContent = 'Sesión actualizada. Introduce una vacante para adaptar tu CV.';
   });
@@ -39,7 +40,9 @@
     event.preventDefault();
     try {
       const selected = vacancy(field('source').value, field('url').value, field('title').value, field('description').value);
-      root.dispatchEvent(new root.CustomEvent('cv-employment-vacancy', {detail: {text: selected.text}, cancelable: true}));
+      const key=form.cvOfferContactKey;
+      const contact=key && key.source===field('source').value && key.url===field('url').value && key.title===field('title').value ? form.cvOfferContact : null;
+      root.dispatchEvent(new root.CustomEvent('cv-employment-vacancy', {detail: {text: selected.text, contact}, cancelable: true}));
       original.href = selected.url; original.hidden = false;
       status.textContent = 'Descripción preparada en el generador. Genera y revisa el CV antes de abrir la vacante. Distancia sin verificar; país y requisitos deben revisarse en el portal. No se ha enviado una candidatura.';
     } catch (error) {status.textContent = error.message;}
