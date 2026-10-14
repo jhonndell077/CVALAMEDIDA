@@ -54,3 +54,14 @@ test('button feedback is visible without blocking its action and clears the wave
 test('scroll no longer starts a continuous bounce loop',()=>{
  const qa=setup();assert.equal(qa.listeners.scroll,undefined);
 });
+
+test('galaxy decorates dynamic buttons and restores decoration after label updates without duplicates',()=>{
+ const qa=setup(),button=qa.document.querySelector('#open');
+ assert.equal(button.textContent,'Abrir');
+ assert.equal(button.querySelector('.cv-galaxy-decoration').getAttribute('aria-hidden'),'true');
+ qa.mutate();assert.equal(button.querySelectorAll('.cv-galaxy-decoration').length,1);
+ button.textContent='Guardando';qa.mutate();
+ assert.equal(button.textContent,'Guardando');assert.equal(button.querySelectorAll('.cv-galaxy-decoration').length,1);
+ const added=qa.document.createElement('button');added.textContent='Adaptar mi CV';qa.dialog.append(added);qa.mutate();
+ assert.ok(added.classList.contains('cv-galaxy-button'));assert.equal(added.textContent,'Adaptar mi CV');
+});

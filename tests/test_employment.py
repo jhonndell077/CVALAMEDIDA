@@ -206,9 +206,12 @@ class ServiceTests(unittest.TestCase):
         self.store.write(key('alice'),state,generation)
         with self.assertRaises(geo.PolicyError): self.service.approve_simulation('alice',item['id'],True)
 
-    def test_search_consumption_limited(self):
-        for _ in range(30): self.search()
-        with self.assertRaisesRegex(geo.PolicyError,'30 búsquedas'): self.search()
+    def test_search_has_no_daily_quota_even_with_previous_exhausted_counter(self):
+        state,generation=self.service.read('alice')
+        state.update(search_date=datetime.now(timezone.utc).date().isoformat(),search_count=1000)
+        self.store.write(key('alice'),state,generation)
+        for _ in range(35): self.search()
+        self.assertEqual(self.service.read('alice')[0]['search_count'],1000)
 
     def test_reprepare_after_location_change(self):
         item=self.pending()

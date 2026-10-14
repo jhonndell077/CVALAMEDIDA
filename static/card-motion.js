@@ -79,6 +79,26 @@
     });
   }
   function scan() {
+    for(const button of doc.querySelectorAll('button')) {
+      if(button.querySelector(':scope > .cv-galaxy-decoration'))continue;
+      button.classList.add('cv-galaxy-button');
+      const decoration=doc.createElement('span');
+      decoration.className='cv-galaxy-decoration';decoration.setAttribute('aria-hidden','true');
+      const spark=doc.createElement('span');spark.className='cv-galaxy-spark';decoration.append(spark);
+      const backdrop=doc.createElement('span');backdrop.className='cv-galaxy-backdrop';decoration.append(backdrop);
+      const ring=doc.createElement('span');ring.className='cv-galaxy-ring';
+      for(let index=0;index<20;index++) {
+        const star=doc.createElement('span');star.className='cv-galaxy-star';
+        star.style.setProperty('--angle',`${Math.floor(Math.random()*360)}deg`);
+        star.style.setProperty('--duration',`${6+Math.floor(Math.random()*15)}s`);
+        star.style.setProperty('--delay',`${-1-Math.floor(Math.random()*10)}s`);
+        star.style.setProperty('--alpha',String(.4+Math.random()*.5));
+        star.style.setProperty('--size',`${2+Math.floor(Math.random()*3)}px`);
+        star.style.setProperty('--distance',`${12+Math.floor(Math.random()*65)}px`);
+        ring.append(star);
+      }
+      decoration.append(ring);button.append(decoration);
+    }
     for(const panel of doc.querySelectorAll('.shell > .panel,.shell > .hero')) {
       if(revealed.has(panel))continue;revealed.add(panel);revealObserver?.observe(panel);
     }

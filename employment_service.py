@@ -88,16 +88,6 @@ class Employment:
             raise geo.PolicyError('Confirma tu ubicación antes de buscar.')
         if self.provider is None:
             raise geo.PolicyError('No hay una fuente de vacantes autorizada configurada.')
-        today = datetime.now(timezone.utc).date().isoformat()
-        revision = state['revision']
-        def reserve(current):
-            if current['revision'] != revision:
-                raise geo.PolicyError('La ubicación cambió. Repite la búsqueda.')
-            count = current.get('search_count',0) if current.get('search_date') == today else 0
-            if count >= 30:
-                raise geo.PolicyError('Límite diario de 30 búsquedas alcanzado.')
-            current.update(search_date=today,search_count=count+1)
-        self.mutate(uid,reserve)  # Failed calls consume a slot; repeated timeouts cannot bypass the cap.
         # Provider owns terms compliance, timeouts, provenance, coordinates and filters.
         provider=self.provider.for_source(source) if hasattr(self.provider,'for_source') else self.provider
         offers = provider.search(query, state['location'])
