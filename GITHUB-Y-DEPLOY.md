@@ -6,7 +6,7 @@ Repositorio privado: https://github.com/jhonndell077/CVALAMEDIDA
 
 Inicia sesión en GitHub, abre el repositorio y edita el archivo que quieras. Guarda el cambio con un commit en `main`. También puedes usar un cliente Git móvil para hacer `git push origin main`.
 
-Cada push normal a `main` ejecuta **Actions → Deploy CVALAMEDIDA**: verifica el frontend y pruebas locales del backend, y publica todas las funciones y los dos sitios Hosting. Si una prueba falla, no publica. Puedes ver el resultado en Actions. Pushes a otras ramas no publican producción.
+El workflow está preparado para verificar el frontend y pruebas locales del backend, y publicar todas las funciones y los dos sitios Hosting desde el runner de este PC. Actualmente está desactivado: GitHub bloquea el inicio de los trabajos por facturación, incluso cuando el runner propio aparece conectado. Por ahora un push no publica automáticamente.
 
 ## Deploy directo desde este equipo
 
@@ -24,4 +24,6 @@ El historial Git anterior sigue conservado en la rama local previa; GitHub comie
 
 ## Runner en este PC
 
-El workflow usa el runner privado `CVALAMEDIDA-PC` con etiqueta `cvalamedida`. Se inicia al iniciar sesión en Windows. El PC necesita estar encendido, conectado y con la sesión del usuario abierta. Si está apagado, los pushes esperan hasta que vuelva a estar disponible. Reutiliza Python, Node y Firebase instalados; no instala dependencias globales. Su checkout está separado del proyecto de trabajo y la configuración privada del job se elimina al terminar.
+El runner privado `CVALAMEDIDA-PC`, con etiqueta `cvalamedida`, está instalado y conectado. Se inicia al iniciar sesión en Windows. El PC necesita estar encendido, conectado y con la sesión del usuario abierta. Reutiliza Python, Node y Firebase instalados; no instala dependencias globales. Su checkout está separado del proyecto de trabajo y la configuración privada del job se elimina al terminar. La conexión del runner no elimina el bloqueo de facturación de la cuenta.
+
+Se preparó un ejecutor local alternativo en la carpeta de trabajo de este chat, pero no está activo ni validado mediante un despliegue: la revisión automática de permisos rechazó configurar su arranque persistente. El Deploy directo mediante `Deploy.ps1` y el banco sigue siendo la vía disponible; conserva la sincronización con GitHub. El script incluye un bloqueo Windows para impedir dos ejecuciones simultáneas del script.

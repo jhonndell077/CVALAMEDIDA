@@ -1,4 +1,8 @@
 $ErrorActionPreference = 'Stop'
+$deployMutex = [Threading.Mutex]::new($false, 'Local\CVALAMEDIDA_FIREBASE_DEPLOY')
+$deployOwnsMutex = $false
+try { $deployOwnsMutex = $deployMutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $deployOwnsMutex = $true }
+if (-not $deployOwnsMutex) { $deployMutex.Dispose(); throw 'Ya hay un despliegue de CVALAMEDIDA en ejecución. Espera a que termine.' }
 Push-Location $PSScriptRoot
 try {
     $deployOrigin = git remote get-url origin
@@ -34,4 +38,6 @@ try {
     Write-Host 'Firebase publicado y GitHub sincronizado. No se inicia otro deploy automÃ¡tico.'
 } finally {
     Pop-Location
+    $deployMutex.ReleaseMutex()
+    $deployMutex.Dispose()
 }
