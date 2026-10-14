@@ -4,6 +4,11 @@
   const button = document.querySelector('#data-toggle');
   const panel = document.querySelector('#profile-panel');
   const closeButton = document.querySelector('#data-close');
+  const actions = document.querySelector('#data-actions');
+  const actionsHome = actions.parentNode;
+  const syncButton = document.querySelector('#data-sync');
+  const originalSync = document.querySelector('#sync-bank');
+  const unavailable = document.querySelector('#data-unavailable');
   // Move the original nodes: all listeners, counters and profile state stay intact.
   document.querySelector('#data-content').append(panel);
   let closing = false;
@@ -17,6 +22,7 @@
     return dialog.animate(opening ? frames : frames.slice().reverse(), {duration: 180, easing: 'ease-out'}).finished.catch(() => {});
   }
   function unlock() {
+    actionsHome.append(actions);
     if (!bodyStyle) return;
     Object.assign(document.body.style, bodyStyle);
     bodyStyle = null;
@@ -32,12 +38,14 @@
     closing = false;
   }
   button.addEventListener('click', () => {
-    if (dialog.open || panel.hidden || closing) return;
+    if (closing) return;
+    if (dialog.open) { close(); return; }
     opener = document.activeElement;
     scrollY = window.scrollY;
     bodyStyle = Object.fromEntries(['position', 'top', 'width', 'overflow', 'paddingRight'].map(key => [key, document.body.style[key]]));
     const gutter = window.innerWidth - document.documentElement.clientWidth;
     Object.assign(document.body.style, {position: 'fixed', top: `-${scrollY}px`, width: '100%', overflow: 'hidden', paddingRight: `${gutter}px`});
+    dialog.append(actions); // Keep both controls in the modal's top layer too.
     dialog.showModal(); // Native modal supplies focus containment and inert background.
     button.setAttribute('aria-expanded', 'true');
     closeButton.focus({preventScroll: true});
@@ -69,11 +77,14 @@
     outside = false;
   });
   function availability() {
-    button.hidden = panel.hidden;
-    if (panel.hidden && dialog.open) dialog.close();
+    unavailable.hidden = !panel.hidden;
   }
   new MutationObserver(availability).observe(panel, {attributes: true, attributeFilter: ['hidden']});
   availability();
+  syncButton.addEventListener('click', () => originalSync.click());
+  const syncAvailability = () => { syncButton.disabled = originalSync.disabled; };
+  new MutationObserver(syncAvailability).observe(originalSync, {attributes: true, attributeFilter: ['disabled']});
+  syncAvailability();
   let updateBanner;
   const measureBanner = () => {
     document.documentElement.style.setProperty('--cv-update-height', `${updateBanner?.getBoundingClientRect().height || 0}px`);

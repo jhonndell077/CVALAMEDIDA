@@ -482,10 +482,21 @@
     <script src="/telegram.js" defer></script>
     <script src="/repeaters.js" defer></script>
     <script src="/onboarding.js" defer></script>
-    <button id="data-toggle" class="button button-primary data-toggle" type="button" aria-haspopup="dialog" aria-controls="data-dialog" aria-expanded="false" hidden>Datos</button>
+    <nav id="data-actions" class="floating-data-actions" aria-label="Datos y sincronización">
+      <button id="data-toggle" class="button button-primary data-toggle" type="button" aria-haspopup="dialog" aria-controls="data-dialog" aria-expanded="false">Datos</button>
+      <button id="data-sync" class="button button-secondary data-sync" type="button" aria-label="Sincronizar todo" title="Sincronizar todo">
+        <svg class="cloud-sync-icon" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+          <g class="cloud-sync-arrows" fill="#26984b">
+            <path d="M24 77 A36 36 0 0 1 66 18 M76 23 A36 36 0 0 1 34 82" fill="none" stroke="currentColor" stroke-width="9"/>
+            <path d="M60 5 80 18 60 31Z M40 69 20 82 40 95Z"/>
+          </g>
+          <path d="M33 64h34a12 12 0 0 0 2-24 15 15 0 0 0-27-6 12 12 0 0 0-15 12 10 10 0 0 0 6 18Z" fill="#0784ed"/>
+        </svg>
+      </button>
+    </nav>
     <dialog id="data-dialog" aria-labelledby="data-title" data-own-motion>
       <header class="data-header"><h2 id="data-title">Mis datos</h2><button id="data-close" class="button button-secondary" type="button" aria-label="Cerrar Mis datos" autofocus>Cerrar</button></header>
-      <div id="data-content" class="data-content"></div>
+      <div id="data-content" class="data-content"><p id="data-unavailable" class="data-unavailable" role="status">Tus datos aparecerán aquí al conectar tu banco. Inicia sesión y pulsa el botón de sincronización.</p></div>
     </dialog>
     <script src="/data-panel.js" defer></script>
     <script src="/ui-navigation.js" defer></script>
