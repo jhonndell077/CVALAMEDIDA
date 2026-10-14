@@ -4,14 +4,16 @@ const fs=require('node:fs'),vm=require('node:vm');
 const {parseHTML}=require('linkedom');
 const source=fs.readFileSync('static/employment.js','utf8');
 
-function setup(response,fail=false){
+function setup(response,fail=false,handler=null){
  const {window,document}=parseHTML(fs.readFileSync('static/index.html','utf8'));
  const dialog=document.querySelector('#employment-results-dialog');
  dialog.showModal=()=>{dialog.open=true;dialog.setAttribute('open','');};
  dialog.close=()=>{dialog.open=false;dialog.removeAttribute('open');};
+ const contactDialog=document.querySelector('#employment-contact-dialog');
+ contactDialog.showModal=()=>{contactDialog.open=true;};contactDialog.close=()=>{contactDialog.open=false;};
  const calls=[],messages=[],adapted=[];
  const context=vm.createContext({URL,root:{document},$:s=>document.querySelector(s),status:text=>messages.push(text),
- request:async(path,method,payload)=>{calls.push({path,payload});if(fail)throw Error('Fuente no disponible');return response;},
+ request:async(path,method,payload)=>{calls.push({path,method,payload});if(fail)throw Error('Fuente no disponible');return handler ? handler(path,method,payload) : response;},
  useGenerator:offer=>adapted.push(offer),renderApplications:async()=>{}});
  vm.runInContext(source.slice(source.indexOf('  let latestPublications = null'),source.indexOf("  $('#employment-revoke').addEventListener")),context);
  return {context,window,document,calls,messages,adapted};
@@ -115,7 +117,7 @@ test('unified cards display their own source, filtered calendar and undated offe
  await qa.context.searchJobs(true);
  assert.equal(qa.document.querySelectorAll('#employment-sources .employment-source-row').length,3);
  assert.match(qa.document.querySelector('#employment-results-status').textContent,/Algunas fuentes no respondieron/);
- assert.match(qa.document.querySelectorAll('#employment-results .employment-source')[1].textContent,/Abrir RD Trabaja y buscar el cargo/);
+ assert.match(qa.document.querySelectorAll('#employment-results .employment-source')[1].textContent,/Ver este anuncio y añadir contacto/);
  const select=qa.document.querySelector('#employment-source-filter');
  Object.defineProperty(select,'value',{value:'rdtrabaja',writable:true,configurable:true});
  select.dispatchEvent(new qa.window.Event('change'));
@@ -158,4 +160,46 @@ test('brief listings require pasted requirements before the CV generator is invo
  assert.equal(qa.document.querySelector('#employment-external-original').getAttribute('href'),brief.url);
  assert.equal(qa.document.querySelector('#employment-results-dialog').open,false);
  assert.equal(qa.adapted.length,0);
+});
+
+test('original ad opens normally and contact popup loads and saves the selected vacancy',async()=>{
+ const response={national:true,offers:[offer]};
+ const qa=setup(response,false,(path,method,payload)=>path==='search' ? response : {contact:method==='PUT' ? payload : {email:'jobs@example.invalid',whatsapp:'+18095550123'}});
+ await qa.context.searchJobs(true);
+ const link=qa.document.querySelector('#employment-results .employment-source');
+ const click=new qa.window.Event('click',{cancelable:true});link.dispatchEvent(click);
+ await new Promise(setImmediate);
+ assert.equal(click.defaultPrevented,false);assert.equal(link.getAttribute('href'),offer.url);assert.equal(link.target,'_blank');
+ assert.equal(qa.document.querySelector('#employment-contact-dialog').open,true);
+ assert.equal(qa.document.querySelector('#employment-results-dialog').open,false);
+ assert.equal(qa.document.querySelector('#employment-contact-email').value,'jobs@example.invalid');
+ qa.document.querySelector('#employment-contact-email').value='updated@example.invalid';
+ qa.document.querySelector('#employment-contact-form').dispatchEvent(new qa.window.Event('submit',{cancelable:true}));
+ await new Promise(setImmediate);
+ assert.equal(qa.calls.at(-1).method,'PUT');assert.equal(qa.calls.at(-1).path,'offers/fixture/contact');
+ assert.equal(qa.calls.at(-1).payload.email,'updated@example.invalid');
+ assert.match(qa.document.querySelector('#employment-contact-status').textContent,/Contacto guardado/);
+});
+
+test('RD Trabaja opens the exact selected announcement in the popup, not a generic page',async()=>{
+ const selected={...offer,source_key:'rdtrabaja',source:'RD Trabaja',source_job_id:'81060',url:'https://rdtrabaja.mt.gob.do/#/empleo/buscar-empleo?titulo=Cajero'};
+ const qa=setup({national:true,offers:[selected]});await qa.context.searchJobs(true);
+ const click=new qa.window.Event('click',{cancelable:true});qa.document.querySelector('#employment-results .employment-source').dispatchEvent(click);
+ await new Promise(setImmediate);
+ assert.equal(click.defaultPrevented,true);
+ assert.match(qa.document.querySelector('#employment-contact-source').textContent,/81060/);
+ assert.equal(qa.document.querySelector('#employment-contact-description').textContent,offer.description);
+ assert.equal(qa.document.querySelector('#employment-contact-original').getAttribute('href'),selected.url);
+});
+
+test('late contact replies cannot repopulate a dismissed popup',async()=>{
+ let resolveContact;
+ const qa=setup({national:true,offers:[offer]},false,(path)=>path==='search' ? {national:true,offers:[offer]} : new Promise(resolve=>{resolveContact=resolve;}));
+ await qa.context.searchJobs(true);
+ const pending=qa.context.openOfferContact(offer);
+ qa.document.querySelector('#employment-contact-close').click();
+ resolveContact({contact:{email:'private@example.invalid',whatsapp:''}});await pending;
+ assert.equal(qa.document.querySelector('#employment-contact-email').value,'');
+ assert.equal(qa.document.querySelector('#employment-contact-dialog').open,false);
+ assert.equal(qa.document.querySelector('#employment-contact-save').disabled,true);
 });

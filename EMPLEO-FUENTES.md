@@ -17,8 +17,11 @@ un fallo de consulta como ausencia de vacantes.
 | Computrabajo RD | Búsqueda original con cargo y orden reciente | Acceso directo, sin extracción de ofertas |
 
 RD Trabaja abre el detalle en un modal y no ofrece un enlace individual verificado.
-La tarjeta abre el inicio oficial: las rutas internas devuelven 404 al abrirlas
-directamente. El cargo permanece visible para buscarlo en el portal. Su ID público distingue dos anuncios
+El portal usa rutas con `#`: `https://rdtrabaja.mt.gob.do/#/empleo/buscar-empleo?titulo=...`.
+La ruta sin `#` devuelve 404 al abrirla directamente. La búsqueda original queda
+filtrada por cargo; no es un enlace público al detalle individual. Al pulsar la
+tarjeta de RD Trabaja, CV a la medida muestra el anuncio seleccionado con su ID
+y requisitos dentro de la ventana de contacto. Su ID público distingue dos anuncios
 con el mismo título; no se fusionan por compartir enlace de búsqueda. Sus fechas
 sin offset se interpretan como hora local de RD.
 
@@ -38,6 +41,23 @@ no se usa el resumen como si fuera la descripción completa.
 No se instalan dependencias ni se requieren claves de estos portales. Se conserva
 la autenticación y el límite diario existente del módulo. Las pruebas usan
 fixtures locales y no consultan Firebase ni portales reales.
+
+## Ventana de anuncio y contacto
+
+Los enlaces individuales de Chiripas, TuEmpleoRD y TuVacanteRD abren el anuncio
+original en otra pestaña y muestran una ventana de contacto en CV a la medida.
+También hay un botón Datos de contacto para editar sin abrir el portal.
+RD Trabaja muestra el anuncio exacto seleccionado dentro de esa ventana y
+ofrece, por separado, el enlace original de búsqueda por cargo.
+
+Correo y WhatsApp se guardan en el estado privado de empleo del usuario
+autenticado, asociados al ID de oferta. Las rutas GET/PUT contact requieren la
+misma identidad verificada del módulo y validan pertenencia, correo, teléfono,
+tamaños y campos permitidos. Hasta 100 contactos por cuenta. Guardar ambos
+campos vacíos elimina el registro. No se envían mensajes al guardar.
+
+Cambiar de cuenta o cerrar la ventana descarta las respuestas pendientes del
+formulario. Los contactos no forman parte del caché compartido de los portales.
 
 ## Fuentes primarias revisadas
 

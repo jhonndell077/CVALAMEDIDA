@@ -32,7 +32,8 @@ LIVE = ('chiripas', 'tuempleord', 'rdtrabaja', 'tuvacanterd')
 def portal_url(source, query=''):
     base = SOURCES[source][1]
     # Its server does not serve client-side routes when opened in a new tab.
-    if source == 'rdtrabaja': return base
+    if source == 'rdtrabaja':
+        return base + '#/empleo/buscar-empleo?' + urlencode({'titulo': query}) if query else base
     if not query: return base
     if source == 'aldaba':
         return 'https://www.aldaba.com/buscar.php?' + urlencode({'q': query, 'pais': 'República Dominicana'})
@@ -117,10 +118,10 @@ def parse_rdtrabaja(raw, now=None):
         expiry = iso_date(job.get('fechaVencimiento'))
         if expiry and datetime.fromisoformat(expiry) < now: continue
         # The portal has inline job details, not individual vacancy permalinks.
-        url = portal_url('rdtrabaja')
+        url = portal_url('rdtrabaja', title)
         jobs.append(offer('rdtrabaja', url, title, description,
                           source_job_id=str(job['id']), published_at=iso_date(job.get('fechaPublicacion')),
-                          expires_at=expiry, source_link_home=True))
+                          expires_at=expiry, source_link_search=True))
     return jobs, data.get('pageCount', 1) > 1
 
 
@@ -201,7 +202,7 @@ class UnifiedDominicanJobs(DominicanJobs):
 
     def _source(self, source, query):
         store = self.store_factory()
-        key = 'employment-unified-v2-' + source + '-' + hashlib.sha256(query.casefold().encode()).hexdigest()[:24]
+        key = 'employment-unified-v3-' + source + '-' + hashlib.sha256(query.casefold().encode()).hexdigest()[:24]
         cached, generation = store.read(key)
         if cached and time.time() - cached.get('at', 0) < TTL: return cached['jobs'], cached['more']
         raw = self.fetch(source, query)

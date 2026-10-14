@@ -72,6 +72,27 @@
         <div id="employment-results" aria-live="polite"></div>
           </div>
         </dialog>
+        <dialog id="employment-contact-dialog" aria-labelledby="employment-contact-title">
+          <div class="employment-results-header">
+            <h2 id="employment-contact-title">Anuncio y contacto</h2>
+            <button id="employment-contact-close" class="button button-secondary" type="button" autofocus>Cerrar ×</button>
+          </div>
+          <div class="employment-results-body">
+            <h3 id="employment-contact-position"></h3>
+            <p id="employment-contact-source"></p>
+            <p id="employment-contact-description"></p>
+            <a id="employment-contact-original" target="_blank" rel="noopener noreferrer" hidden>Abrir anuncio original</a>
+            <form id="employment-contact-form">
+              <label for="employment-contact-email">Correo del reclutador o empresa</label>
+              <input id="employment-contact-email" type="email" maxlength="254" autocomplete="off">
+              <label for="employment-contact-whatsapp">WhatsApp del reclutador o empresa</label>
+              <input id="employment-contact-whatsapp" type="tel" maxlength="30" placeholder="Ejemplo: +1 809 555 0123" autocomplete="off">
+              <p class="microcopy">Se guardan para esta oferta en tu cuenta. Puedes guardar uno o ambos. Para eliminar los datos, vacía los campos y guarda.</p>
+              <button id="employment-contact-save" type="submit" class="button button-primary" disabled>Guardar contacto</button>
+            </form>
+            <p id="employment-contact-status" role="status" aria-live="polite"></p>
+          </div>
+        </dialog>
         <details id="employment-location-options"><summary>Mi ubicación y distancia (opcional)</summary>
         <p>Guarda tu ubicación si quieres usarla para revisar distancias. La búsqueda general incluye República Dominicana completa.</p>
         <button class="button button-secondary" id="employment-location-button" type="button" disabled>Usar mi ubicación</button>

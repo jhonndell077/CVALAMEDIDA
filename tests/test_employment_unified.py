@@ -97,7 +97,7 @@ class UnifiedTests(unittest.TestCase):
         self.assertEqual(parse_rdtrabaja(json.dumps(data).encode())[0], [])
         jobs, more = parse_rdtrabaja(RD, datetime(2026,10,14,tzinfo=timezone.utc))
         self.assertTrue(more); self.assertEqual(jobs[0]['published_at'], '2026-10-14T12:00:00+00:00')
-        self.assertTrue(jobs[0]['source_link_home'])
+        self.assertTrue(jobs[0]['source_link_search'])
 
     def test_tuvacante_summaries_do_not_invent_dates_or_requirements(self):
         job = parse_tuvacanterd(VACANTE)[0]
@@ -111,11 +111,12 @@ class UnifiedTests(unittest.TestCase):
         self.assertEqual(parse_qs(url.query)['q'], ['Cajero & administrador'])
         self.assertEqual(parse_qs(url.query)['pais'], ['República Dominicana'])
         self.assertIn('trabajo-de-tecnico-electrico', portal_url('computrabajo', 'Técnico eléctrico'))
-        self.assertEqual(portal_url('rdtrabaja', 'Cajero'), 'https://rdtrabaja.mt.gob.do/')
+        self.assertEqual(portal_url('rdtrabaja', 'Cajero'), 'https://rdtrabaja.mt.gob.do/#/empleo/buscar-empleo?titulo=Cajero')
 
     def test_legacy_rd_links_are_normalized_without_rewriting_other_portals(self):
         self.assertEqual(canonical('https://rdtrabaja.mt.gob.do/empleo/buscar-empleo?titulo=PISCINERO'),
-                         'https://rdtrabaja.mt.gob.do/')
+                         'https://rdtrabaja.mt.gob.do/#/empleo/buscar-empleo?titulo=PISCINERO')
+        self.assertEqual(canonical('https://rdtrabaja.mt.gob.do/#/empleo/buscar-empleo?titulo=Cajero'), portal_url('rdtrabaja','Cajero'))
         self.assertEqual(canonical('https://tuempleord.do/empleo/cajero/'), 'https://tuempleord.do/empleo/cajero/')
 
     def test_http_requests_are_bounded_and_do_not_follow_redirects(self):

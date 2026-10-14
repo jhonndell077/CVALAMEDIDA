@@ -56,6 +56,13 @@ body:has(#employment-results-dialog[open]) {overflow:hidden;}
 .employment-source-row a {color:var(--green); white-space:nowrap;}
 .employment-source-filter {display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:16px 0;}
 #employment-source-filter {padding:10px; font:inherit; max-width:100%; border:1px solid var(--line); border-radius:8px;}
+#employment-contact-dialog {width:min(780px,calc(100% - 24px)); max-height:85dvh; padding:0; border:1px solid var(--line); border-radius:18px; color:var(--ink); background:white; overflow:hidden;}
+#employment-contact-dialog[open] {display:flex; flex-direction:column;}
+#employment-contact-dialog::backdrop {background:#10251c80;}
+body:has(#employment-contact-dialog[open]) {overflow:hidden;}
+#employment-contact-form {display:grid; gap:10px; margin:20px 0;}
+#employment-contact-form input {padding:12px; width:100%; border:1px solid var(--line); border-radius:8px; font:inherit; box-sizing:border-box;}
+#employment-contact-description {white-space:pre-line; overflow-wrap:anywhere; max-height:30dvh; overflow:auto;}
 .employment-source-badge {font-size:13px; color:var(--green); font-weight:700;}
 #employment-results-dialog #employment-calendar {margin:16px auto;}
 @media(max-width:540px) {

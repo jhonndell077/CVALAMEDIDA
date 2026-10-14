@@ -22,7 +22,11 @@ def canonical(url):
     if parts.scheme != 'https' or not parts.hostname or parts.username or parts.password:
         raise geo.PolicyError('La oferta no tiene un enlace HTTPS válido.')
     if parts.netloc.lower() == 'rdtrabaja.mt.gob.do' and parts.path.rstrip('/') == '/empleo/buscar-empleo':
-        return 'https://rdtrabaja.mt.gob.do/'
+        title = dict(parse_qsl(parts.query)).get('titulo', '')
+        return 'https://rdtrabaja.mt.gob.do/#/empleo/buscar-empleo?' + urlencode({'titulo': title}) if title else 'https://rdtrabaja.mt.gob.do/'
+    if parts.netloc.lower() == 'rdtrabaja.mt.gob.do' and parts.fragment.startswith('/empleo/buscar-empleo?'):
+        title = dict(parse_qsl(parts.fragment.split('?', 1)[1])).get('titulo', '')
+        return 'https://rdtrabaja.mt.gob.do/#/empleo/buscar-empleo?' + urlencode({'titulo': title}) if title else 'https://rdtrabaja.mt.gob.do/'
     query = [(k, v) for k, v in parse_qsl(parts.query)
              if not k.startswith('utm_') and k not in ('ref', 'trackingId')]
     return urlunsplit(('https', parts.netloc.lower(), parts.path, urlencode(sorted(query)), ''))
@@ -264,6 +268,37 @@ class Employment:
             cached['description']=description[:40000]; cached['details_loaded']=True
             return cached
         return self.mutate(uid,save)
+
+    def offer_contact(self, uid, offer_id):
+        state, _ = self.read(uid)
+        if offer_id not in state['offers'] and offer_id not in state.get('contacts', {}):
+            raise geo.PolicyError('La vacante no pertenece a tu cuenta.')
+        return {'contact': state.get('contacts', {}).get(offer_id, {'email': '', 'whatsapp': ''})}
+
+    def save_offer_contact(self, uid, offer_id, payload):
+        if not isinstance(payload, dict) or set(payload) != {'email', 'whatsapp'}:
+            raise geo.PolicyError('Datos de contacto inválidos.')
+        email = geo.text(payload['email'], 254)
+        phone = geo.text(payload['whatsapp'], 30)
+        if email and not re.fullmatch(r'[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+', email):
+            raise geo.PolicyError('Introduce un correo válido.')
+        if phone:
+            if not re.fullmatch(r'\+?[0-9 ()-]+', phone): raise geo.PolicyError('Introduce un WhatsApp válido.')
+            digits = re.sub(r'[^0-9]', '', phone)
+            if len(digits) == 10 and digits[:3] in ('809', '829', '849'): digits = '1' + digits
+            if not 10 <= len(digits) <= 15: raise geo.PolicyError('Incluye el código de país en el WhatsApp.')
+            phone = '+' + digits
+        def save(state):
+            contacts = state.setdefault('contacts', {})
+            if offer_id not in state['offers'] and offer_id not in contacts: raise geo.PolicyError('La vacante no pertenece a tu cuenta.')
+            if not email and not phone:
+                contacts.pop(offer_id, None)
+                return {'contact': {'email': '', 'whatsapp': ''}}
+            if offer_id not in contacts and len(contacts) >= 100: raise geo.PolicyError('Límite de 100 contactos por cuenta alcanzado.')
+            record = {'email': email, 'whatsapp': phone, 'updated_at': datetime.now(timezone.utc).isoformat()}
+            contacts[offer_id] = record
+            return {'contact': record}
+        return self.mutate(uid, save)
 
     def confirm_offer_place(self,uid,offer_id,index,confirmed):
         if confirmed is not True or type(index) is not int: raise geo.PolicyError('Confirma el centro de trabajo correcto.')
@@ -508,6 +543,14 @@ def register_routes(core, service=None):
     @core.app.get('/api/employment/offers/<offer_id>/details')
     def offer_detail(offer_id):
         return run(lambda uid:service.offer_detail(uid,offer_id))
+
+    @core.app.get('/api/employment/offers/<offer_id>/contact')
+    def offer_contact(offer_id):
+        return run(lambda uid: service.offer_contact(uid, offer_id))
+
+    @core.app.put('/api/employment/offers/<offer_id>/contact')
+    def save_offer_contact(offer_id):
+        return run(lambda uid: service.save_offer_contact(uid, offer_id, core.request.get_json(silent=True)))
 
     @core.app.post('/api/employment/offers/<offer_id>/location')
     def confirm_offer_place(offer_id):

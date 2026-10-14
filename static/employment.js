@@ -134,6 +134,7 @@
     currentSearch=null;
     $('#employment-sources').replaceChildren();
     $('#employment-source-filter').value='';
+    closeOfferContact();
     closeJobResults();
     $('#employment-results-open').hidden=true;
     $('#employment-results-status').textContent='';
@@ -263,6 +264,59 @@
   }
   let latestPublications = null, publicationDay = '', calendarMonth = '';
   let currentSearch = null;
+  let contactOffer = null, contactRevision = 0;
+  const contactDialog = $('#employment-contact-dialog');
+  function resetOfferContact() {
+    contactRevision++; contactOffer=null;
+    $('#employment-contact-email').value=''; $('#employment-contact-whatsapp').value='';
+    $('#employment-contact-position').textContent=''; $('#employment-contact-description').textContent='';
+    $('#employment-contact-source').textContent=''; $('#employment-contact-status').textContent='';
+    $('#employment-contact-original').hidden=true; $('#employment-contact-original').removeAttribute('href');
+    $('#employment-contact-save').disabled=true;
+  }
+  function closeOfferContact() {
+    resetOfferContact();
+    if (contactDialog.open) contactDialog.close();
+  }
+  contactDialog.addEventListener('close',()=>{if (!contactDialog.open) resetOfferContact();});
+  $('#employment-contact-close').addEventListener('click',closeOfferContact);
+  contactDialog.addEventListener('click',event=>{if(event.target===contactDialog) closeOfferContact();});
+  async function openOfferContact(offer) {
+    resetOfferContact(); contactOffer=offer;
+    const revision=contactRevision;
+    closeJobResults();
+    $('#employment-contact-position').textContent=offer.title;
+    $('#employment-contact-source').textContent=`${offer.source || 'Chiripas'}${offer.source_key==='rdtrabaja' ? ' · anuncio ' + offer.source_job_id : ''}`;
+    $('#employment-contact-description').textContent=offer.description;
+    const link=$('#employment-contact-original');
+    if(trustedPortal(offer.url)) {link.href=offer.url; link.hidden=false;}
+    link.textContent=offer.source_key==='rdtrabaja' ? 'Buscar este cargo en RD Trabaja (portal original)' : 'Abrir este anuncio en su portal original';
+    $('#employment-contact-email').disabled=true; $('#employment-contact-whatsapp').disabled=true;
+    $('#employment-contact-status').textContent='Cargando el contacto guardado…';
+    contactDialog.showModal();
+    try {
+      const data=await request(`offers/${offer.id}/contact`);
+      if(revision!==contactRevision) return;
+      $('#employment-contact-email').value=data.contact?.email || '';
+      $('#employment-contact-whatsapp').value=data.contact?.whatsapp || '';
+      $('#employment-contact-status').textContent='Añade o actualiza el contacto de esta oferta.';
+      $('#employment-contact-save').disabled=false;
+      $('#employment-contact-email').disabled=false; $('#employment-contact-whatsapp').disabled=false;
+    } catch(error) {if(revision===contactRevision) $('#employment-contact-status').textContent=error.message;}
+  }
+  $('#employment-contact-form').addEventListener('submit',async event=>{
+    event.preventDefault(); if(!contactOffer || $('#employment-contact-save').disabled) return;
+    const revision=contactRevision, offer=contactOffer;
+    $('#employment-contact-save').disabled=true;
+    try {
+      const data=await request(`offers/${offer.id}/contact`,'PUT',{
+        email:$('#employment-contact-email').value.trim(), whatsapp:$('#employment-contact-whatsapp').value.trim()});
+      if(revision!==contactRevision) return;
+      $('#employment-contact-email').value=data.contact.email; $('#employment-contact-whatsapp').value=data.contact.whatsapp;
+      $('#employment-contact-status').textContent='Contacto guardado para esta oferta.';
+    } catch(error) {if(revision===contactRevision) $('#employment-contact-status').textContent=error.message;}
+    finally {if(revision===contactRevision) $('#employment-contact-save').disabled=false;}
+  });
   const sourceKey = offer => offer.source_key || offer.source || 'chiripas';
   function filteredSource(data) {
     const selected = $('#employment-source-filter').value;
@@ -372,10 +426,17 @@
           const text = root.document.createElement('p'); text.textContent = offer.description; description.append(summary,text);
           const link = root.document.createElement('a'); link.textContent = `${offer.source_link_search ? 'Buscar esta vacante en' : 'Ver vacante en'} ${offer.source || 'Chiripas'}`;
           if (offer.source_link_home) link.textContent = 'Abrir RD Trabaja y buscar el cargo';
+          if (offer.source_key==='rdtrabaja') link.textContent='Ver este anuncio y añadir contacto';
           if (trustedPortal(offer.url)) link.href = offer.url;
           link.target = '_blank'; link.rel = 'noopener noreferrer'; link.className = 'employment-source';
+          link.addEventListener('click',event=>{
+            if(offer.source_key==='rdtrabaja' || !trustedPortal(offer.url)) event.preventDefault();
+            openOfferContact(offer);
+          });
           const adapt = root.document.createElement('button'); adapt.type = 'button'; adapt.className = 'button button-secondary'; adapt.textContent = offer.description_verified === false ? 'Añadir requisitos y adaptar CV' : 'Adaptar mi CV'; adapt.addEventListener('click',()=>{closeJobResults(); useGenerator(offer);});
-          card.append(title,company,source,date,description,link,adapt); container.append(card);
+          const contact=root.document.createElement('button'); contact.type='button'; contact.className='button button-secondary'; contact.textContent='Datos de contacto';
+          contact.addEventListener('click',()=>openOfferContact(offer));
+          card.append(title,company,source,date,description,link,adapt,contact); container.append(card);
         }
         if (!offers.length) {
           const empty = root.document.createElement('p');
