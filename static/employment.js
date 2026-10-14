@@ -35,6 +35,7 @@
   const field = name => form.elements.namedItem(name);
   const status = text => { message.textContent = text; };
   function useGenerator(offer) {
+    closeJobResults();
     const text=`${offer.title} · ${offer.company || ''}\n\n${offer.description}`.slice(0,40000);
     const event=new root.CustomEvent('cv-employment-vacancy',{detail:{text},cancelable:true});
     if (root.dispatchEvent(event)) {$('#job-text').value=text; $('#job-text').scrollIntoView({behavior:'smooth'}); $('#job-text').focus();}
@@ -116,6 +117,9 @@
     session++; user = nextUser; headers = getHeaders; confirmed = null; populate(null);
     $('#employment-results').replaceChildren(); $('#employment-applications').replaceChildren();
     latestPublications=null; publicationDay=''; calendarMonth='';
+    closeJobResults();
+    $('#employment-results-open').hidden=true;
+    $('#employment-results-status').textContent='';
     if ($('#employment-calendar')) $('#employment-calendar').hidden=true;
     $('#employment-geocode-results').replaceChildren();
     $('#employment-authorization-status').textContent = 'Sin autorización automática.';
@@ -211,6 +215,9 @@
     try {await request('location','DELETE'); confirmed = null; populate(null);
       $('#employment-results').replaceChildren(); $('#employment-applications').replaceChildren();
     latestPublications=null; publicationDay=''; calendarMonth='';
+    closeJobResults();
+    $('#employment-results-open').hidden=true;
+    $('#employment-results-status').textContent='';
     if ($('#employment-calendar')) $('#employment-calendar').hidden=true;
       $('#employment-authorization-status').textContent = 'Sin autorización automática.';
       status('Ubicación eliminada; permisos revocados.');}
@@ -235,6 +242,23 @@
       container.append(card);}
   }
   let latestPublications = null, publicationDay = '', calendarMonth = '';
+  const resultsDialog = $('#employment-results-dialog');
+  function openJobResults() {
+    if (!resultsDialog.open) resultsDialog.showModal();
+    $('#employment-results-open').hidden = false;
+  }
+  function closeJobResults() {
+    if (resultsDialog.open) resultsDialog.close();
+  }
+  function searchStatus(text) {
+    status(text);
+    $('#employment-results-status').textContent = text;
+  }
+  $('#employment-results-close').addEventListener('click', closeJobResults);
+  $('#employment-results-open').addEventListener('click', openJobResults);
+  resultsDialog.addEventListener('click', event => {
+    if (event.target === resultsDialog) closeJobResults();
+  });
   function publicationDate(value) {
     if (!value || !Number.isFinite(new Date(value).getTime())) return '';
     const parts = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Santo_Domingo', year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(value));
@@ -282,13 +306,13 @@
           const summary = root.document.createElement('summary'); summary.textContent = 'Ver descripción y requisitos';
           const text = root.document.createElement('p'); text.textContent = offer.description; description.append(summary,text);
           const link = root.document.createElement('a'); link.textContent = 'Ver vacante en Chiripas'; link.href = offer.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.className = 'employment-source';
-          const adapt = root.document.createElement('button'); adapt.type = 'button'; adapt.className = 'button button-secondary'; adapt.textContent = 'Adaptar mi CV'; adapt.addEventListener('click',()=>useGenerator(offer));
+          const adapt = root.document.createElement('button'); adapt.type = 'button'; adapt.className = 'button button-secondary'; adapt.textContent = 'Adaptar mi CV'; adapt.addEventListener('click',()=>{closeJobResults(); useGenerator(offer);});
           card.append(title,company,date,description,link,adapt); container.append(card);
         }
         if (!offers.length) {
           const empty = root.document.createElement('p'); empty.textContent = latest ? (publicationDay ? `No hay publicaciones disponibles para el ${publicationDay}.` : 'No hay vacantes disponibles en la fuente en este momento.') : `No encontramos vacantes para «${query}». Prueba otro cargo o Ver últimas publicadas.`; container.append(empty);
         }
-        status(`${offers.length} vacantes ${publicationDay && latest ? 'del ' + publicationDay : latest ? 'publicadas recientemente' : 'encontradas'} en RD. Fuente: Chiripas. Revisa la ciudad y disponibilidad en la oferta original.`);
+        searchStatus(`${offers.length} vacantes ${publicationDay && latest ? 'del ' + publicationDay : latest ? 'publicadas recientemente' : 'encontradas'} en RD. Fuente: Chiripas. Revisa la ciudad y disponibilidad en la oferta original.`);
   }
   $('#employment-calendar-prev')?.addEventListener('click',()=>changePublicationMonth(-1));
   $('#employment-calendar-next')?.addEventListener('click',()=>changePublicationMonth(1));
@@ -297,14 +321,15 @@
   async function searchJobs(latest = false) {
     if (searching) return;
     const query = latest ? '' : $('#employment-query').value.trim();
-    if (!latest && !query) {status('Escribe el nombre de una vacante o pulsa Ver últimas publicadas.'); $('#employment-query').focus(); return;}
+    if (!latest && !query) {searchStatus('Escribe el nombre de una vacante o pulsa Ver últimas publicadas.'); $('#employment-query').focus(); return;}
     searching = true;
+    openJobResults();
     const buttons = [$('#employment-search-button'), $('#employment-latest')].filter(Boolean);
     buttons.forEach(button => {button.disabled = true;});
     const container = $('#employment-results'); container.replaceChildren();
     $('#employment-calendar').hidden=true;
     if (latest) latestPublications=null;
-    status('Consultando las fuentes autorizadas…');
+    searchStatus('Consultando las fuentes autorizadas…');
     try {const data = await request('search','POST',{query,source:'rd',latest});
       if (data.national) {
         if (latest) latestPublications = data;
@@ -317,14 +342,14 @@
         const description = root.document.createElement('p'); description.textContent = offer.description;
         const link = root.document.createElement('a'); link.textContent = 'Fuente original'; link.href = offer.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
         const documents = root.document.createElement('button'); documents.type = 'button'; documents.textContent = 'Adaptar con el generador de CV';
-        documents.addEventListener('click', async () => {try {useGenerator(await request(`offers/${offer.id}/details`));} catch(error) {status(error.message);}});
+        documents.addEventListener('click', async () => {try {useGenerator(await request(`offers/${offer.id}/details`));} catch(error) {searchStatus(error.message);}});
         const prepare = root.document.createElement('button'); prepare.type = 'button'; prepare.textContent = 'Preparar candidatura';
-        prepare.addEventListener('click', async () => {try {await request('applications','POST',{offer_id:offer.id}); await renderApplications();} catch (error) {status(error.message);}});
+        prepare.addEventListener('click', async () => {try {await request('applications','POST',{offer_id:offer.id}); await renderApplications();} catch (error) {searchStatus(error.message);}});
         const automatic = root.document.createElement('button'); automatic.type = 'button'; automatic.hidden=true; automatic.textContent = 'Simular con autorización automática';
-        automatic.addEventListener('click', async () => {try {await request('automatic-simulation','POST',{offer_id:offer.id}); await renderApplications();} catch (error) {status(error.message);}});
+        automatic.addEventListener('click', async () => {try {await request('automatic-simulation','POST',{offer_id:offer.id}); await renderApplications();} catch (error) {searchStatus(error.message);}});
         card.append(title,info,description,link,documents,prepare,automatic); container.append(card);}
       const reviewable=data.unverified.filter(offer=>offer.geography.location_eligible).length;
-      status(`${data.offers.length+reviewable} ofertas compatibles con la ubicación (${reviewable} requieren revisar requisitos); ${data.excluded.length} excluidas; ${data.unverified.length-reviewable} con datos sin verificar.`);
+      searchStatus(`${data.offers.length+reviewable} ofertas compatibles con la ubicación (${reviewable} requieren revisar requisitos); ${data.excluded.length} excluidas; ${data.unverified.length-reviewable} con datos sin verificar.`);
       const reasons = {fuera_del_radio:'Fuera del radio',pais_no_autorizado:'País no autorizado',
         ubicacion_no_verificable:'Ubicación no verificable',ubicacion_ambigua:'Ubicación ambigua',
         limite_geografico_ambiguo:'Precisión insuficiente en el límite del radio',pais_remoto_no_verificado:'País de contratación remota sin verificar',
@@ -339,23 +364,23 @@
         if (offer.source==='HiringCafe' && offer.source_country && confirmed?.allowed_countries.includes(offer.source_country)) {
           const detailsButton=root.document.createElement('button'); detailsButton.type='button'; detailsButton.textContent='Ver requisitos completos';
           const full=root.document.createElement('p');
-          detailsButton.addEventListener('click',async()=>{try {const detail=await request(`offers/${offer.id}/details`); full.textContent=detail.description;} catch(error) {status(error.message);}}); card.append(detailsButton,full);
+          detailsButton.addEventListener('click',async()=>{try {const detail=await request(`offers/${offer.id}/details`); full.textContent=detail.description;} catch(error) {searchStatus(error.message);}}); card.append(detailsButton,full);
           const input=root.document.createElement('input'); input.value=`${offer.company}, ${(offer.location_text || '').split(',')[0]}`; input.maxLength=250;
           const inputLabel=root.document.createElement('label'); inputLabel.textContent='Centro de trabajo público que aparece en la oferta'; inputLabel.append(input); card.append(inputLabel);
           const locate=root.document.createElement('button'); locate.type='button'; locate.textContent='Localizar centro de trabajo';
           const places=root.document.createElement('div');
           locate.addEventListener('click',async()=>{try {const result=await request(`offers/${offer.id}/places`,'POST',{place:input.value}); places.replaceChildren();
-            if (!result.results.length) {status('No se encontró el centro de trabajo. Usa su dirección pública exacta.'); return;}
+            if (!result.results.length) {searchStatus('No se encontró el centro de trabajo. Usa su dirección pública exacta.'); return;}
             result.results.forEach((place,index)=>{
               const label=root.document.createElement('label'), checked=root.document.createElement('input'); checked.type='checkbox';
               label.append(checked,` Confirmo que ${place.label} corresponde al centro de trabajo publicado.`);
               const confirm=root.document.createElement('button'); confirm.type='button'; confirm.textContent='Confirmar ubicación de la vacante';
               confirm.addEventListener('click',async()=>{try {const proof=await request(`offers/${offer.id}/location`,'POST',{index,confirmed:checked.checked});
-                status(proof.geography.eligible ? `Centro confirmado: ${proof.geography.distance_m} m ±${proof.geography.uncertainty_m} m. Busca de nuevo para preparar la candidatura.` : `Candidatura bloqueada: ${proof.geography.reason} · ${proof.geography.distance_m ?? 'sin distancia'} m.`);
+                searchStatus(proof.geography.eligible ? `Centro confirmado: ${proof.geography.distance_m} m ±${proof.geography.uncertainty_m} m. Busca de nuevo para preparar la candidatura.` : `Candidatura bloqueada: ${proof.geography.reason} · ${proof.geography.distance_m ?? 'sin distancia'} m.`);
                 if (proof.geography.eligible) $('#employment-search-form').requestSubmit();
-              } catch(error) {status(error.message);}}); places.append(label,confirm);
+              } catch(error) {searchStatus(error.message);}}); places.append(label,confirm);
             });
-          } catch(error) {status(error.message);}}); card.append(locate,places);
+          } catch(error) {searchStatus(error.message);}}); card.append(locate,places);
         }
         if (offer.geography.location_eligible) {
           reason.textContent=`Compatible con tu ubicación${offer.geography.distance_m === null ? ' y horario según la fuente' : `: ${offer.geography.distance_m} m ±${offer.geography.uncertainty_m} m`}. Revisa los requisitos completos antes de postular.`;
@@ -364,18 +389,18 @@
           const salary=root.document.createElement('p'); salary.textContent=offer.salary ? `Salario publicado: ${offer.salary.minimum}${offer.salary.maximum ? '–'+offer.salary.maximum : ''} ${offer.salary.currency || ''} (${offer.salary.period || 'periodo sin verificar'})` : 'Salario no informado por la fuente'; card.append(salary);
           const published=root.document.createElement('p'); published.textContent=offer.published_at ? `Publicada: ${new Date(offer.published_at).toLocaleDateString('es')}` : 'Fecha no publicada'; card.append(published);
           const documents=root.document.createElement('button'); documents.type='button'; documents.className='button button-secondary'; documents.textContent='Analizar y adaptar mi CV';
-          documents.addEventListener('click',async()=>{try {useGenerator(await request(`offers/${offer.id}/details`));} catch(error) {status(error.message);}}); card.append(documents);
+          documents.addEventListener('click',async()=>{try {useGenerator(await request(`offers/${offer.id}/details`));} catch(error) {searchStatus(error.message);}}); card.append(documents);
           const check=root.document.createElement('input'); check.type='checkbox'; const review=root.document.createElement('label'); review.className='employment-review';
           review.append(check,' Revisé país, horario y desplazamientos y confirmo que cumplo esos requisitos.'); card.append(review);
           const prepare=root.document.createElement('button'); prepare.type='button'; prepare.className='button button-primary'; prepare.textContent='Preparar candidatura supervisada';
-          prepare.addEventListener('click',async()=>{if (!check.checked) {status('Revisa los desplazamientos antes de preparar la candidatura.'); return;}
-            try {await request('applications','POST',{offer_id:offer.id,reviewed_no_travel:true}); await renderApplications(); status('Candidatura preparada para tu aprobación.');}
-            catch(error) {status(error.message);}}); card.append(prepare);
+          prepare.addEventListener('click',async()=>{if (!check.checked) {searchStatus('Revisa los desplazamientos antes de preparar la candidatura.'); return;}
+            try {await request('applications','POST',{offer_id:offer.id,reviewed_no_travel:true}); await renderApplications(); searchStatus('Candidatura preparada para tu aprobación.');}
+            catch(error) {searchStatus(error.message);}}); card.append(prepare);
         }
         container.append(card);
       }
       await renderApplications();
-    } catch (error) {status(error.message);}
+    } catch (error) {searchStatus(error.message);}
     finally {searching = false; buttons.forEach(button => {button.disabled = false;});}
   }
   $('#employment-search-form').addEventListener('submit', event => {event.preventDefault(); searchJobs();});

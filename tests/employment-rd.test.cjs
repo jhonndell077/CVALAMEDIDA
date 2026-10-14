@@ -6,6 +6,9 @@ const source=fs.readFileSync('static/employment.js','utf8');
 
 function setup(response,fail=false){
  const {window,document}=parseHTML(fs.readFileSync('static/index.html','utf8'));
+ const dialog=document.querySelector('#employment-results-dialog');
+ dialog.showModal=()=>{dialog.open=true;dialog.setAttribute('open','');};
+ dialog.close=()=>{dialog.open=false;dialog.removeAttribute('open');};
  const calls=[],messages=[],adapted=[];
  const context=vm.createContext({root:{document},$:s=>document.querySelector(s),status:text=>messages.push(text),
  request:async(path,method,payload)=>{calls.push({path,payload});if(fail)throw Error('Fuente no disponible');return response;},
@@ -76,4 +79,28 @@ test('publication dates use Santo Domingo even near UTC midnight',()=>{
  assert.equal(qa.context.publicationDate('2026-10-14T02:00:00Z'),'2026-10-13');
  assert.equal(qa.context.publicationDate(null),'');
  assert.equal(qa.context.publicationDate('invalid'),'');
+});
+
+test('offers and calendar stay in a dismissible dialog and reopen without another request',async()=>{
+ const qa=setup({national:true,offers:[offer]});
+ const dialog=qa.document.querySelector('#employment-results-dialog');
+ assert.equal(dialog.hasAttribute('open'),false);
+ await qa.context.searchJobs(true);
+ assert.equal(dialog.open,true);
+ assert.equal(dialog.querySelectorAll('#employment-results article').length,1);
+ assert.ok(dialog.querySelector('#employment-calendar'));
+ qa.document.querySelector('#employment-results-close').click();
+ assert.equal(dialog.open,false);
+ qa.document.querySelector('#employment-results-open').click();
+ assert.equal(dialog.open,true);assert.equal(qa.calls.length,1);
+ qa.document.querySelector('#employment-results button').click();
+ assert.equal(dialog.open,false);assert.equal(qa.adapted.length,1);
+});
+test('closing while loading does not reopen the dialog when results arrive',async()=>{
+ const qa=setup({national:true,offers:[offer]});
+ const pending=qa.context.searchJobs(true);
+ qa.document.querySelector('#employment-results-close').click();
+ await pending;
+ assert.equal(qa.document.querySelector('#employment-results-dialog').open,false);
+ assert.equal(qa.document.querySelectorAll('#employment-results article').length,1);
 });

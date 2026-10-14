@@ -41,6 +41,14 @@
         <p class="microcopy">Vacantes de RD publicadas por Chiripas. No necesitas GPS para buscar. Las ofertas se ordenan de la más reciente a la más antigua cuando la fuente proporciona una fecha.</p>
         <p id="employment-status" role="status" aria-live="polite">Escribe un cargo o consulta las últimas publicadas.</p>
         <a class="employment-login-link" href="#auth-panel">Iniciar sesión con Google para buscar empleos</a>
+        <button id="employment-results-open" type="button" class="button button-secondary" hidden>Volver a ver las ofertas</button>
+        <dialog id="employment-results-dialog" aria-labelledby="employment-results-title">
+          <div class="employment-results-header">
+            <h2 id="employment-results-title">Ofertas de empleo</h2>
+            <button id="employment-results-close" type="button" class="button button-secondary" autofocus aria-label="Cerrar ofertas de empleo">Cerrar ×</button>
+          </div>
+          <div class="employment-results-body">
+            <p id="employment-results-status" role="status" aria-live="polite"></p>
         <section id="employment-calendar" aria-label="Calendario de publicaciones" hidden>
           <div class="employment-calendar-navigation">
             <button id="employment-calendar-prev" type="button" aria-label="Mes anterior">←</button>
@@ -54,6 +62,8 @@
           <p class="microcopy">Fechas de República Dominicana. El calendario muestra las vacantes que siguen disponibles en la fuente; no es un archivo histórico completo.</p>
         </section>
         <div id="employment-results" aria-live="polite"></div>
+          </div>
+        </dialog>
         <details id="employment-location-options"><summary>Mi ubicación y distancia (opcional)</summary>
         <p>Guarda tu ubicación si quieres usarla para revisar distancias. La búsqueda general incluye República Dominicana completa.</p>
         <button class="button button-secondary" id="employment-location-button" type="button" disabled>Usar mi ubicación</button>

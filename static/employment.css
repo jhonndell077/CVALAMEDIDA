@@ -34,3 +34,25 @@
 
 #employment-search-form label {display:flex; flex-direction:column; gap:6px; min-width:0;}
 #employment-source {width:100%; max-width:100%; min-width:0;}
+
+#employment-results-dialog {
+  padding:0; width:min(920px,calc(100% - 24px)); max-width:920px;
+  max-height:85vh; max-height:85dvh; border:1px solid var(--line);
+  border-radius:18px; background:white; color:var(--ink, #24352c);
+  box-shadow:0 24px 80px #162b3650; overflow:hidden;
+}
+#employment-results-dialog[open] {display:flex; flex-direction:column;}
+#employment-results-dialog::backdrop {background:#10251c80;}
+body:has(#employment-results-dialog[open]) {overflow:hidden;}
+.employment-results-header {display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; border-bottom:1px solid var(--line); flex-shrink:0;}
+.employment-results-header h2 {margin:0; font-size:22px;}
+.employment-results-header button {flex-shrink:0;}
+.employment-results-body {padding:0 20px 20px; overflow-y:auto; overscroll-behavior:contain; min-height:0;}
+#employment-results-status {overflow-wrap:anywhere;}
+#employment-results-dialog #employment-calendar {margin:16px auto;}
+@media(max-width:540px) {
+  #employment-results-dialog {max-height:92vh; max-height:92dvh; border-radius:12px;}
+  .employment-results-header {padding:12px;}
+  .employment-results-header h2 {font-size:18px;}
+  .employment-results-body {padding:0 12px 12px;}
+}
