@@ -246,6 +246,9 @@
         <p id="drive-status" role="status">Conecta Drive para guardar los CV en CV GENERADOS.</p>
       </section>
 
+      <button id="open-data" class="data-fab" type="button" aria-haspopup="dialog" aria-controls="data-dialog" aria-expanded="false" hidden>Datos</button>
+      <dialog id="data-dialog" aria-labelledby="data-dialog-title">
+        <div class="data-dialog-header"><h2 id="data-dialog-title">Mis datos</h2><button id="close-data" class="button button-secondary" type="button" autofocus>Cerrar</button></div>
       <section class="panel profile-panel" id="profile-panel" aria-labelledby="profile-title" hidden>
         <div class="panel-heading">
           <div>
@@ -314,6 +317,8 @@
           <div id="knowledge-error" class="error-message" role="alert" hidden></div>
         </section>
       </section>
+
+      </dialog>
 
       <section class="panel" id="job-panel">
         <div class="panel-heading">
@@ -483,6 +488,7 @@
     <script src="/repeaters.js" defer></script>
     <script src="/onboarding.js" defer></script>
     <script src="/app.js" defer></script>
+    <script src="/data-panel.js" defer></script>
     <script src="/vendor/leaflet/leaflet.js" defer></script>
     <script src="/employment.js" defer></script>
     <script src="/employment-external.js" defer></script>
