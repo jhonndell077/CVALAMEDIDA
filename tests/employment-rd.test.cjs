@@ -150,17 +150,11 @@ test('untrusted destinations cannot become portal or offer links',async()=>{
 test('brief listings require pasted requirements before the CV generator is invoked',async()=>{
  const brief={...offer,source_key:'tuvacanterd',source:'TuVacanteRD',url:'https://tuvacanterd.com/empleo/cajero',description_verified:false};
  const qa=setup({national:true,offers:[brief]});await qa.context.searchJobs(true);
- const form=qa.document.querySelector('#employment-external-form');
- const fields=Object.fromEntries(['source','url','title','description'].map(name=>[name,{value:'old',focus(){}}]));
- form.elements={namedItem:name=>fields[name]};form.scrollIntoView=()=>{};
  vm.runInContext(source.slice(source.indexOf('  async function useGenerator(offer'),source.indexOf('  async function request(')),qa.context);
  qa.document.querySelector('#employment-results button').click();
  await new Promise(setImmediate);
- assert.equal(fields.source.value,'tuvacanterd');assert.equal(fields.description.value,'');
- assert.equal(fields.url.value,brief.url);assert.equal(fields.title.value,brief.title);
- assert.equal(qa.document.querySelector('#employment-external-tools').open,true);
- assert.equal(qa.document.querySelector('#employment-external-original').getAttribute('href'),brief.url);
- assert.equal(qa.document.querySelector('#employment-results-dialog').open,false);
+ assert.match(qa.messages.at(-1),/copia sus requisitos/);
+ assert.equal(qa.document.querySelector('#employment-results-dialog').open,true);
  assert.equal(qa.adapted.length,0);
 });
 

@@ -207,6 +207,8 @@ function updateAnalyzeButton() {
 
 async function loadModels(health) {
   const help = $("#model-help");
+  const modelRow = modelSelect.closest('.model-row');
+  if (modelRow) modelRow.hidden = health.model_available === true && (health.models || []).length === 1;
   state.provider = health.provider;
   state.modelAvailable = health.model_available === true;
   modelSelect.replaceChildren();
@@ -601,7 +603,7 @@ function profileLabel(key) {
 
 function profileEntryTitle(value, index) {
   if (value && typeof value === "object" && !Array.isArray(value)) {
-    const heading = value.title || value.name || value.label || value.text || value.id;
+    const heading = value.title || value.name || value.label || value.text;
     const employer = value.employer ? ` · ${value.employer}` : "";
     if (heading) return `${heading}${employer}`;
   }
@@ -681,7 +683,7 @@ function canDeleteProfilePath(path) {
 }
 
 function addProfileDeleteButton(parent, path, value) {
-  if (!canDeleteProfilePath(path) || value === '') return;
+  if (!canDeleteProfilePath(path)) return;
   const button = addText(parent, 'button', 'Eliminar', 'profile-remove');
   button.type = 'button';
   button.setAttribute('aria-label', `Eliminar ${typeof value === 'object' ? profileEntryTitle(value, 0) : value}`);
@@ -689,6 +691,17 @@ function addProfileDeleteButton(parent, path, value) {
     event.preventDefault();
     event.stopPropagation();
     if (state.profileDeleting) return;
+    const savedParent = path.slice(0, -1).reduce((item, part) => item?.[part], state.profile);
+    const saved = savedParent?.[path.at(-1)];
+    const draftParent = path.slice(0, -1).reduce((item, part) => item?.[part], state.profileDraft);
+    // New rows exist only in the draft until Save; the API cannot delete them.
+    if (Array.isArray(draftParent) && (saved === undefined || (value?.id && saved?.id !== value.id))) {
+      draftParent.splice(path.at(-1), 1);
+      state.profileDirty = true;
+      renderProfileTree(path.slice(0, -1));
+      return;
+    }
+    if (value === '') return;
     if (!window.confirm('¿Eliminar este dato del banco profesional? No aparecerá en los próximos CV, aunque vuelvas a sincronizar.')) return;
     state.profileDeleting = true;
     button.disabled = true;
@@ -743,6 +756,7 @@ function renderProfileField(parent, key, value, path) {
 }
 
 function renderProfileSummary(section, key, count) {
+  section.dataset.category = key;
   const descriptions = {
     candidate: ["◉", "Tu identidad y contacto"],
     experiences: ["▣", "Tu recorrido profesional"],
@@ -766,6 +780,7 @@ function renderProfileSummary(section, key, count) {
 function renderProfileValue(parent, key, value, path, options = {}) {
   if (Array.isArray(value)) {
     const section = addText(parent, "details", "", options.topLevel ? "profile-node" : "profile-entry");
+    section.dataset.profilePath = JSON.stringify(path);
     if (options.topLevel) renderProfileSummary(section, key, value.length);
     else addText(section, "summary", `${profileLabel(key)} · ${value.length}`);
     const body = addText(section, "div", "", "profile-node-body");
@@ -773,6 +788,7 @@ function renderProfileValue(parent, key, value, path, options = {}) {
       const itemPath = [...path, index];
       if (item && typeof item === "object") {
         const entry = addText(body, "details", "", "profile-entry");
+        entry.dataset.profilePath = JSON.stringify(itemPath);
         const entrySummary = addText(entry, "summary", profileEntryTitle(item, index));
         addProfileDeleteButton(entrySummary, itemPath, item);
         const fields = addText(entry, "div", "", "profile-fields");
@@ -792,7 +808,7 @@ function renderProfileValue(parent, key, value, path, options = {}) {
       add.addEventListener("click", () => {
         value.push(newProfileArrayItem(path));
         state.profileDirty = true;
-        renderProfileTree();
+        renderProfileTree([...path, value.length - 1]);
       });
     }
     return;
@@ -810,8 +826,10 @@ function renderProfileValue(parent, key, value, path, options = {}) {
   renderProfileField(parent, key, value, path);
 }
 
-function renderProfileTree() {
+function renderProfileTree(revealPath) {
+  window.cvProfileDialog?.beforeRender();
   const tree = $("#profile-tree");
+  const openPaths = new Set([...tree.querySelectorAll('details[open][data-profile-path]')].map(node => node.dataset.profilePath));
   tree.replaceChildren();
   if (!state.profileDraft) return;
   const sectionOrder = [
@@ -833,6 +851,15 @@ function renderProfileTree() {
       { topLevel: true },
     );
   });
+  tree.querySelectorAll('details[data-profile-path]').forEach(node => {
+    const path = JSON.parse(node.dataset.profilePath);
+    if (openPaths.has(node.dataset.profilePath) || (revealPath && path.every((part, index) => revealPath[index] === part))) node.setAttribute('open', '');
+  });
+  if (revealPath) {
+    const entry = [...tree.querySelectorAll('[data-profile-path]')].find(node => node.dataset.profilePath === JSON.stringify(revealPath))
+      || [...tree.querySelectorAll('[data-profile-path]')].find(node => node.dataset.profilePath === JSON.stringify(revealPath.slice(0, -1)));
+    entry?.querySelector('input:not(:disabled), textarea:not(:disabled)')?.focus();
+  }
   $("#profile-status").textContent = state.profileEditable
     ? state.profileDirty
       ? "Cambios sin guardar"
@@ -850,6 +877,7 @@ function renderProfileTree() {
       "profile-locked",
     );
   }
+  window.cvProfileDialog?.afterRender(revealPath);
 }
 
 async function saveProfileChanges() {
@@ -1052,16 +1080,12 @@ async function bootstrap() {
     const health = await response.json();
     document.querySelector('#employment-panel')?.toggleAttribute('hidden', health.employment_enabled !== true || window.location?.hash !== '#employment-panel');
     document.querySelector('.employment-nav')?.toggleAttribute('hidden', health.employment_enabled !== true);
-    document.querySelector('.employment-nav')?.addEventListener('click', () => {
-      const panel=document.querySelector('#employment-panel');
-      if (panel && health.employment_enabled === true) {panel.hidden=false; panel.scrollIntoView({behavior:'smooth'});}
-    });
+    if (health.employment_enabled === true && window.location?.hash === '#employment-panel') window.cvEmploymentWindow?.open();
     state.authRequired = health.auth_required === true;
     state.multiAccount = health.multi_account === true;
     state.profileEditable = health.profile_editable === true;
     state.bankEnabled = health.bank?.provider === "drive";
     $("#bank-panel").hidden = !state.bankEnabled;
-    $("#sync-panel").hidden = !state.bankEnabled;
     $("#bank-folder").href = `https://drive.google.com/drive/folders/${health.bank?.folder_id || ""}`;
     $("#sync-bank").disabled = state.authRequired;
 
@@ -1130,6 +1154,7 @@ window.addEventListener('cv-employment-vacancy', event => {
   const text=event.detail?.text;
   if (typeof text!=='string' || !text.trim() || text.length>40000) return;
   event.preventDefault();
+  window.cvEmploymentWindow?.close();
   state.analysis=null; state.draft=null; state.pdf=null;
   jobTextInput.value=text; fileInput.value='';
   const contact=event.detail?.contact;

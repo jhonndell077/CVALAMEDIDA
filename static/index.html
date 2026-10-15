@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
   <head>
-    <meta name="cv-build" content="20261014T223227Z-7e6ea1ea">
+    <meta name="cv-build" content="20261015T005752Z-53c53005">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#f8f5eb">
@@ -135,22 +135,6 @@
           <div id="employment-geocode-results"></div>
         </form>
         </details>
-        <details id="employment-external-tools">
-          <summary id="employment-external-title">Adaptar mi CV con una oferta de cualquier portal</summary>
-          <p>Pega el enlace y los requisitos de una vacante para adaptar tu CV. Las fuentes y sus resultados se consultan en la ventana de búsqueda.</p>
-          <form id="employment-external-form">
-            <label>Fuente<select name="source" required></select></label>
-            <label>Enlace original de la vacante<input name="url" type="url" maxlength="2000" required></label>
-            <label>Cargo publicado<input name="title" maxlength="160" required></label>
-            <label>Descripción publicada<textarea name="description" maxlength="40000" rows="6" required></textarea></label>
-            <button type="submit" class="button button-secondary">Preparar descripción para adaptar mi CV</button>
-          </form>
-          <p id="employment-external-status" role="status" aria-live="polite">No hay candidatura enviada. Revisa datos y preguntas personales en la fuente.</p>
-          <a id="employment-external-original" target="_blank" rel="noopener noreferrer" hidden>Abrir la vacante original para postular (otra pestaña)</a>
-        </details>
-        <details><summary>Mis postulaciones y seguimiento</summary><div id="employment-applications"></div>
-        <h3>Postulación supervisada</h3><p>Revisa la descripción, adapta tu CV y aprueba la apertura del portal original. Completa allí los campos y el envío. Solo registraremos una aceptación confirmada cuando el destino proporcione evidencia.</p>
-        </details>
         <details hidden><summary>Configurar autorización para simulación automática</summary>
           <form id="employment-authorization-form">
             <div class="employment-grid">
@@ -173,13 +157,9 @@
           </form>
         </details>
         <p id="employment-authorization-status" role="status" hidden>Sin autorización automática.</p>
-        <button id="employment-revoke" type="button" class="text-button">Revocar autorización</button>
+        <button id="employment-revoke" type="button" class="text-button" title="Desactiva la autorización para simulaciones automáticas de postulaciones. No desconecta Google ni Drive.">Revocar autorización de simulación</button>
       </section>
-      <section class="panel sync-panel" id="sync-panel" aria-label="Sincronización de tu cuenta" hidden>
-        <button id="sync-bank" class="button button-primary" type="button" disabled>Sincronizar todo</button>
-        <p class="sync-help">Actualiza tu banco profesional en Google Drive desde el navegador, sin instalar aplicaciones.</p>
-        <p id="bank-status" role="status" aria-live="polite">Inicia sesión para consultar tu banco.</p>
-      </section>
+      <button id="sync-bank" type="button" hidden disabled>Sincronizar todo</button>
 
       <section class="intro">
         <img class="intro-logo" src="/logo-cv-a-la-medida.png" alt="CV a la medida" width="2172" height="724" fetchpriority="high">
@@ -229,6 +209,7 @@
       </section>
 
       <section class="panel" id="bank-panel" hidden>
+        <p id="bank-status" role="status" aria-live="polite">Inicia sesión para consultar tu banco.</p>
         <div class="eyebrow">FUENTE DE TU INFORMACIÓN</div>
         <h2>Banco de Datos en Drive</h2>
         <p>Añade documentos y fotografías de certificados a <a id="bank-folder" target="_blank" rel="noopener">Banco de Datos</a> o sus subcarpetas. Se revisan al iniciar sesión y antes de analizar una vacante.</p>
@@ -335,7 +316,10 @@
           <span id="model-help" class="microcopy">La app seleccionará el modelo disponible.</span>
         </div>
         <div class="privacy-note"><span class="lock-icon">⌑</span><span id="privacy-note"><b>Privacidad.</b> El historial de postulaciones se guarda en tu Drive.</span></div>
-        <button id="analyze-button" class="button button-primary" type="button" disabled>Analizar vacante <span aria-hidden="true">→</span></button>
+        <div class="vacancy-actions">
+          <button id="analyze-button" class="button button-primary" type="button" disabled>Analizar vacante <span aria-hidden="true">→</span></button>
+          <a id="how-to-use" class="button button-secondary" href="/manual.html" target="_blank" rel="noopener" aria-label="Como Usar: abrir manual en otra pestaña">Como Usar <span aria-hidden="true">↗</span></a>
+        </div>
         <section id="vacancy-choice" class="analysis-card" aria-labelledby="vacancy-choice-title" hidden>
           <h3 id="vacancy-choice-title">¿A qué vacante quieres aplicar?</h3>
           <p>El anuncio incluye varios puestos. Elige uno para adaptar tu CV exclusivamente a esa oportunidad.</p>
@@ -498,12 +482,22 @@
       <header class="data-header"><h2 id="data-title">Mis datos</h2><button id="data-close" class="button button-secondary" type="button" aria-label="Cerrar Mis datos" autofocus>Cerrar</button></header>
       <div id="data-content" class="data-content"><p id="data-unavailable" class="data-unavailable" role="status">Tus datos aparecerán aquí al conectar tu banco. Inicia sesión y pulsa el botón de sincronización.</p></div>
     </dialog>
+    <dialog id="profile-category-dialog" aria-labelledby="profile-category-title" data-own-motion>
+      <header class="profile-category-header"><h2 id="profile-category-title">Datos</h2><button id="profile-category-close" class="button button-secondary" type="button">Cerrar categoría</button></header>
+      <div class="profile-category-search"><label for="profile-category-search">Buscar en esta categoría</label><input id="profile-category-search" type="search" placeholder="Escribe un nombre, empresa, fecha o frase…" autocomplete="off"><p id="profile-category-results" role="status" aria-live="polite"></p></div>
+      <p id="profile-category-empty" hidden>No hay coincidencias. Prueba con otras palabras.</p>
+      <div id="profile-category-content"></div>
+      <footer id="profile-category-actions"></footer>
+    </dialog>
+    <script src="/profile-dialog.js" defer></script>
     <script src="/data-panel.js" defer></script>
+    <dialog id="employment-window" aria-labelledby="employment-window-title" data-own-motion><header class="employment-window-header"><h2 id="employment-window-title">Empleo Inteligente</h2><button id="employment-window-close" type="button" class="button button-secondary">Cerrar</button></header><div class="employment-window-content"></div></dialog>
+    <script src="/employment-window.js" defer></script>
     <script src="/ui-navigation.js" defer></script>
     <script src="/app.js" defer></script>
     <script src="/vendor/leaflet/leaflet.js" defer></script>
     <script src="/employment.js" defer></script>
-    <script src="/employment-external.js" defer></script>
+
     <script src="/card-motion.js" defer></script>
   </body>
 </html>

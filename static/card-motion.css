@@ -42,12 +42,12 @@ button.cv-galaxy-button:focus-visible {outline:3px solid #8baa91;outline-offset:
 button.cv-galaxy-button:disabled {opacity:.55;}
 .cv-button-label {position:relative;z-index:1;pointer-events:none;}
 .cv-galaxy-decoration {position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;overflow:hidden;}
-.cv-galaxy-spark {position:absolute;inset:-100%;background:conic-gradient(from 0deg,transparent 0deg 320deg,var(--galaxy-glow) 350deg,#fff5d9 360deg);animation:cv-galaxy-spin 3.6s linear infinite;animation-play-state:paused;opacity:.5;}
+.cv-galaxy-spark {position:absolute;inset:-100%;background:conic-gradient(from 0deg,transparent 0deg 320deg,var(--galaxy-glow) 350deg,#fff5d9 360deg);animation:cv-galaxy-spin 3.6s linear infinite;animation-play-state:running;opacity:.5;}
 .cv-galaxy-backdrop {position:absolute;inset:2px;border-radius:inherit;background:radial-gradient(ellipse at 100% 100%,#a9c8ab35,transparent 65%),var(--galaxy-bg);}
-.cv-galaxy-ring {position:absolute;inset:0;opacity:.35;transition:opacity 250ms;}
-.cv-galaxy-star {position:absolute;left:50%;top:50%;width:var(--size);height:var(--size);border-radius:50%;background:var(--galaxy-star);opacity:var(--alpha);transform:rotate(var(--angle)) translateY(var(--distance));animation:cv-galaxy-orbit var(--duration) var(--delay) linear infinite;animation-play-state:paused;}
+.cv-galaxy-ring {position:absolute;inset:0;opacity:.85;transition:opacity 250ms;}
+.cv-galaxy-star {position:absolute;left:50%;top:50%;width:var(--size);height:var(--size);border-radius:50%;background:var(--galaxy-star);opacity:var(--alpha);transform:rotate(var(--angle)) translateY(var(--distance));animation:cv-galaxy-orbit var(--duration) var(--delay) linear infinite;animation-play-state:running;}
 button.cv-galaxy-button:not(:disabled):is(:hover,:focus-visible,:active) .cv-galaxy-ring {opacity:.85;}
-button.cv-galaxy-button:not(:disabled):is(:hover,:focus-visible,:active) :is(.cv-galaxy-star,.cv-galaxy-spark) {animation-play-state:running;}
+/* Stars and glow animate from page load, including on touch devices. */
 @keyframes cv-galaxy-spin {to {transform:rotate(360deg);}}
 @keyframes cv-galaxy-orbit {to {transform:rotate(calc(var(--angle) + 360deg)) translateY(var(--distance));}}
 @media(prefers-reduced-motion:reduce) {.cv-galaxy-star,.cv-galaxy-spark {animation:none!important;} .cv-galaxy-ring {transition:none;}}

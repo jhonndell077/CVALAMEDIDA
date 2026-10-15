@@ -40,23 +40,11 @@
       catch(error) {searchStatus(error.message); return;}
     }
     contact ||= {};
-    closeJobResults();
     if (offer.description_verified === false) {
-      const external = $('#employment-external-form');
-      external.cvOfferContact=contact;
-      external.cvOfferContactKey={source:offer.source_key,url:offer.url,title:offer.title};
-      $('#employment-external-tools').open = true;
-      external.elements.namedItem('source').value = offer.source_key;
-      external.elements.namedItem('url').value = offer.url;
-      external.elements.namedItem('title').value = offer.title;
-      external.elements.namedItem('description').value = '';
-      $('#employment-external-original').hidden = false;
-      $('#employment-external-original').href = offer.url;
-      $('#employment-external-status').textContent = 'Abre la vacante original y pega sus requisitos antes de adaptar el CV.';
-      external.scrollIntoView({behavior:'smooth'});
-      external.elements.namedItem('description').focus();
+      searchStatus('Esta oferta solo tiene un resumen. Abre el anuncio original, copia sus requisitos y pégalos en Descripción del puesto para adaptar tu CV.');
       return;
     }
+    closeJobResults();
     const contactText=[contact.email ? `Correo de postulación: ${contact.email}` : '', contact.whatsapp ? `WhatsApp de postulación: ${contact.whatsapp}` : ''].filter(Boolean).join('\n');
     const text=`${offer.title} · ${offer.company || ''}\n\n${offer.description}`.slice(0,39000)+(contactText ? '\n\n'+contactText : '');
     const event=new root.CustomEvent('cv-employment-vacancy',{detail:{text,contact},cancelable:true});
@@ -137,7 +125,7 @@
   api.initialize = async function (nextUser, getHeaders) {
     root.dispatchEvent(new root.CustomEvent('cv-employment-session'));
     session++; user = nextUser; headers = getHeaders; confirmed = null; populate(null);
-    $('#employment-results').replaceChildren(); $('#employment-applications').replaceChildren();
+    $('#employment-results').replaceChildren(); $('#employment-applications')?.replaceChildren();
     latestPublications=null; publicationDay=''; calendarMonth='';
     currentSearch=null;
     $('#employment-sources').replaceChildren();
@@ -239,7 +227,7 @@
   });
   $('#employment-delete').addEventListener('click', async () => {
     try {await request('location','DELETE'); confirmed = null; populate(null);
-      $('#employment-results').replaceChildren(); $('#employment-applications').replaceChildren();
+      $('#employment-results').replaceChildren(); $('#employment-applications')?.replaceChildren();
     latestPublications=null; publicationDay=''; calendarMonth='';
     currentSearch=null;
     $('#employment-sources').replaceChildren();
@@ -253,7 +241,9 @@
     catch (error) {status(error.message);}
   });
   async function renderApplications() {
-    const data = await request('applications'), container = $('#employment-applications'); container.replaceChildren();
+    const container = $('#employment-applications');
+    if (!container) return;
+    const data = await request('applications'); container.replaceChildren();
     for (const item of data.applications) {const card = root.document.createElement('article');
       const label = root.document.createElement('p'); label.textContent = `${item.position || 'Candidatura'}${item.company ? ' · '+item.company : ''} · ${item.status} · ${item.result || 'Revisa antes de aprobar.'}`; card.append(label);
       if (item.url) {const link=root.document.createElement('a'); link.href=item.url; link.target='_blank'; link.rel='noopener noreferrer'; link.textContent='Continuar en la fuente original'; card.append(link);}

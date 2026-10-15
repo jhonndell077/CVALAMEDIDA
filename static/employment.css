@@ -71,3 +71,10 @@ body:has(#employment-contact-dialog[open]) {overflow:hidden;}
   .employment-results-header h2 {font-size:18px;}
   .employment-results-body {padding:0 12px 12px;}
 }
+
+#employment-window { width:min(1060px,94vw); max-height:90dvh; padding:24px; border:1px solid #a8c4b3; border-radius:22px; background:#fffdf7; color:var(--ink); overflow:auto; }
+#employment-window::backdrop { background:rgb(15 34 25 / 55%); }
+.employment-window-header { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.employment-window-header h2 { margin:0; }
+#employment-window #employment-panel { margin:20px 0 0; box-shadow:none; border:0; padding:0; }
+@media(max-width:600px) { #employment-window { padding:16px; } }
