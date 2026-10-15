@@ -30,7 +30,7 @@
 
 button {position:relative; isolation:isolate; overflow:hidden; transform-origin:center; transition:box-shadow var(--cv-motion-fast),filter var(--cv-motion-fast);}
 button:not(:disabled):active {filter:brightness(1.05);box-shadow:0 0 0 2px #76dfba35;}
-.cv-button-wave {position:absolute; border-radius:50%; background:#b9ffe1; pointer-events:none; z-index:2; mix-blend-mode:screen;}
+.cv-button-wave {position:absolute; border-radius:50%; background:#b9ffe1; pointer-events:none; z-index:-1; opacity:0;}
 @media(hover:hover) and (pointer:fine) {button:not(:disabled):hover {box-shadow:0 8px 24px #315d4640;filter:brightness(1.08);}}
 @media(prefers-reduced-motion:reduce) {button {transition:none!important;} .cv-button-wave {display:none;}}
 
@@ -40,10 +40,13 @@ button.cv-galaxy-button:is(.button-secondary,.text-button,.profile-add) {--galax
 button.cv-galaxy-button:not(:disabled):is(:hover,:focus-visible,:active) {background:var(--galaxy-bg);color:var(--galaxy-ink);box-shadow:0 0 20px #729c7760,inset 0 1px 0 #fffdf560;filter:none;}
 button.cv-galaxy-button:focus-visible {outline:3px solid #8baa91;outline-offset:3px;}
 button.cv-galaxy-button:disabled {opacity:.55;}
-.cv-button-label {position:relative;z-index:1;pointer-events:none;}
-.cv-galaxy-decoration {position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;overflow:hidden;}
+.cv-button-label {position:relative;z-index:1;pointer-events:none;color:inherit;-webkit-text-fill-color:currentColor;}
+/* Keep decorative layers below even unwrapped text during async label changes.
+   Negative stacking inside the isolated button also avoids Safari compositing
+   an opaque backdrop over the label. The button itself supplies its background. */
+.cv-galaxy-decoration {position:absolute;inset:0;z-index:-2;pointer-events:none;border-radius:inherit;overflow:hidden;}
 .cv-galaxy-spark {position:absolute;inset:-100%;background:conic-gradient(from 0deg,transparent 0deg 320deg,var(--galaxy-glow) 350deg,#fff5d9 360deg);animation:cv-galaxy-spin 3.6s linear infinite;animation-play-state:running;opacity:.5;}
-.cv-galaxy-backdrop {position:absolute;inset:2px;border-radius:inherit;background:radial-gradient(ellipse at 100% 100%,#a9c8ab35,transparent 65%),var(--galaxy-bg);}
+.cv-galaxy-backdrop {position:absolute;inset:2px;border-radius:inherit;background:radial-gradient(ellipse at 100% 100%,#a9c8ab35,transparent 65%);}
 .cv-galaxy-ring {position:absolute;inset:0;opacity:.85;transition:opacity 250ms;}
 .cv-galaxy-star {position:absolute;left:50%;top:50%;width:var(--size);height:var(--size);border-radius:50%;background:var(--galaxy-star);opacity:var(--alpha);transform:rotate(var(--angle)) translateY(var(--distance));animation:cv-galaxy-orbit var(--duration) var(--delay) linear infinite;animation-play-state:running;}
 button.cv-galaxy-button:not(:disabled):is(:hover,:focus-visible,:active) .cv-galaxy-ring {opacity:.85;}

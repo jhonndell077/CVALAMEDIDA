@@ -83,3 +83,24 @@ test('galaxy decorates dynamic buttons and restores decoration after label updat
  const added=qa.document.createElement('button');added.textContent='Adaptar mi CV';qa.dialog.append(added);qa.mutate();
  assert.ok(added.classList.contains('cv-galaxy-button'));assert.equal(added.textContent,'Adaptar mi CV');
 });
+
+test('history action survives repeated async label replacements and clicks on its label',()=>{
+ const qa=setup(),button=qa.document.querySelector('#open');let actions=0;
+ button.id='refresh-application-history';button.classList.add('button','button-secondary');
+ button.addEventListener('click',()=>actions++);
+ for(const text of ['Cargando historial de envío','Consultar historial en Drive']) {
+   button.textContent=text;
+   // A label change can render before the decoration observer runs.
+   assert.equal(button.textContent,text);
+   qa.mutate();
+   const label=button.querySelector('.cv-button-label');
+   assert.equal(label.textContent,text);
+   label.dispatchEvent(new qa.window.Event('click',{bubbles:true}));
+   assert.equal(button.querySelectorAll('.cv-galaxy-decoration').length,1);
+ }
+ assert.equal(actions,2);
+ const css=fs.readFileSync('static/card-motion.css','utf8');
+ assert.match(css,/\.cv-galaxy-decoration\s*\{[^}]*z-index:-2/);
+ assert.match(css,/\.cv-button-wave\s*\{[^}]*z-index:-1/);
+ assert.doesNotMatch(css,/mix-blend-mode:screen/);
+});
