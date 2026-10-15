@@ -27,7 +27,7 @@ window.cvLoading = (() => {
     bar.value = active?.display || 1;
     percent.textContent = `${active?.display || 1}%`;
     detail.textContent = active ? `${active.completing ? '' : 'Progreso estimado · '}${active.stage}` : '';
-    hideButton.hidden = !active?.durable;
+    hideButton.hidden = !active;
   }
   function schedule() {
     if (!animation && operations.size) animation = requestAnimationFrame(animate);
@@ -106,7 +106,12 @@ window.cvLoading = (() => {
       const operation = operations.get(key);
       if (!operation) return Promise.resolve();
       if (operation.completion) return operation.completion;
-      if (operation !== first() || dismissed || document.hidden) return Promise.resolve();
+      if (operation !== first() || dismissed || document.hidden) {
+        operation.display = operation.progress = 100;
+        operation.stage = 'Completado';
+        render();
+        return Promise.resolve();
+      }
       operation.completing = true;
       operation.stage = 'Completado';
       operation.completion = new Promise(resolve => { operation.resolve = resolve; });
@@ -122,7 +127,12 @@ window.cvLoading = (() => {
   }
   // Hidden tabs cannot paint consecutive frames. Release completed work promptly.
   document.addEventListener?.('visibilitychange', () => {
-    if (document.hidden) for (const [key, operation] of operations) if (operation.completing) remove(key);
+    if (document.hidden) for (const [key, operation] of operations) if (operation.completing) {
+      operation.display = operation.progress = 100;
+      render();
+      remove(key);
+    }
   });
-  return {start, run};
+  return {start, run, notificationReady: () => dismissed || document.hidden ||
+    [...operations.values()].every(operation => operation.display === 100)};
 })();

@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 function setup(){
  const nodes=new Map(),frames=new Map(),painted=[];let clock=0,id=0;
- const element=s=>{if(!nodes.has(s))nodes.set(s,{hidden:true,focus(){},addEventListener(){}});return nodes.get(s)};
+ const element=s=>{if(!nodes.has(s))nodes.set(s,{hidden:true,handlers:{},focus(){},addEventListener(type,fn){this.handlers[type]=fn}});return nodes.get(s)};
  const document={hidden:false,activeElement:null,querySelector:element,querySelectorAll:()=>[],body:{classList:{add(){},remove(){}}}};
  const context={window:{},document,performance:{now:()=>clock},requestAnimationFrame:fn=>{frames.set(++id,fn);return id},cancelAnimationFrame:id=>frames.delete(id)};
  vm.runInNewContext(fs.readFileSync('static/loading.js','utf8'),context);
@@ -32,4 +32,25 @@ test('nested actions preserve parent progress and errors close without 100',asyn
 });
 test('hidden tabs finish without waiting for animation frames',async()=>{
  const q=setup(),finish=q.loader.start('Oculta');q.document.hidden=true;await finish();assert.equal(q.frames.size,0);assert.equal(q.element('#loading-overlay').hidden,true);
+});
+test('background is available at 1 percent and dismisses without cancelling work',async()=>{
+ const q=setup(),finish=q.loader.start('Conectando');
+ assert.equal(q.element('#loading-background').hidden,false);
+ assert.equal(q.element('#loading-percent').textContent,'1%');
+ assert.equal(q.loader.notificationReady(),false);
+ q.element('#loading-background').handlers.click();
+ assert.equal(q.element('#loading-overlay').hidden,true);
+ finish.update(60,'Proceso en curso');
+ assert.equal(q.element('#loading-detail').textContent,'Progreso estimado · Proceso en curso');
+ await finish();assert.equal(q.frames.size,0);
+});
+test('notifications remain blocked while a completed response paints its last percentages',async()=>{
+ const q=setup(),finish=q.loader.start('Sincronizando');
+ finish.update(60,'Guardando');for(let i=0;i<59;i++)q.frame(1000);
+ assert.equal(q.element('#loading-percent').textContent,'60%');
+ const completion=finish.complete();
+ assert.equal(q.loader.notificationReady(),false);
+ for(let i=0;i<39;i++){q.frame();assert.equal(q.loader.notificationReady(),false)}
+ q.frame();assert.equal(q.element('#loading-percent').textContent,'100%');assert.equal(q.loader.notificationReady(),true);
+ await q.settle(completion);await finish();
 });

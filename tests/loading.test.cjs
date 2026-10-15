@@ -19,6 +19,7 @@ async function main() {
   vm.runInNewContext(fs.readFileSync('static/loading.js', 'utf8'), {window, document, performance:{now:()=>0}, requestAnimationFrame:fn=>setImmediate(()=>fn(1000)), cancelAnimationFrame:clearImmediate});
   const loading = window.cvLoading;
   const finishAnalysis = loading.start('Analizando');
+  assert.equal(control.hidden, false, 'Background action is visible from the first percent');
   const finishSync = loading.start('Sincronizando banco');
   assert.equal(label.textContent, 'Sincronizando banco', 'Nested work describes the current operation');
   assert.equal(overlay.hidden, false);

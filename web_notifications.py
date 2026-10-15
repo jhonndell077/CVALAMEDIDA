@@ -76,6 +76,10 @@ def subscribe(store, subscription, uid=''):
 
 
 def notify(store, identifier, job):
+    # Only confirmed successful completion produces a push notification.
+    # Failed or partial work remains visible in the application's process panel.
+    if job.get('state') != 'done' or job.get('progress') != 100:
+        return
     record, _ = store.read(subscription_key(job.get('owner_uid', '')))
     subscriptions = (record or {}).get('subscriptions', {})
     if not subscriptions:
@@ -83,9 +87,8 @@ def notify(store, identifier, job):
     from pywebpush import webpush, WebPushException
     config = configuration(store)
     data = json.dumps({'title': 'CV a la medida', 'body':
-        'Tu proceso terminó. Abre la app para ver el resultado.' if job['state'] == 'done'
-        else 'Tu proceso necesita atención. Abre la app para ver el aviso.',
-        'job_id': identifier})
+        'Tu proceso llegó al 100%. Abre la app para ver el resultado.',
+        'job_id': identifier, 'state': 'done', 'progress': 100})
     expired = []
     for key, subscription in subscriptions.items():
         try:

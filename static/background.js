@@ -176,6 +176,10 @@ window.cvBackground = (() => {
     } catch { notice.textContent = 'No se pudieron activar las notificaciones. Tus procesos seguirán en el servidor.'; }
   });
   navigator.serviceWorker?.addEventListener('message', event => {
+    if (event.data?.type === 'cv-notification-status') {
+      event.ports?.[0]?.postMessage({ready: window.cvLoading?.notificationReady?.() ?? false});
+      return;
+    }
     if (event.data?.type === 'cv-process-finished') resume(event.data.job_id).catch(() => {});
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) resume().catch(() => {}); });

@@ -150,9 +150,26 @@ class BackgroundJobTests(unittest.TestCase):
         self.assertFalse(push.valid_subscription({**subscription, 'endpoint': 'https://127.0.0.1/secrets'}))
         push.subscribe(store, subscription)
         with patch('pywebpush.webpush') as send:
-            push.notify(store, ID, {'state': 'done'})
+            push.notify(store, ID, {'state': 'done', 'progress': 100})
             self.assertIn(ID, send.call_args.kwargs['data'])
             self.assertNotIn('private', send.call_args.kwargs['data'])
+
+    def test_push_only_sends_success_at_100(self):
+        store = Store()
+        push.subscribe(store, {'endpoint': 'https://fcm.googleapis.com/test',
+                               'keys': {'p256dh': 'a' * 87, 'auth': 'b' * 22}})
+        with patch('pywebpush.webpush') as send:
+            for record in ({'state': 'processing', 'progress': 60},
+                           {'state': 'done', 'progress': 60},
+                           {'state': 'done'}, {'state': 'failed', 'progress': 100},
+                           {'state': 'queued', 'progress': 100}):
+                push.notify(store, ID, record)
+            send.assert_not_called()
+            push.notify(store, ID, {'state': 'done', 'progress': 100})
+            send.assert_called_once()
+            import json
+            payload = json.loads(send.call_args.kwargs['data'])
+            self.assertEqual((payload['state'], payload['progress']), ('done', 100))
 
     def test_failed_notification_does_not_lose_completed_job(self):
         store = Store(); job(store, '/api/draft')

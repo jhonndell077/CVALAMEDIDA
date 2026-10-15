@@ -128,7 +128,7 @@ class AccountsTests(unittest.TestCase):
         for identity in (ALICE,BOB):
             push.subscribe(store,{'endpoint':'https://fcm.googleapis.com/'+identity['uid'],'keys':{'p256dh':'x'*40,'auth':'x'*24}},identity['uid'])
         with patch('pywebpush.webpush') as send:
-            push.notify(store,ID,{'state':'done','owner_uid':ALICE['uid']})
+            push.notify(store,ID,{'state':'done','progress':100,'owner_uid':ALICE['uid']})
         self.assertEqual(send.call_count,1)
         self.assertIn(ALICE['uid'],send.call_args.kwargs['subscription_info']['endpoint'])
 
