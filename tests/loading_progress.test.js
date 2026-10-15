@@ -1,51 +1,35 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const displayed = [];
-const elements = new Map();
-function element(selector) {
-  if (!elements.has(selector)) {
-    const node = {hidden: true, focus() {}, addEventListener() {}};
-    Object.defineProperty(node, 'textContent', {set(value) {
-      this.text = value;
-      if (selector === '#loading-percent') displayed.push(Number(value.replace('%', '')));
-    }, get() {return this.text;}});
-    elements.set(selector, node);
-  }
-  return elements.get(selector);
+const {test}=require('node:test');
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+function setup(){
+ const nodes=new Map(),frames=new Map(),painted=[];let clock=0,id=0;
+ const element=s=>{if(!nodes.has(s))nodes.set(s,{hidden:true,focus(){},addEventListener(){}});return nodes.get(s)};
+ const document={hidden:false,activeElement:null,querySelector:element,querySelectorAll:()=>[],body:{classList:{add(){},remove(){}}}};
+ const context={window:{},document,performance:{now:()=>clock},requestAnimationFrame:fn=>{frames.set(++id,fn);return id},cancelAnimationFrame:id=>frames.delete(id)};
+ vm.runInNewContext(fs.readFileSync('static/loading.js','utf8'),context);
+ const frame=(delta=16)=>{clock+=delta;const callbacks=[...frames.values()];frames.clear();callbacks.forEach(fn=>fn(clock));painted.push(Number(element('#loading-percent').textContent.replace('%','')))};
+ async function settle(promise){let done=false;promise.then(()=>done=true);for(let i=0;i<250&&!done;i++){frame();await Promise.resolve()}assert.equal(done,true);await promise}
+ return {loader:context.window.cvLoading,document,element,frame,settle,painted,frames};
 }
-let clock = 0, sequence = 0;
-const frames = new Map();
-const context = {window: {}, performance: {now: () => clock},
-  document: {querySelector: element, querySelectorAll: () => [], activeElement: null,
-    body: {classList: {add() {}, remove() {}}}},
-  requestAnimationFrame: callback => {frames.set(++sequence, callback); return sequence;},
-  cancelAnimationFrame: id => frames.delete(id)};
-vm.runInNewContext(fs.readFileSync('static/loading.js', 'utf8'), context);
-function frame(timestamp) {
-  clock = timestamp;
-  const callbacks = [...frames.values()]; frames.clear();
-  callbacks.forEach(callback => callback(timestamp));
-}
-(async () => {
-  const loader = context.window.cvLoading;
-  const finish = loader.start('Sincronizando');
-  clock = 100; finish.update(40, 'Etapa confirmada'); frame(200);
-  assert.equal(element('#loading-percent').text, '40%');
-  assert.deepEqual([...new Set(displayed)], Array.from({length: 40}, (_, i) => i + 1));
-  frame(20000); assert.equal(element('#loading-percent').text, '40%');
-  finish.update(3, 'Reconsulta'); assert.equal(element('#loading-percent').text, '40%');
-  const nested = loader.start('Conectando'); nested();
-  assert.equal(element('#loading-percent').text, '40%');
-  finish.update(100, 'Respuesta'); frame(21000);
-  assert.equal(element('#loading-percent').text, '99%');
-  const confirmation = finish.complete();
-  assert.equal(element('#loading-percent').text, '100%');
-  frame(21016); frame(21032); await confirmation; finish();
-  assert.equal(element('#loading-overlay').hidden, true);
-  displayed.length = 0;
-  await assert.rejects(loader.run('Error', async update => {update(60, 'Procesando'); throw Error('fallo');}));
-  assert.equal(displayed.includes(100), false);
-  assert.equal(frames.size, 0);
-  console.log('Loading: consecutive confirmed percentages, no autonomous advancement, nested state, success and failure verified.');
-})().catch(error => {console.error(error); process.exitCode = 1;});
+test('fast completion paints every integer on its own frame',async()=>{
+ const q=setup(),finish=q.loader.start('Rapido');q.painted.push(1);await q.settle(finish());
+ assert.deepEqual([...new Set(q.painted)],Array.from({length:100},(_,i)=>i+1));
+ assert.equal(q.element('#loading-overlay').hidden,true);assert.equal(q.frames.size,0);
+});
+test('sparse progress keeps moving without jumps, regressions or premature completion',async()=>{
+ const q=setup(),finish=q.loader.start('Sincronizando');
+ for(let i=0;i<120;i++)q.frame(100);
+ const before=Number(q.element('#loading-percent').textContent.replace('%',''));assert.ok(before>1&&before<99);
+ finish.update(85,'Guardando',true);q.frame(10000);assert.equal(Number(q.element('#loading-percent').textContent.replace('%','')),before+1);
+ finish.update(3,'Esperando');for(let i=0;i<120;i++)q.frame(1000);
+ assert.ok(q.painted.every(v=>v<100));for(let i=1;i<q.painted.length;i++)assert.ok(q.painted[i]-q.painted[i-1]>=0&&q.painted[i]-q.painted[i-1]<=1);
+ assert.match(q.element('#loading-detail').textContent,/estimado/);await q.settle(finish());
+});
+test('nested actions preserve parent progress and errors close without 100',async()=>{
+ const q=setup(),finish=q.loader.start('Principal');q.frame(500);const before=q.element('#loading-percent').textContent;
+ await q.loader.start('Interna')();assert.equal(q.element('#loading-percent').textContent,before);assert.equal(q.element('#loading-overlay').hidden,false);finish.cancel();
+ await assert.rejects(q.loader.run('Error',async update=>{update(60,'Procesando');throw Error('fallo')}),/fallo/);
+ assert.equal(q.painted.includes(100),false);assert.equal(q.frames.size,0);assert.equal(q.element('#loading-overlay').hidden,true);
+});
+test('hidden tabs finish without waiting for animation frames',async()=>{
+ const q=setup(),finish=q.loader.start('Oculta');q.document.hidden=true;await finish();assert.equal(q.frames.size,0);assert.equal(q.element('#loading-overlay').hidden,true);
+});

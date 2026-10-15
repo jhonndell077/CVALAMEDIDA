@@ -27,7 +27,7 @@ async function main() {
   finishAnalysis();
   assert.equal(overlay.hidden, false, 'Completing one request never hides another pending request');
   assert.equal(label.textContent, 'Sincronizando banco');
-  finishSync();
+  await finishSync();
   assert.equal(overlay.hidden, true);
   assert.deepEqual(background.map(element => element.inert), [false, true]);
   assert.equal(classes.size, 0);

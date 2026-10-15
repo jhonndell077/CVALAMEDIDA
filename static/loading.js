@@ -1,4 +1,4 @@
-/* A shared loading window for concurrent and nested operations. */
+/* Shared, frame-by-frame loading feedback for concurrent operations. */
 window.cvLoading = (() => {
   const operations = new Map();
   const overlay = document.querySelector('#loading-overlay');
@@ -8,50 +8,59 @@ window.cvLoading = (() => {
   const detail = document.querySelector('#loading-detail');
   const hideButton = document.querySelector('#loading-background');
   const background = [...document.querySelectorAll('main, header')];
-  let previousFocus = null;
-  let previousInert = [];
-  let dismissed = false;
-  let animation = 0;
+  let previousFocus = null, previousInert = [], dismissed = false, animation = 0;
   const now = () => performance.now();
+  const first = () => operations.values().next().value;
   overlay.addEventListener?.('cancel', event => event.preventDefault());
-  function advance(operation, target) {
-    // Every integer is applied in order. A fast completion may paint several in
-    // one frame; never hold a finished request open to slow down its counter.
-    while (operation.display < target) {
-      operation.display += 1;
-      if ([...operations.values()][0] === operation) {
-        bar.value = operation.display;
-        percent.textContent = `${operation.display}%`;
-      }
-    }
-  }
-  function animate(timestamp) {
-    animation = 0;
-    const active = [...operations.values()][0];
-    if (!active) return;
-    if (active.display < active.progress) {
-      const fraction = Math.min(1, (timestamp - active.changedAt) / active.duration);
-      advance(active, Math.floor(active.from + (active.progress - active.from) * fraction));
-      render();
-      if (active.display < active.progress) animation = requestAnimationFrame(animate);
-    }
-  }
   function unlock() {
     background.forEach((element, index) => { element.inert = previousInert[index]; });
     document.body.classList.remove('is-loading');
   }
   hideButton.addEventListener('click', () => { dismissed = true; render(); unlock(); });
   function render() {
-    const active = [...operations.values()][0];
+    const active = first();
     const current = [...operations.values()].at(-1);
     label.textContent = current?.message || 'Cargando';
-    overlay.hidden = operations.size === 0 || dismissed;
+    overlay.hidden = !active || dismissed;
     if (!overlay.hidden && overlay.showModal && !overlay.open) overlay.showModal();
     else if (overlay.hidden && overlay.open) overlay.close();
     bar.value = active?.display || 1;
     percent.textContent = `${active?.display || 1}%`;
-    detail.textContent = active?.stage || 'Solicitud iniciada';
+    detail.textContent = active ? `${active.completing ? '' : 'Progreso estimado · '}${active.stage}` : '';
     hideButton.hidden = !active?.durable;
+  }
+  function schedule() {
+    if (!animation && operations.size) animation = requestAnimationFrame(animate);
+  }
+  function animate(timestamp) {
+    animation = 0;
+    const active = first();
+    if (!active) return;
+    // Estimate only between confirmed stages, slowing as an unknown wait grows.
+    // Never claim completion while the operation is still pending.
+    const elapsed = Math.max(0, timestamp - active.reportedAt);
+    const ceiling = active.progress + (99 - active.progress) * elapsed / (elapsed + active.estimateMs);
+    const target = active.completing ? 100 : Math.min(99, Math.floor(ceiling));
+    // One integer per painted frame, even after a delayed frame or a 1 -> 100 response.
+    if (active.display < target) active.display++;
+    render();
+    if (active.completing && active.display === 100) {
+      // The next frame lets 100% paint before callers close the dialog.
+      const resolve = active.resolve;
+      animation = requestAnimationFrame(() => { animation = 0; active.resolve = null; resolve?.(); });
+    } else if (active.display < 99 || active.completing) schedule();
+  }
+  function remove(key) {
+    const operation = operations.get(key);
+    if (!operation) return;
+    operations.delete(key);
+    operation.resolve?.();
+    if (animation) { cancelAnimationFrame(animation); animation = 0; }
+    render();
+    if (!operations.size) {
+      unlock();
+      if (previousFocus?.isConnected && !previousFocus.disabled && (!previousFocus.getClientRects || previousFocus.getClientRects().length)) previousFocus.focus({preventScroll: true});
+    } else schedule();
   }
   function start(message = 'Cargando') {
     if (!operations.size) {
@@ -62,56 +71,58 @@ window.cvLoading = (() => {
       document.body.classList.add('is-loading');
     }
     const key = Symbol('loading');
-    operations.set(key, {message, progress: 1, display: 1, stage: 'Solicitud iniciada', durable: false,
-      reportedAt: now(), changedAt: now(), from: 1, duration: 1});
-    render();
-    if (!overlay.hidden) overlay.focus({preventScroll: true});
-    let finished = false;
+    operations.set(key, {message, progress:1, display:1, stage:'Solicitud iniciada', durable:false,
+      reportedAt:now(), estimateMs:12000, completing:false, completion:null, resolve:null});
+    render(); schedule();
+    if (!overlay.hidden) overlay.focus({preventScroll:true});
+    let closing = null;
     const finish = () => {
-      if (finished) return;
-      finished = true;
-      operations.delete(key);
-      if (!operations.size && animation) { cancelAnimationFrame(animation); animation = 0; }
-      render();
-      if (!operations.size) {
-        background.forEach((element, index) => { element.inert = previousInert[index]; });
-        document.body.classList.remove('is-loading');
-        if (previousFocus?.isConnected && !previousFocus.disabled && (!previousFocus.getClientRects || previousFocus.getClientRects().length)) previousFocus.focus({preventScroll: true});
-      }
+      if (closing) return closing;
+      const operation = operations.get(key);
+      if (!operation) return Promise.resolve();
+      // Inner actions do not complete the outer synchronization's counter.
+      if (operations.size > 1) { remove(key); return Promise.resolve(); }
+      closing = finish.complete().then(() => remove(key));
+      return closing;
     };
+    finish.cancel = () => remove(key);
     finish.update = (progress, stage, durable = false) => {
       const operation = operations.get(key);
-      if (!operation) return;
+      if (!operation || operation.completing) return;
       const target = Math.max(operation.progress, Math.min(99, Number(progress) || 1));
       if (target > operation.progress) {
         const timestamp = now();
-        operation.duration = Math.max(1, Math.min(600, timestamp - operation.reportedAt));
-        operation.from = operation.display;
-        operation.changedAt = timestamp;
-        operation.reportedAt = timestamp;
+        // Slow stages give subsequent interpolation more time; rapid ones speed it up.
+        operation.estimateMs = Math.max(1000, Math.min(60000,
+          (timestamp - operation.reportedAt) * (100 - target) / (target - operation.progress)));
         operation.progress = target;
-        if (!animation) animation = requestAnimationFrame(animate);
+        operation.reportedAt = timestamp;
       }
       operation.stage = stage || operation.stage;
       operation.durable = durable;
-      render();
+      render(); schedule();
     };
-    finish.complete = async () => {
+    finish.complete = () => {
       const operation = operations.get(key);
-      if (!operation) return;
-      operation.progress = 100;
-      advance(operation, 100);
+      if (!operation) return Promise.resolve();
+      if (operation.completion) return operation.completion;
+      if (operation !== first() || dismissed || document.hidden) return Promise.resolve();
+      operation.completing = true;
       operation.stage = 'Completado';
-      render();
-      // Allow the browser to paint confirmation; no countdown after completion.
-      if (!overlay.hidden) await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      operation.completion = new Promise(resolve => { operation.resolve = resolve; });
+      schedule();
+      return operation.completion;
     };
     return finish;
   }
   async function run(message, work) {
     const finish = start(message);
-    try { const result = await work(finish.update); await finish.complete(); return result; }
-    finally { finish(); }
+    try { const result = await work(finish.update); await finish(); return result; }
+    catch (error) { finish.cancel(); throw error; }
   }
+  // Hidden tabs cannot paint consecutive frames. Release completed work promptly.
+  document.addEventListener?.('visibilitychange', () => {
+    if (document.hidden) for (const [key, operation] of operations) if (operation.completing) remove(key);
+  });
   return {start, run};
 })();

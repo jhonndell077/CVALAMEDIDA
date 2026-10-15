@@ -22,7 +22,7 @@ test('loading uses the top layer, blocks Escape and releases it after failure',a
  vm.runInContext(fs.readFileSync('static/loading.js','utf8'),context);
  const finish=context.window.cvLoading.start('Fixture');assert.equal(overlay.open,true);
  let prevented=false;overlay.handlers.cancel({preventDefault(){prevented=true}});assert.equal(prevented,true);
- finish();assert.equal(overlay.open,false);assert.equal(closed,1);
+ await finish();assert.equal(overlay.open,false);assert.equal(closed,1);
  await assert.rejects(context.window.cvLoading.run('Failure',async()=>{throw Error('fixture')}),/fixture/);assert.equal(overlay.hidden,true);assert.equal(overlay.open,false);
 });
 test('recovered CV preview clears unrelated analysis and keeps a known draft association',async()=>{
