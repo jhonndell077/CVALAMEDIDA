@@ -1301,7 +1301,13 @@ def enforce_request_policy() -> tuple[Any, int] | None:
         verify_google_identity()
         if os.environ.get('CV_MULTI_ACCOUNT') == '1' and getattr(g, 'google_identity', None):
             import sys
-            account_scope = user_accounts.scope(sys.modules[__name__], g.google_identity, request.headers)
+            # Job metadata and stored artifacts need the verified app identity,
+            # not a live Drive OAuth token (which may expire while iOS suspends
+            # the installed app). Ownership is still checked by each job route.
+            account_headers = {} if request.endpoint in {
+                'background_job_status', 'background_job_artifact', 'push_config', 'push_subscribe'
+            } else request.headers
+            account_scope = user_accounts.scope(sys.modules[__name__], g.google_identity, account_headers)
             account_scope.__enter__()
             g.account_scope = account_scope
     if bank_enabled() and request.path in {

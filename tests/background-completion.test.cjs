@@ -122,3 +122,33 @@ test('toast uses the top layer above dialogs and closes after five seconds',asyn
  q.emit('cv-loading-background',{id:10,message:'Sincronizando'});q.emit('cv-loading-finished',{id:10,success:true});assert.equal(shown,1);
  [...q.timers.values()].find(timer=>timer.delay===5000).fn();assert.equal(hidden,1);assert.equal(q.toast.hidden,true);
 });
+test('installed app keeps its row and recovers after more than six connection failures',async()=>{
+ const q=setup([{id:jobId,path:'/api/draft',state:'queued',backgrounded:true}]);let attempts=0;
+ q.settings.request=async()=>{if(++attempts<=7)throw new Error('Offline fixture');return {state:'done',progress:100,path:'/api/draft',result:{draft:{}}}};
+ await q.window.cvBackground.initialize(q.settings);await settle();
+ assert.equal(q.document.querySelector('#background-processes').children.length,1);assert.equal(q.toast.hidden,true);
+ for(let i=0;i<7;i++){
+  const timer=[...q.timers.values()].find(timer=>[2000,10000].includes(timer.delay));assert.ok(timer,'recovery remains scheduled');timer.fn();await settle();
+ }
+ assert.equal(attempts,8);assert.ok(q.document.querySelector('.process-done'));assert.equal(q.toast.hidden,false);
+});
+test('pageshow replaces a frozen request instead of reusing its stalled watcher',async()=>{
+ const q=setup([{id:jobId,path:'/api/draft',state:'queued',backgrounded:true}]);let calls=0;
+ q.settings.request=async()=>{if(++calls===1)return new Promise(()=>{});return {state:'done',progress:100,path:'/api/draft',result:{draft:{}}}};
+ await q.window.cvBackground.initialize(q.settings);await settle();assert.equal(calls,1);
+ q.window.dispatchEvent(new q.window.Event('pageshow'));await settle();
+ assert.equal(calls,2);assert.ok(q.document.querySelector('.process-done'));assert.equal(q.toast.hidden,false);
+});
+test('missing saved job gets an explicit visible state instead of an empty panel',async()=>{
+ const q=setup([{id:jobId,path:'/api/draft',state:'queued'}]);let calls=0;
+ q.settings.request=async()=>{calls++;throw Object.assign(new Error('No existe'),{status:404})};
+ await q.window.cvBackground.initialize(q.settings);await settle();
+ assert.equal(calls,1);assert.ok(q.document.querySelector('.process-failed'));assert.match(q.document.querySelector('#background-processes').textContent,/ya no está disponible/);assert.equal(q.toast.hidden,true);
+});
+test('a completed notice survives termination of the installed app before it was visible',async()=>{
+ const q=setup([{id:jobId,path:'/api/draft',state:'queued',backgrounded:true}]);q.document.hidden=true;
+ await q.window.cvBackground.initialize(q.settings);await settle();assert.equal(q.toast.hidden,true);
+ const records=JSON.parse(q.storage.get('cv-processes-alice'));assert.equal(records[0].pendingNotice,true);assert.notEqual(records[0].announced,true);
+ const reopened=setup(records);await reopened.window.cvBackground.initialize(reopened.settings);await settle();assert.equal(reopened.toast.hidden,false);
+ assert.equal(JSON.parse(reopened.storage.get('cv-processes-alice'))[0].pendingNotice,false);
+});

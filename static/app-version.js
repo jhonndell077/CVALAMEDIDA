@@ -65,5 +65,6 @@
   window.setInterval(check, 60000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) check(); });
   window.addEventListener("focus", check);
+  window.addEventListener("pageshow", check);
   window.addEventListener("online", check);
 })();

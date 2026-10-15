@@ -132,6 +132,17 @@ class AccountsTests(unittest.TestCase):
         self.assertEqual(send.call_count,1)
         self.assertIn(ALICE['uid'],send.call_args.kwargs['subscription_info']['endpoint'])
 
+    def test_job_recovery_does_not_require_unexpired_drive_token(self):
+        store=MemoryStore(); job(store,owner_uid=ALICE['uid'],state='done',progress=100,result={'ok':True})
+        store.write(users.account_key(ALICE['uid']), {'bank':{'folder_id':'alice-bank'},'archive_id':'alice-cv'},0)
+        def verify(): app.g.google_identity=ALICE
+        with patch.dict(os.environ,{'CV_MULTI_ACCOUNT':'1','CV_AUTH_REQUIRED':'1','CV_ALLOW_REMOTE':'1','CV_BANK_PROVIDER':'local'}),patch.object(app,'verify_google_identity',side_effect=verify),patch.object(job_runtime,'JobStore',return_value=store),patch.object(users,'assert_drive_identity',side_effect=app.AppError('Drive venció.',401)) as drive:
+            client=app.app.test_client()
+            response=client.post('/api/background/jobs/'+ID,json={},headers={'X-Drive-Access-Token':'expired-fixture'})
+            self.assertEqual(response.status_code,200)
+            self.assertEqual(response.json['progress'],100)
+            drive.assert_not_called()
+
     def test_failed_drive_identity_restores_context_and_stops_worker_below_100(self):
         store=MemoryStore()
         store.write(users.account_key(ALICE['uid']), {'bank':{'folder_id':'alice-bank'},'archive_id':'alice-cv'},0)

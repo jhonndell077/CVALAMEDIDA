@@ -165,7 +165,7 @@ async function requestJson(url, payload) {
   return directRequestJson(url, payload);
 }
 
-async function directRequestJson(url, payload, headers = {}) {
+async function directRequestJson(url, payload, headers = {}, requestOptions = {}) {
   const requestOwner = state.user?.uid;
   if (state.user) {
     const token = await state.user.getIdToken();
@@ -173,6 +173,7 @@ async function directRequestJson(url, payload, headers = {}) {
     state.idToken = token;
   }
   const response = await fetch(url, {
+    signal: requestOptions.signal,
     method: "POST",
     headers: authenticatedHeaders({ "Content-Type": "application/json", ...headers }),
     body: JSON.stringify(payload),

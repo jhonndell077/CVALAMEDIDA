@@ -7,6 +7,7 @@ window.cvBackground = (() => {
   let options, owner = '', records = [], restoring = false;
   const watchers = new Map(), rows = new Map(), delivered = new Set();
   const progressListeners = new Map();
+  const wakeups = new Map();
   const panel = document.querySelector('#background-panel');
   const list = document.querySelector('#background-processes');
   const button = document.querySelector('#enable-notifications');
@@ -16,7 +17,12 @@ window.cvBackground = (() => {
   const jobs = new Map();
   const pageId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   let toastTimer = 0, queuedToast = false;
-  function completedToast() {
+  function completedToast(recordIds = []) {
+    for (const id of recordIds) {
+      const record = records.find(item => item.id === id);
+      if (record) record.pendingNotice = true;
+    }
+    if (recordIds.length) persist();
     if (!toast) return;
     if (document.hidden) { queuedToast = true; return; }
     if (window.cvLoading.notificationReady && !window.cvLoading.notificationReady()) {
@@ -29,7 +35,11 @@ window.cvBackground = (() => {
     clearTimeout(toastTimer);
     toast.hidden = false;
     toast.textContent = 'Estado Completado';
-    try { toast.showPopover?.(); } catch { /* Fixed-position fallback. */ }
+    try { toast.showPopover?.(); } catch { toast.removeAttribute('popover'); }
+    records.filter(record => record.pendingNotice).forEach(record => {
+      record.pendingNotice = false; record.announced = true;
+    });
+    persist();
     toastTimer = setTimeout(() => { toast.hidePopover?.(); toast.hidden = true; }, 5000);
   }
   const enabled = () => Boolean(options?.enabled && options.user());
@@ -81,7 +91,32 @@ window.cvBackground = (() => {
     }
     }
   }
-  const status = id => options.request(`/api/background/jobs/${id}`, {});
+  async function status(id) {
+    const controller = typeof AbortController === 'undefined' ? null : new AbortController();
+    let timeout, interrupt;
+    const interrupted = new Promise((resolve, reject) => {
+      interrupt = () => {
+        controller?.abort();
+        reject(Object.assign(new Error('Recuperando la conexión del proceso.'), {wakeup:true}));
+      };
+      timeout = setTimeout(interrupt, 20000);
+      wakeups.set(id, interrupt);
+    });
+    try {
+      return await Promise.race([options.request(`/api/background/jobs/${id}`, {}, {},
+        {signal:controller?.signal}), interrupted]);
+    } finally {
+      clearTimeout(timeout);
+      if (wakeups.get(id) === interrupt) wakeups.delete(id);
+    }
+  }
+  function pause(id, milliseconds) {
+    return new Promise(resolve => {
+      const finish = () => { clearTimeout(timer); if (wakeups.get(id) === finish) wakeups.delete(id); resolve(); };
+      const timer = setTimeout(finish, milliseconds);
+      wakeups.set(id, finish);
+    });
+  }
   async function watch(record, recover = false, onProgress = null) {
     const watchOwner = owner;
     if (watchers.has(record.id)) {
@@ -93,6 +128,7 @@ window.cvBackground = (() => {
     }
     const finish = recover ? Object.assign(() => {}, {update() {}}) : onProgress ? Object.assign(() => {}, {update: onProgress}) : window.cvLoading.start(titles[record.path] || 'Recuperando proceso');
     finish.update(1, 'Solicitud guardada; el servidor seguirá trabajando', true);
+    render(record, jobs.get(record.id) || {progress:1, stage:'Recuperando el estado del proceso'});
     const promise = (async () => {
       let failures = 0, progress = 1;
       const wasPending = !['done', 'failed'].includes(record.state);
@@ -113,18 +149,28 @@ window.cvBackground = (() => {
             if (owner !== watchOwner) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
             delivered.add(record.id);
             if (!window.cvLoading.currentSession?.()) notice.textContent = '100% · Estado Completado';
-            if ((recover && wasPending || record.backgrounded && !window.cvLoading.currentSession?.()) && !record.announced) {
-              record.announced = true; persist(); completedToast();
+            if (record.pendingNotice || (recover && wasPending || record.backgrounded && !window.cvLoading.currentSession?.()) && !record.announced) {
+              completedToast([record.id]);
             }
             if (recover && !['/api/analyze', '/api/draft'].includes(record.path)) window.dispatchEvent(new CustomEvent('cv-background-result', {detail: {path: record.path, result: job.result}}));
             return job.result;
           }
         } catch (error) {
           if (error.terminal) throw error;
+          if (owner !== watchOwner) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
+          if (error.wakeup) continue;
+          if ([400, 401, 403, 404].includes(error.status)) {
+            const message = error.status === 404 ? 'Este proceso ya no está disponible. Puedes iniciar una nueva acción.' : error.message;
+            record.state = error.status === 401 || error.status === 403 ? 'needs-auth' : 'failed';
+            persist(); render(record, {state:'failed', progress, error:message});
+            throw Object.assign(new Error(message), {terminal:true});
+          }
           finish.update(progress, 'Reconectando. El proceso continúa en el servidor.', true);
-          if (++failures > 5) throw new Error('No se pudo consultar el progreso. Vuelve a abrir la app para recuperar el proceso guardado.');
+          failures++;
+          render(record, {...jobs.get(record.id), stage:'Esperando conexión. Reintentando automáticamente.'});
+          notice.textContent = 'Recuperando el progreso. No necesitas repetir la acción.';
         }
-        await new Promise(resolve => setTimeout(resolve, document.hidden ? 10000 : 2000));
+        await pause(record.id, document.hidden || failures > 5 ? 10000 : 2000);
       }
     })();
     watchers.set(record.id, promise);
@@ -173,7 +219,7 @@ window.cvBackground = (() => {
     try {
       if (/^web-[0-9a-f-]{36}$/.test(id)) remember({id, path: '', state: 'queued'});
       for (const record of records) {
-        if (!['done', 'failed'].includes(record.state) ||
+        if (record.pendingNotice || !['done', 'failed'].includes(record.state) ||
             record.backgrounded && record.actionId && !rows.has(record.actionId)) {
           watch(record, true).catch(error => { notice.textContent = error.message; });
         }
@@ -196,6 +242,7 @@ window.cvBackground = (() => {
       const registration = await navigator.serviceWorker.getRegistration();
       const subscription = await registration?.pushManager.getSubscription();
       if (subscription) await subscription.unsubscribe();
+      wakeups.forEach(wake => wake()); wakeups.clear();
       watchers.clear(); progressListeners.clear();
     }
     options = settings;
@@ -258,18 +305,23 @@ window.cvBackground = (() => {
     }
     if (completed) {
       associated.forEach(record => {
-        if (event.detail.backgrounded !== false) record.announced = true;
         render(record, jobs.get(record.id) || {state:'done',progress:100});
       });
       notice.textContent = '100% · Estado Completado';
       persist();
-      if (event.detail.backgrounded !== false) completedToast();
+      if (event.detail.backgrounded !== false) completedToast(associated.map(record => record.id));
     }
   });
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) { if (queuedToast) completedToast(); resume().catch(() => {}); }
-  });
-  window.addEventListener('online', () => resume().catch(() => {}));
+  function returnToApp() {
+    if (document.hidden) return;
+    wakeups.forEach(wake => wake());
+    if (queuedToast) completedToast();
+    resume().catch(() => {});
+  }
+  document.addEventListener('visibilitychange', returnToApp);
+  window.addEventListener('pageshow', returnToApp);
+  window.addEventListener('focus', returnToApp);
+  window.addEventListener('online', returnToApp);
   return {initialize, enabled, handles: path => path in titles, run, downloadResult,
     hasActive: () => records.some(record => !['done', 'failed'].includes(record.state))};
 })();
