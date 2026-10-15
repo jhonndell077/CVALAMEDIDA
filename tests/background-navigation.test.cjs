@@ -7,11 +7,14 @@ for(const state of ['done','queued']) test(`restored ${state} CV opens only on r
  const id='web-12345678-1234-1234-1234-123456789abc';const events=[];
  window.addEventListener('cv-background-result',event=>events.push(event.detail));
  window.cvLoading={start:()=>Object.assign(()=>{},{update(){}})};
- const context=vm.createContext({window,document,navigator:{},location:{href:'https://example.com'},URL,CustomEvent:window.CustomEvent,localStorage:{getItem:()=>JSON.stringify([{id,path:'/api/draft',state}]),setItem(){}},setTimeout});
+ const context=vm.createContext({window,document,navigator:{},location:{href:'https://example.com'},URL,CustomEvent:window.CustomEvent,localStorage:{getItem:()=>JSON.stringify([{id,path:'/api/draft',state}]),setItem(){}},setTimeout,clearTimeout});
  vm.runInContext(fs.readFileSync('static/background.js','utf8'),context);
  const settings={enabled:true,user:()=>({uid:'alice'}),request:async()=>({path:'/api/draft',state:'done',result:{draft:{position:'Example'}}})};
  await window.cvBackground.initialize(settings);await new Promise(resolve=>setImmediate(resolve));
  assert.equal(events.length,0,'restoring must not navigate');
  await window.cvBackground.initialize(settings);assert.equal(events.length,0,'token renewal must not navigate');
- assert.equal(document.querySelector('#background-processes').children.length,0,'old completed tasks stay hidden, even when locally queued');
+ assert.equal(document.querySelector('#background-processes').children.length,1,'completed tasks remain visible in Tus procesos');
+ assert.match(document.querySelector('#background-processes').textContent,/100% · Estado Completado/);
+ assert.ok(document.querySelector('.process-done'));
+ document.querySelector('#background-processes button').click();assert.equal(events.length,1,'the result opens only on request');
 });

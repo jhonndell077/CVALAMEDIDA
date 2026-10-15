@@ -9,6 +9,10 @@ window.cvLoading = (() => {
   const hideButton = document.querySelector('#loading-background');
   const background = [...document.querySelectorAll('main, header')];
   let previousFocus = null, previousInert = [], dismissed = false, animation = 0;
+  let session = 0, sessionMessage = '', sessionFailed = false;
+  const emit = (type, detail) => {
+    if (window.dispatchEvent && typeof CustomEvent !== 'undefined') window.dispatchEvent(new CustomEvent(type, {detail}));
+  };
   const now = () => performance.now();
   const first = () => operations.values().next().value;
   overlay.addEventListener?.('cancel', event => event.preventDefault());
@@ -16,7 +20,10 @@ window.cvLoading = (() => {
     background.forEach((element, index) => { element.inert = previousInert[index]; });
     document.body.classList.remove('is-loading');
   }
-  hideButton.addEventListener('click', () => { dismissed = true; render(); unlock(); });
+  hideButton.addEventListener('click', () => {
+    if (!dismissed) emit('cv-loading-background', {id:session, message:sessionMessage});
+    dismissed = true; render(); unlock();
+  });
   function render() {
     const active = first();
     const current = [...operations.values()].at(-1);
@@ -59,12 +66,14 @@ window.cvLoading = (() => {
     render();
     if (!operations.size) {
       unlock();
+      if (dismissed) emit('cv-loading-finished', {id:session, message:sessionMessage, success:!sessionFailed});
       if (previousFocus?.isConnected && !previousFocus.disabled && (!previousFocus.getClientRects || previousFocus.getClientRects().length)) previousFocus.focus({preventScroll: true});
     } else schedule();
   }
   function start(message = 'Cargando') {
     if (!operations.size) {
       dismissed = false;
+      session++; sessionMessage = message; sessionFailed = false;
       previousFocus = document.activeElement;
       previousInert = background.map(element => element.inert);
       background.forEach(element => { element.inert = true; });
@@ -85,7 +94,7 @@ window.cvLoading = (() => {
       closing = finish.complete().then(() => remove(key));
       return closing;
     };
-    finish.cancel = () => remove(key);
+    finish.cancel = () => { if (operations.has(key)) sessionFailed = true; remove(key); };
     finish.update = (progress, stage, durable = false) => {
       const operation = operations.get(key);
       if (!operation || operation.completing) return;
@@ -133,6 +142,7 @@ window.cvLoading = (() => {
       remove(key);
     }
   });
-  return {start, run, notificationReady: () => dismissed || document.hidden ||
+  return {start, run, backgroundSession: () => dismissed ? session : null,
+    notificationReady: () => dismissed || document.hidden ||
     [...operations.values()].every(operation => operation.display === 100)};
 })();

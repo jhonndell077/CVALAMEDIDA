@@ -11,9 +11,27 @@ window.cvBackground = (() => {
   const list = document.querySelector('#background-processes');
   const button = document.querySelector('#enable-notifications');
   const notice = document.querySelector('#notifications-status');
+  const toast = document.querySelector('#process-completed-toast');
+  const sessions = new Map();
+  let toastTimer = 0, queuedToast = false;
+  function completedToast() {
+    if (!toast) return;
+    if (document.hidden) { queuedToast = true; return; }
+    if (window.cvLoading.notificationReady && !window.cvLoading.notificationReady()) {
+      queuedToast = true;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(completedToast, 250);
+      return;
+    }
+    queuedToast = false;
+    clearTimeout(toastTimer);
+    toast.hidden = false;
+    toast.textContent = 'Estado Completado';
+    toastTimer = setTimeout(() => { toast.hidden = true; }, 5000);
+  }
   const enabled = () => Boolean(options?.enabled && options.user());
   function persist() {
-    try { localStorage.setItem(`cv-processes-${owner}`, JSON.stringify(records.slice(-20))); } catch { /* Work stays on the server. */ }
+    try { localStorage.setItem(`cv-processes-${owner}`, JSON.stringify(records.slice(-20).map(({sessionId, ...record}) => record))); } catch { /* Work stays on the server. */ }
   }
   function remember(record) {
     if (!records.some(item => item.id === record.id)) records.push(record);
@@ -24,9 +42,12 @@ window.cvBackground = (() => {
     let row = rows.get(record.id);
     if (!row) { row = document.createElement('div'); row.className = 'background-process'; list.prepend(row); rows.set(record.id, row); }
     row.replaceChildren();
-    const title = document.createElement('strong'); title.textContent = titles[job.path || record.path] || 'Proceso';
-    const detail = document.createElement('p'); detail.textContent = `${job.progress || 1}% · ${job.stage || 'Solicitud guardada'}`;
-    const progress = document.createElement('progress'); progress.max = 100; progress.value = job.progress || 1;
+    row.classList.toggle('process-done', job.state === 'done');
+    row.classList.toggle('process-failed', job.state === 'failed');
+    const title = document.createElement('strong'); title.textContent = titles[job.path || record.path] || record.title || 'Proceso';
+    const detail = document.createElement('p'); detail.textContent = job.state === 'done'
+      ? '100% · Estado Completado' : `${job.progress || 1}% · ${job.stage || 'Solicitud guardada'}`;
+    const progress = document.createElement('progress'); progress.max = 100; progress.value = job.state === 'done' ? 100 : job.progress || 1;
     progress.setAttribute('aria-label', title.textContent); row.append(title, progress, detail);
     if (job.state === 'failed') { detail.textContent = job.error || 'El proceso necesita atención.'; row.classList.add('process-failed'); }
     if (job.state === 'done' && job.result?.driveUrl?.startsWith('https://drive.google.com/')) {
@@ -57,19 +78,14 @@ window.cvBackground = (() => {
     const finish = recover ? Object.assign(() => {}, {update() {}}) : onProgress ? Object.assign(() => {}, {update: onProgress}) : window.cvLoading.start(titles[record.path] || 'Recuperando proceso');
     finish.update(1, 'Solicitud guardada; el servidor seguirá trabajando', true);
     const promise = (async () => {
-      let failures = 0, progress = 1, activeThisSession = !recover;
+      let failures = 0, progress = 1;
+      const wasPending = !['done', 'failed'].includes(record.state);
       for (;;) {
         if (!enabled() || owner !== watchOwner) throw new Error('La sesión cambió. El proceso permanece en su cuenta original.');
         try {
           const job = await status(record.id); failures = 0;
           if (owner !== watchOwner) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
           record.path = job.path || record.path;
-          // A job may have finished while this browser was closed.
-          if (!activeThisSession && ['done', 'failed'].includes(job.state)) {
-            record.state = job.state; persist(); delivered.add(record.id);
-            return job.result;
-          }
-          activeThisSession = true;
           render(record, job);
           progress = Math.min(job.state === 'done' ? 100 : 99, job.progress || progress);
           finish.update(progress, job.stage, true);
@@ -80,6 +96,10 @@ window.cvBackground = (() => {
             if (finish.complete) await finish.complete();
             if (owner !== watchOwner) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
             delivered.add(record.id);
+            notice.textContent = '100% · Estado Completado';
+            if (recover && wasPending && !record.announced) {
+              record.announced = true; persist(); completedToast();
+            }
             if (recover && !['/api/analyze', '/api/draft'].includes(record.path)) window.dispatchEvent(new CustomEvent('cv-background-result', {detail: {path: record.path, result: job.result}}));
             return job.result;
           }
@@ -92,13 +112,21 @@ window.cvBackground = (() => {
       }
     })();
     watchers.set(record.id, promise);
-    try { return await promise; } finally { watchers.delete(record.id); progressListeners.delete(record.id); finish(); }
+    try { return await promise; }
+    catch (error) { finish.cancel?.(); throw error; }
+    finally { watchers.delete(record.id); progressListeners.delete(record.id); finish(); }
   }
   async function run(path, payload, headers = {}, onProgress = null) {
     const startedOwner = owner;
     const existing = records.find(record => record.path === path && !['done', 'failed'].includes(record.state));
     if (path === '/api/bank/sync' && existing) return watch(existing, false, onProgress);
     const record = {id: `web-${crypto.randomUUID()}`, path, state: 'queued'};
+    const sessionId = window.cvLoading.backgroundSession?.();
+    if (sessionId != null) {
+      record.backgrounded = true; record.sessionId = sessionId;
+      const local = sessions.get(sessionId);
+      if (local) { rows.get(local.id)?.remove(); rows.delete(local.id); sessions.delete(sessionId); }
+    }
     remember(record); render(record, {progress: 1, stage: 'Guardando la solicitud en el servidor'});
     try {
       const submitted = await options.request('/api/background/jobs', {path, payload, request_id: record.id.slice(4)}, headers);
@@ -127,7 +155,7 @@ window.cvBackground = (() => {
     try {
       if (/^web-[0-9a-f-]{36}$/.test(id)) remember({id, path: '', state: 'queued'});
       for (const record of records) {
-        if (!['done', 'failed'].includes(record.state)) {
+        if (!['done', 'failed'].includes(record.state) || !rows.has(record.id)) {
           watch(record, true).catch(error => { notice.textContent = error.message; });
         }
       }
@@ -153,9 +181,14 @@ window.cvBackground = (() => {
     }
     options = settings;
     if (sameOwner) { await resume(); return; }
+    // Startup itself can already have been moved to the background before the
+    // first account is initialized. Keep that local loading session.
+    if (owner) sessions.clear();
     owner = nextOwner; delivered.clear();
+    queuedToast = false; clearTimeout(toastTimer); if (toast) toast.hidden = true;
     rows.clear(); list.replaceChildren(); records = [];
     button.disabled = !enabled(); panel.hidden = !enabled();
+    for (const record of sessions.values()) render(record, {progress:1, stage:record.title});
     if (!enabled()) return;
     try { records = JSON.parse(localStorage.getItem(`cv-processes-${owner}`) || '[]').filter(r => /^web-[0-9a-f-]{36}$/.test(r.id)); } catch { records = []; }
     notice.textContent = 'Activa las notificaciones para recibir un aviso aunque cierres esta página.';
@@ -182,7 +215,35 @@ window.cvBackground = (() => {
     }
     if (event.data?.type === 'cv-process-finished') resume(event.data.job_id).catch(() => {});
   });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) resume().catch(() => {}); });
+  window.addEventListener('cv-loading-background', event => {
+    const {id, message} = event.detail;
+    const active = records.filter(record => !['done','failed'].includes(record.state));
+    if (active.length) {
+      active.forEach(record => { record.backgrounded = true; record.sessionId = id; }); persist();
+    } else {
+      const record = {id:`loading-${id}`, path:'', title:message};
+      sessions.set(id, record);
+      render(record, {progress:1, stage:message});
+    }
+  });
+  window.addEventListener('cv-loading-finished', event => {
+    const {id, message, success} = event.detail;
+    const associated = records.filter(record => record.sessionId === id);
+    const local = sessions.get(id);
+    if (!local && !associated.length) return;
+    const completed = success && associated.every(record => record.state === 'done');
+    if (local) {
+      render(local, {state:completed?'done':'failed', progress:completed?100:1,
+        error:'El proceso no se completó. Revisa el aviso de la operación.', stage:message});
+      sessions.delete(id);
+    }
+    if (completed) {
+      associated.forEach(record => { record.announced = true; }); persist(); completedToast();
+    }
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { if (queuedToast) completedToast(); resume().catch(() => {}); }
+  });
   window.addEventListener('online', () => resume().catch(() => {}));
   return {initialize, enabled, handles: path => path in titles, run, downloadResult,
     hasActive: () => records.some(record => !['done', 'failed'].includes(record.state))};
