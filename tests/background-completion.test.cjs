@@ -39,7 +39,7 @@ test('a completed pending server job is marked and announced once on recovery',a
 });
 test('historical completed jobs are marked without repeating the toast',async()=>{
  const q=setup([{id:jobId,path:'/api/draft',state:'done',announced:true}]);
- await q.window.cvBackground.initialize(q.settings);await settle();assert.ok(q.document.querySelector('.process-done'));assert.equal(q.toast.hidden,true);
+ await q.window.cvBackground.initialize(q.settings);await settle();assert.equal(q.document.querySelector('.process-done'),null);assert.equal(q.toast.hidden,true);
 });
 test('completion while hidden queues the in-app toast until the page is visible',async()=>{
  const q=setup();await q.window.cvBackground.initialize(q.settings);q.document.hidden=true;
@@ -62,6 +62,7 @@ test('a recovered completion waits until visible loading reaches 100',async()=>{
 test('a local background placeholder is replaced by its server job and announces once',async()=>{
  const q=setup();await q.window.cvBackground.initialize(q.settings);
  q.window.cvLoading.backgroundSession=()=>5;
+ q.window.cvLoading.currentSession=()=>5;
  q.emit('cv-loading-background',{id:5,message:'Generando CV'});
  q.settings.request=async path=>path==='/api/background/jobs'?{job_id:jobId}:{state:'done',progress:100,path:'/api/draft',result:{draft:{position:'Test'}}};
  // The browser chooses the durable request id before sending it to the server.
@@ -69,6 +70,7 @@ test('a local background placeholder is replaced by its server job and announces
  await q.window.cvBackground.run('/api/draft',{});
  assert.equal(q.document.querySelector('#background-processes').children.length,1);
  assert.equal(q.toast.hidden,true);
+ q.window.cvLoading.currentSession=()=>null;
  q.emit('cv-loading-finished',{id:5,success:true});assert.equal(q.toast.hidden,false);
  assert.equal(JSON.parse(q.storage.get('cv-processes-alice'))[0].announced,true);
 });
@@ -88,4 +90,35 @@ test('startup moved to background is preserved during the first account initiali
  const q=setup();q.emit('cv-loading-background',{id:6,message:'Cargando'});
  await q.window.cvBackground.initialize(q.settings);
  q.emit('cv-loading-finished',{id:6,success:true});assert.equal(q.toast.hidden,false);assert.ok(q.document.querySelector('.process-done'));
+});
+test('one user action groups multiple jobs and keeps each result accessible',async()=>{
+ const q=setup();await q.window.cvBackground.initialize(q.settings);let session=8,serial=0;
+ q.window.cvLoading.currentSession=()=>session;q.window.cvLoading.backgroundSession=()=>session;
+ q.context.crypto={randomUUID:()=>`12345678-1234-1234-1234-${String(++serial).padStart(12,'0')}`};
+ let path='';q.settings.request=async(url,data)=>{
+  if(url==='/api/background/jobs'){path=data.path;return {job_id:`web-${data.request_id}`}}
+  return {state:'done',progress:100,path,result:path==='/api/draft'?{draft:{position:'Test'}}:{analysis:{vacancy:{position:'Test'}}}};
+ };
+ q.emit('cv-loading-background',{id:8,message:'Preparando mi CV'});
+ await q.window.cvBackground.run('/api/analyze',{});await q.window.cvBackground.run('/api/draft',{});
+ assert.equal(q.document.querySelector('#background-processes').children.length,1);
+ assert.equal(q.toast.hidden,true);assert.equal(q.document.querySelector('.process-done'),null);
+ session=null;q.emit('cv-loading-finished',{id:8,success:true});
+ assert.ok(q.document.querySelector('.process-done'));assert.equal(q.toast.hidden,false);
+ assert.equal(q.document.querySelectorAll('#background-processes button').length,2);
+});
+test('backgrounding during the final counter associates an already finished job',async()=>{
+ const q=setup();await q.window.cvBackground.initialize(q.settings);let session=9;
+ q.window.cvLoading.currentSession=()=>session;q.context.crypto={randomUUID:()=>jobId.slice(4)};
+ q.settings.request=async(url,data)=>url==='/api/background/jobs'?{job_id:jobId}:{state:'done',progress:100,path:'/api/draft',result:{draft:{}}};
+ await q.window.cvBackground.run('/api/draft',{});
+ q.emit('cv-loading-background',{id:9,message:'Generando CV'});
+ assert.equal(q.document.querySelector('#background-processes').children.length,1);
+ session=null;q.emit('cv-loading-finished',{id:9,success:true});assert.equal(q.toast.hidden,false);
+});
+test('toast uses the top layer above dialogs and closes after five seconds',async()=>{
+ const q=setup();await q.window.cvBackground.initialize(q.settings);let shown=0,hidden=0;
+ q.toast.showPopover=()=>shown++;q.toast.hidePopover=()=>hidden++;
+ q.emit('cv-loading-background',{id:10,message:'Sincronizando'});q.emit('cv-loading-finished',{id:10,success:true});assert.equal(shown,1);
+ [...q.timers.values()].find(timer=>timer.delay===5000).fn();assert.equal(hidden,1);assert.equal(q.toast.hidden,true);
 });

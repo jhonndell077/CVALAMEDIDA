@@ -13,7 +13,8 @@ for(const state of ['done','queued']) test(`restored ${state} CV opens only on r
  await window.cvBackground.initialize(settings);await new Promise(resolve=>setImmediate(resolve));
  assert.equal(events.length,0,'restoring must not navigate');
  await window.cvBackground.initialize(settings);assert.equal(events.length,0,'token renewal must not navigate');
- assert.equal(document.querySelector('#background-processes').children.length,1,'completed tasks remain visible in Tus procesos');
+ if(state==='done') { assert.equal(document.querySelector('#background-processes').children.length,0,'old history is not replayed as new actions');return; }
+ assert.equal(document.querySelector('#background-processes').children.length,1,'newly recovered completion remains visible');
  assert.match(document.querySelector('#background-processes').textContent,/100% · Estado Completado/);
  assert.ok(document.querySelector('.process-done'));
  document.querySelector('#background-processes button').click();assert.equal(events.length,1,'the result opens only on request');

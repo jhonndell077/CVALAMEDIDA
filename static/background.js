@@ -13,6 +13,8 @@ window.cvBackground = (() => {
   const notice = document.querySelector('#notifications-status');
   const toast = document.querySelector('#process-completed-toast');
   const sessions = new Map();
+  const jobs = new Map();
+  const pageId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   let toastTimer = 0, queuedToast = false;
   function completedToast() {
     if (!toast) return;
@@ -27,7 +29,8 @@ window.cvBackground = (() => {
     clearTimeout(toastTimer);
     toast.hidden = false;
     toast.textContent = 'Estado Completado';
-    toastTimer = setTimeout(() => { toast.hidden = true; }, 5000);
+    try { toast.showPopover?.(); } catch { /* Fixed-position fallback. */ }
+    toastTimer = setTimeout(() => { toast.hidePopover?.(); toast.hidden = true; }, 5000);
   }
   const enabled = () => Boolean(options?.enabled && options.user());
   function persist() {
@@ -38,18 +41,30 @@ window.cvBackground = (() => {
     persist();
   }
   function render(record, job) {
+    jobs.set(record.id, job);
+    const members = record.actionId ? records.filter(item => item.actionId === record.actionId) : [record];
+    const rowKey = record.actionId || record.id;
+    const failed = members.some(item => jobs.get(item.id)?.state === 'failed');
+    const pending = members.some(item => !['done','failed'].includes(jobs.get(item.id)?.state || item.state));
+    const running = record.sessionId != null && window.cvLoading.currentSession?.() === record.sessionId;
+    const completed = !failed && !pending && !running && job.state === 'done';
+    const displayed = {...job, state:failed?'failed':completed?'done':'processing',
+      progress:completed?100:Math.min(99, job.progress || 1)};
     panel.hidden = false;
-    let row = rows.get(record.id);
-    if (!row) { row = document.createElement('div'); row.className = 'background-process'; list.prepend(row); rows.set(record.id, row); }
+    let row = rows.get(rowKey);
+    if (!row) { row = document.createElement('div'); row.className = 'background-process'; list.prepend(row); rows.set(rowKey, row); }
     row.replaceChildren();
-    row.classList.toggle('process-done', job.state === 'done');
-    row.classList.toggle('process-failed', job.state === 'failed');
-    const title = document.createElement('strong'); title.textContent = titles[job.path || record.path] || record.title || 'Proceso';
-    const detail = document.createElement('p'); detail.textContent = job.state === 'done'
-      ? '100% · Estado Completado' : `${job.progress || 1}% · ${job.stage || 'Solicitud guardada'}`;
-    const progress = document.createElement('progress'); progress.max = 100; progress.value = job.state === 'done' ? 100 : job.progress || 1;
+    row.classList.toggle('process-done', displayed.state === 'done');
+    row.classList.toggle('process-failed', displayed.state === 'failed');
+    const title = document.createElement('strong'); title.textContent = record.actionTitle || titles[job.path || record.path] || record.title || 'Proceso';
+    const detail = document.createElement('p'); detail.textContent = displayed.state === 'done'
+      ? '100% · Estado Completado' : `${displayed.progress}% · ${job.stage || 'Solicitud guardada'}`;
+    const progress = document.createElement('progress'); progress.max = 100; progress.value = displayed.progress;
     progress.setAttribute('aria-label', title.textContent); row.append(title, progress, detail);
     if (job.state === 'failed') { detail.textContent = job.error || 'El proceso necesita atención.'; row.classList.add('process-failed'); }
+    for (const member of members) {
+    const job = jobs.get(member.id) || {};
+    const record = member;
     if (job.state === 'done' && job.result?.driveUrl?.startsWith('https://drive.google.com/')) {
       const link = document.createElement('a'); link.href = job.result.driveUrl; link.target = '_blank'; link.rel = 'noopener'; link.textContent = 'Abrir CV guardado en Drive'; row.append(link);
     }
@@ -63,6 +78,7 @@ window.cvBackground = (() => {
     if (job.state === 'done' && job.operation === 'export') {
       const download = document.createElement('button'); download.type = 'button'; download.className = 'text-button'; download.textContent = 'Descargar archivo';
       download.addEventListener('click', () => downloadResult(job.result).catch(error => { detail.textContent = error.message; })); row.append(download);
+    }
     }
   }
   const status = id => options.request(`/api/background/jobs/${id}`, {});
@@ -96,8 +112,8 @@ window.cvBackground = (() => {
             if (finish.complete) await finish.complete();
             if (owner !== watchOwner) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
             delivered.add(record.id);
-            notice.textContent = '100% · Estado Completado';
-            if (recover && wasPending && !record.announced) {
+            if (!window.cvLoading.currentSession?.()) notice.textContent = '100% · Estado Completado';
+            if ((recover && wasPending || record.backgrounded && !window.cvLoading.currentSession?.()) && !record.announced) {
               record.announced = true; persist(); completedToast();
             }
             if (recover && !['/api/analyze', '/api/draft'].includes(record.path)) window.dispatchEvent(new CustomEvent('cv-background-result', {detail: {path: record.path, result: job.result}}));
@@ -121,6 +137,8 @@ window.cvBackground = (() => {
     const existing = records.find(record => record.path === path && !['done', 'failed'].includes(record.state));
     if (path === '/api/bank/sync' && existing) return watch(existing, false, onProgress);
     const record = {id: `web-${crypto.randomUUID()}`, path, state: 'queued'};
+    const currentSession = window.cvLoading.currentSession?.();
+    if (currentSession != null) { record.sessionId = currentSession; record.actionId = `${pageId}:${currentSession}`; }
     const sessionId = window.cvLoading.backgroundSession?.();
     if (sessionId != null) {
       record.backgrounded = true; record.sessionId = sessionId;
@@ -155,7 +173,8 @@ window.cvBackground = (() => {
     try {
       if (/^web-[0-9a-f-]{36}$/.test(id)) remember({id, path: '', state: 'queued'});
       for (const record of records) {
-        if (!['done', 'failed'].includes(record.state) || !rows.has(record.id)) {
+        if (!['done', 'failed'].includes(record.state) ||
+            record.backgrounded && record.actionId && !rows.has(record.actionId)) {
           watch(record, true).catch(error => { notice.textContent = error.message; });
         }
       }
@@ -185,8 +204,8 @@ window.cvBackground = (() => {
     // first account is initialized. Keep that local loading session.
     if (owner) sessions.clear();
     owner = nextOwner; delivered.clear();
-    queuedToast = false; clearTimeout(toastTimer); if (toast) toast.hidden = true;
-    rows.clear(); list.replaceChildren(); records = [];
+    queuedToast = false; clearTimeout(toastTimer); if (toast) { toast.hidePopover?.(); toast.hidden = true; }
+    rows.clear(); jobs.clear(); list.replaceChildren(); records = [];
     button.disabled = !enabled(); panel.hidden = !enabled();
     for (const record of sessions.values()) render(record, {progress:1, stage:record.title});
     if (!enabled()) return;
@@ -217,9 +236,9 @@ window.cvBackground = (() => {
   });
   window.addEventListener('cv-loading-background', event => {
     const {id, message} = event.detail;
-    const active = records.filter(record => !['done','failed'].includes(record.state));
+    const active = records.filter(record => record.sessionId === id || !['done','failed'].includes(record.state));
     if (active.length) {
-      active.forEach(record => { record.backgrounded = true; record.sessionId = id; }); persist();
+      active.forEach(record => { record.backgrounded = true; record.sessionId = id; record.actionTitle = message; }); persist();
     } else {
       const record = {id:`loading-${id}`, path:'', title:message};
       sessions.set(id, record);
@@ -238,7 +257,13 @@ window.cvBackground = (() => {
       sessions.delete(id);
     }
     if (completed) {
-      associated.forEach(record => { record.announced = true; }); persist(); completedToast();
+      associated.forEach(record => {
+        if (event.detail.backgrounded !== false) record.announced = true;
+        render(record, jobs.get(record.id) || {state:'done',progress:100});
+      });
+      notice.textContent = '100% · Estado Completado';
+      persist();
+      if (event.detail.backgrounded !== false) completedToast();
     }
   });
   document.addEventListener('visibilitychange', () => {

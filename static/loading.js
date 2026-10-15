@@ -66,7 +66,7 @@ window.cvLoading = (() => {
     render();
     if (!operations.size) {
       unlock();
-      if (dismissed) emit('cv-loading-finished', {id:session, message:sessionMessage, success:!sessionFailed});
+      emit('cv-loading-finished', {id:session, message:sessionMessage, success:!sessionFailed, backgrounded:dismissed});
       if (previousFocus?.isConnected && !previousFocus.disabled && (!previousFocus.getClientRects || previousFocus.getClientRects().length)) previousFocus.focus({preventScroll: true});
     } else schedule();
   }
@@ -142,7 +142,8 @@ window.cvLoading = (() => {
       remove(key);
     }
   });
-  return {start, run, backgroundSession: () => dismissed ? session : null,
+  return {start, run, currentSession: () => operations.size ? session : null,
+    backgroundSession: () => dismissed ? session : null,
     notificationReady: () => dismissed || document.hidden ||
     [...operations.values()].every(operation => operation.display === 100)};
 })();
