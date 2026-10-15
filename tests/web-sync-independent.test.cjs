@@ -6,6 +6,7 @@ for(const telegram of [undefined,{synchronize(){throw Error('Telegram unavailabl
  test(`web synchronization works with Telegram ${telegram?'failing':'absent'} and no Gmail`,async()=>{
   let click;const calls=[];const button={addEventListener:(type,handler)=>click=handler};
   const context=vm.createContext({window:{cvTelegram:telegram,cvDrive:{connect:async()=>calls.push('drive'),isConnected:()=>true},cvLoading:{run:async(label,work)=>work(()=>{})}},$:()=>button,state:{authRequired:true,user:{uid:'a'}},clearError(){},showError(message){throw Error(message)},synchronizeBank:async()=>calls.push('bank'),loadProfileSummaryWork:async()=>calls.push('profile')});
+  context.requireSession=()=>true;
   vm.runInContext(source.slice(source.indexOf('let synchronizationRunning ='),source.indexOf('async function loadProfileSummary()')),context);
   await click();assert.deepEqual(calls,['drive','bank','profile']);assert.equal(button.disabled,false);
  });

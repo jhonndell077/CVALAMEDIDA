@@ -1343,7 +1343,10 @@ def static_asset(asset_name: str) -> Any:
         "vendor/leaflet/LICENSE","vendor/leaflet/images/marker-icon.png","vendor/leaflet/images/marker-icon-2x.png","vendor/leaflet/images/marker-shadow.png"}
     if asset_name in employment_assets:
         return send_from_directory(app.static_folder or "static",asset_name)
-    if asset_name not in {"app.js", "background.js", "sw.js", "drive.js", "gmail.js", "loading.js", "styles.css", "card-motion.js", "card-motion.css", "app-version.js", "version.json", "logo-cv-a-la-medida.png", "app-background.png", "app-icon.png", "manifest.webmanifest", "telegram.js", "onboarding.js", "repeaters.js"}:
+    if asset_name not in {"app.js", "background.js", "sw.js", "drive.js", "gmail.js", "loading.js", "styles.css", "card-motion.js", "card-motion.css", "app-version.js", "version.json", "logo-cv-a-la-medida.png", "app-background.png", "app-icon.png", "manifest.webmanifest", "telegram.js", "onboarding.js", "repeaters.js",
+                         "profile-dialog.js", "data-panel.js", "employment-window.js", "ui-navigation.js",
+                         "drive-auth.html", "drive-auth.js", "drive-config.json", "manual.html", "manual.css", "manual.js",
+                         "manual-assets/flujo-datos.svg", "manual-assets/paso-vacante.jpg", "manual-assets/canales-envio.svg"}:
         return jsonify({"error": "No se encontró el recurso solicitado."}), 404
     return send_from_directory(app.static_folder or "static", asset_name)
 

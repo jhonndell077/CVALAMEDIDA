@@ -167,7 +167,11 @@ async function requestJson(url, payload) {
 
 async function directRequestJson(url, payload, headers = {}) {
   const requestOwner = state.user?.uid;
-  if (state.user) state.idToken = await state.user.getIdToken();
+  if (state.user) {
+    const token = await state.user.getIdToken();
+    if (requestOwner !== state.user?.uid) throw Object.assign(new Error('La cuenta cambió. Inicia esta operación con tu nueva sesión.'), {terminal: true});
+    state.idToken = token;
+  }
   const response = await fetch(url, {
     method: "POST",
     headers: authenticatedHeaders({ "Content-Type": "application/json", ...headers }),
@@ -202,7 +206,24 @@ function authenticatedHeaders(headers = {}) {
 
 function updateAnalyzeButton() {
   $("#analyze-button").disabled =
-    !state.modelAvailable || (state.authRequired && !state.idToken);
+    !state.modelAvailable || busyButtons.has($("#analyze-button"));
+}
+
+function requireSession(action) {
+  if (!state.authRequired || (state.user && state.idToken)) return true;
+  showError(`Inicia sesión con Google en este dispositivo para ${action}.`);
+  $("#auth-help").textContent = `Inicia sesión con Google en este dispositivo para ${action}.`;
+  $("#auth-panel").hidden = false;
+  const focusSignIn = () => {
+    $("#google-sign-in").scrollIntoView?.({block: 'center', behavior: 'smooth'});
+    $("#google-sign-in").focus();
+  };
+  const dialog = $("#data-dialog");
+  if (dialog?.open) {
+    dialog.addEventListener('close', focusSignIn, {once: true});
+    dialog.close();
+  } else focusSignIn();
+  return false;
 }
 
 async function loadModels(health) {
@@ -263,10 +284,16 @@ async function loadModels(health) {
 function loadScript(source) {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
+    const timer = setTimeout(() => {
+      script.remove();
+      reject(new Error("El inicio de sesión tardó demasiado. Comprueba la conexión y pulsa Reintentar inicio."));
+    }, 20000);
     script.src = source;
-    script.onload = resolve;
-    script.onerror = () =>
-      reject(new Error("No se pudo cargar el inicio de sesión de Firebase."));
+    script.onload = () => { clearTimeout(timer); resolve(); };
+    script.onerror = () => {
+      clearTimeout(timer);
+      reject(new Error("No se pudo cargar el inicio de sesión de Firebase. Comprueba la conexión y pulsa Reintentar inicio."));
+    };
     document.head.append(script);
   });
 }
@@ -327,7 +354,7 @@ async function synchronizeBank(onProgress) {
     } finally {
       if (bankOwner === state.user?.uid) {
         setBusy(button, false);
-        button.disabled = state.authRequired && !state.user;
+        button.disabled = false;
       }
     }
   })();
@@ -338,6 +365,7 @@ async function synchronizeBank(onProgress) {
 let synchronizationRunning = false;
 $("#sync-bank").addEventListener("click", async () => {
   if (synchronizationRunning) return;
+  if (!requireSession('sincronizar tu banco')) return;
   synchronizationRunning = true;
   $("#sync-bank").disabled = true;
   clearError();
@@ -353,7 +381,7 @@ $("#sync-bank").addEventListener("click", async () => {
     await window.cvOnboarding?.check();
   }); }
   catch (error) { showError(error.message); }
-  finally { synchronizationRunning = false; $("#sync-bank").disabled = state.authRequired && !state.user; }
+  finally { synchronizationRunning = false; $("#sync-bank").disabled = false; }
 });
 
 async function loadProfileSummary() {
@@ -943,7 +971,9 @@ async function updateGoogleUserWork(user) {
     if (state.photoUrl) URL.revokeObjectURL(state.photoUrl); state.photoUrl = null;
   }
   state.user = user;
-  state.idToken = user ? await user.getIdToken() : null;
+  const token = user ? await user.getIdToken() : null;
+  if (state.user !== user) return;
+  state.idToken = token;
   window.cvEmployment?.initialize(user, async path => {
     const owner = state.user;
     if (!owner) throw new Error('Inicia sesión para continuar.');
@@ -1005,7 +1035,7 @@ async function updateGoogleUserWork(user) {
     }
   } else {
     await window.cvBackground.initialize({enabled: false, user: () => null});
-    $("#sync-bank").disabled = true;
+    $("#sync-bank").disabled = false;
     $("#bank-documents").replaceChildren();
     $("#bank-warnings").replaceChildren();
     $("#bank-status").textContent = "Inicia sesión para consultar tu banco.";
@@ -1075,8 +1105,8 @@ async function initializeGoogleAuth() {
 
 async function bootstrap() {
   try {
-    const response = await fetch("/api/health", { cache: "no-store" });
-    if (!response.ok) throw new Error("La interfaz está publicada, pero el servidor no está disponible. Falta activar Blaze y desplegar el backend en Firebase.");
+    const response = await fetch("/api/health", { cache: "no-store", signal: AbortSignal.timeout(20000) });
+    if (!response.ok) throw new Error("El servidor no está disponible temporalmente. Pulsa Reintentar inicio para volver a conectar.");
     const health = await response.json();
     document.querySelector('#employment-panel')?.toggleAttribute('hidden', health.employment_enabled !== true || window.location?.hash !== '#employment-panel');
     document.querySelector('.employment-nav')?.toggleAttribute('hidden', health.employment_enabled !== true);
@@ -1090,6 +1120,8 @@ async function bootstrap() {
     $("#sync-bank").disabled = state.authRequired;
 
     state.driveEnabled = health.archive?.provider === "drive";
+    // Model availability must not depend on optional profile/Drive initialization.
+    loadModels(health);
     window.cvDrive.initialize(health.archive, authenticatedHeaders).catch(error => showError(error.message));
     if (state.authRequired) {
       $("#auth-panel").hidden = false;
@@ -1107,12 +1139,14 @@ async function bootstrap() {
       $("#profile-error").hidden = true;
       renderProfileTree();
     });
-    loadModels(health);
   } catch (error) {
     showError(error.message || "No se pudo iniciar la aplicación.");
+    $("#retry-bootstrap").hidden = false;
     $("#privacy-status").textContent = "Servicio no disponible";
   }
 }
+
+$("#retry-bootstrap").addEventListener("click", () => window.location.reload());
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -1209,6 +1243,7 @@ modelSelect.addEventListener("change", () => {
 
 $("#analyze-button").addEventListener("click", async (event) => {
   if (state.vacancySelecting) return;
+  if (!requireSession('analizar una vacante')) return;
   const button = event.currentTarget;
   const revision = state.vacancyRevision || 0;
   clearError();
@@ -1219,6 +1254,7 @@ $("#analyze-button").addEventListener("click", async (event) => {
       model: modelSelect.value,
     };
     const file = fileInput.files?.[0];
+    if (!payload.text && !file) throw new Error("Pega la descripción del puesto o adjunta el anuncio antes de analizar.");
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
         throw new Error("El archivo supera el límite de 10 MB.");
