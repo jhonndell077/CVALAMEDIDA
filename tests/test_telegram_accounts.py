@@ -50,9 +50,24 @@ class TelegramAccountsTests(unittest.TestCase):
         with patch.dict(os.environ,{'CV_MULTI_ACCOUNT':'1','CV_AUTH_REQUIRED':'1','CV_ALLOW_REMOTE':'1','CV_BANK_PROVIDER':'local'}),patch.object(app,'verify_google_identity',side_effect=verify),patch.object(job_runtime, 'JobStore',return_value=store),patch.object(job_runtime, 'configuration',return_value=CONFIG),patch.object(job_runtime, 'save_configuration') as shared,patch.object(bot.requests,'post',return_value=token),patch.object(bot.requests,'get',return_value=user):
             response=app.app.test_client().post('/api/telegram/drive/authorize',json={'code':'code'},headers={'Origin':bot.ORIGIN,'X-Requested-With':'XmlHttpRequest'})
         self.assertEqual(response.status_code,200);shared.assert_not_called()
+        self.assertEqual(response.json.get('scope'),token.json.return_value['scope'])
+        self.assertEqual(response.json.get('expires_in'),3600)
+        self.assertEqual(response.headers.get('Cache-Control'),'no-store')
         self.assertEqual(accounts.runtime(app,CONFIG,ALICE,store)['drive_refresh_token'],'alice-new-refresh')
         self.assertNotIn('drive_refresh_token',accounts.runtime(app,CONFIG,BOB,store))
         self.assertNotIn('alice-new-refresh',str(store.jobs))
+
+    def test_saved_drive_session_remains_usable_without_optional_gmail_grant(self):
+        store=MemoryStore();accounts.save_oauth(store,ALICE['uid'],'saved-refresh',True)
+        def verify(): app.g.google_identity=ALICE
+        scopes='https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly'
+        token=MagicMock(ok=True);token.json.return_value={'access_token':'renewed-drive-only','scope':scopes}
+        identity=MagicMock(ok=True);identity.json.return_value={'email':ALICE['email'],'email_verified':True}
+        with patch.dict(os.environ,{'CV_MULTI_ACCOUNT':'1','CV_AUTH_REQUIRED':'1','CV_ALLOW_REMOTE':'1','CV_BANK_PROVIDER':'local'}),patch.object(app,'verify_google_identity',side_effect=verify),patch.object(job_runtime,'JobStore',return_value=store),patch.object(job_runtime,'configuration',return_value=CONFIG),patch.object(bot.requests,'post',return_value=token),patch.object(bot.requests,'get',return_value=identity):
+            result=app.app.test_client().post('/api/telegram/drive/session',json={},headers={'Origin':bot.ORIGIN,'X-Requested-With':'XmlHttpRequest'})
+        self.assertEqual(result.status_code,200)
+        self.assertEqual(result.json.get('scope'),scopes)
+        self.assertNotIn('gmail.send',result.json.get('scope',''))
 
     def test_browser_session_renews_saved_grant_without_authorization_code(self):
         store=MemoryStore();accounts.save_oauth(store,ALICE['uid'],'saved-refresh',True)
