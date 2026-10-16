@@ -13,6 +13,7 @@ import binascii
 import hashlib
 import io
 import json
+import math
 import os
 import unicodedata
 import tempfile
@@ -78,6 +79,8 @@ MAX_REQUEST_BYTES = 20 * 1024 * 1024  # 10 MB CV + 8 MB photo + multipart fields
 MAX_TEXT_CHARS = 40_000
 MAX_FILE_BYTES = 10 * 1024 * 1024
 MAX_PDF_PAGES = 12
+MAX_PDF_RASTER_PIXELS = 12_000_000
+MAX_PDF_RASTER_DIMENSION = 8192
 MAX_KNOWLEDGE_FILES = 8
 OLLAMA_BASE = "http://127.0.0.1:11434"
 VERTEX_MODEL = os.environ.get("CV_VERTEX_MODEL", "gemini-3.8-flash")
@@ -584,6 +587,7 @@ def extract_vacancy(payload: dict[str, Any]) -> tuple[str, list[str]]:
             except Exception as exc:
                 raise AppError("No se pudo leer ese documento Word.") from exc
         elif suffix == ".pdf":
+            pdf = None
             try:
                 pdf = fitz.open(stream=raw, filetype="pdf")
                 if len(pdf) > MAX_PDF_PAGES:
@@ -604,6 +608,16 @@ def extract_vacancy(payload: dict[str, Any]) -> tuple[str, list[str]]:
                         "El PDF contiene más de 3 páginas escaneadas. "
                         "Divide el anuncio o adjunta una versión con texto seleccionable."
                     )
+                for page in scanned_pages:
+                    width = math.ceil(page.rect.width * 1.4)
+                    height = math.ceil(page.rect.height * 1.4)
+                    if (width <= 0 or height <= 0
+                            or max(width, height) > MAX_PDF_RASTER_DIMENSION
+                            or width * height > MAX_PDF_RASTER_PIXELS):
+                        raise AppError(
+                            "La resolución o las dimensiones de una página del PDF "
+                            "superan el límite de lectura. Reduce su tamaño antes de adjuntarlo.", 422
+                        )
                 images = [
                     base64.b64encode(
                         page.get_pixmap(matrix=fitz.Matrix(1.4, 1.4), alpha=False)
@@ -611,11 +625,13 @@ def extract_vacancy(payload: dict[str, Any]) -> tuple[str, list[str]]:
                     ).decode("ascii")
                     for page in scanned_pages
                 ]
-                pdf.close()
             except AppError:
                 raise
             except Exception as exc:
                 raise AppError("No se pudo leer ese PDF. Prueba con otra copia.") from exc
+            finally:
+                if pdf is not None:
+                    pdf.close()
         elif suffix in {".png", ".jpg", ".jpeg", ".webp"}:
             image, _ = decode_image(base64.b64encode(raw).decode("ascii"))
             images.append(image)
@@ -1362,18 +1378,24 @@ def health() -> Any:
     provider = ai_provider()
     if provider == "vertex":
         models = [{"name": VERTEX_MODEL}]
-        available = bool(
+        configured = bool(
             os.environ.get("GOOGLE_CLOUD_PROJECT")
             or os.environ.get("GCLOUD_PROJECT")
         )
+        available = False
+        model_status = "not_verified" if configured else "not_configured"
     else:
         models = ollama_models()
         available = bool(models)
+        configured = available
+        model_status = "available" if available else "unavailable"
     return jsonify(
         {
             "ok": True,
             "provider": "vertex-ai" if provider == "vertex" else "ollama-local",
             "model_available": available,
+            "model_configured": configured,
+            "model_status": model_status,
             "models": models,
             "auth_required": os.environ.get("CV_AUTH_REQUIRED") == "1",
             "employment_enabled": os.environ.get("CV_EMPLOYMENT_ENABLED") == "1",
@@ -1396,10 +1418,12 @@ def health() -> Any:
                 and os.environ.get("CV_AUTH_REQUIRED") != "1")
             ),
             "privacy": (
-                "La vacante y las evidencias laborales se procesan con Vertex AI; "
-                "no se guardan en un historial."
+                "La vacante y las evidencias laborales se procesan con Vertex AI. "
+                "Los trabajos pendientes y sus resultados se conservan en Cloud Storage "
+                "para recuperarlos; el banco, los CV y el historial de postulaciones se guardan en tu Drive. "
+                "Consulta la política de privacidad para conocer los plazos y las integraciones."
                 if provider == "vertex"
-                else "Procesamiento local; las vacantes no se guardan."
+                else "Procesamiento local. Los documentos exportados y el historial pueden guardarse en tu Drive."
             ),
         }
     )
