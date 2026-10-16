@@ -91,5 +91,29 @@ categorías y resultados, no tokens ni contenido personal innecesario.
 
 ## Seguimiento
 
-Estado inicial: plan creado con revisión del código y del informe anterior.
-Registrar resultados de esta ejecución en `REESTRUCTURACION-RESULTADOS.md`.
+La etapa 1 está implementada y verificada localmente. Se corrigió también la
+liberación prematura de un cupo cuando Telegram aún estaba en `delivery_started`
+con lease vigente. Las pruebas cubren diez cuentas simultáneas y cuotas por periodo.
+
+La etapa 3 tiene un ensayo real selectivo aprobado sobre una configuración de
+cuenta respaldada y un runbook de operación. No se acredita recuperación total
+ni eliminación automática por cuenta. La etapa 4 tiene locks con hashes, Pillow
+12.3.0, instalación limpia en Python 3.13 y revisión de avisos conocidos sin
+hallazgos en runtime ni herramientas al cierre.
+
+Las etapas 2, 5 y 7 mantienen las decisiones del titular, la aprobación OAuth y
+los dispositivos/cuenta independiente como pendientes explícitos. La etapa 6
+acredita aislamiento concurrente local, pero no latencia y costo de carga real
+en nube. Publicar correcciones no elimina esas condiciones de apertura.
+
+Ver el informe `REESTRUCTURACION-PILOTO.md` de la carpeta de auditoría para el
+resultado del despliegue y la evidencia. El runbook está en `OPERACION-PILOTO.md`.
+
+**Bloqueo del cierre desplegado:** 515 pruebas locales aprobadas, incluido arranque
+de ambos entry points con Functions Framework sin red. La publicación Linux no
+superó el health check de contenedor; no hay causa definitiva aislada. Google
+conserva como últimas revisiones listas `api-00095-say` y
+`telegram-worker-00068-nic`. Los caps Vertex y Functions pasaron a `ENFORCED` por
+consumo acumulado. No se levantan ni se amplía el presupuesto por inferencia.
+La rama de correcciones se conserva separada de `main` hasta cerrar publicación
+y verificaciones. La facturación bruta de caps no prueba gasto neto exacto.

@@ -439,6 +439,11 @@ Repositorio privado: https://github.com/jhonndell077/CVALAMEDIDA. Un push a main
 
 ## Piloto y controles de operación (2026-10-16)
 
+**Estado de esta rama:** correcciones probadas localmente; publicación nueva no
+completada. Las revisiones anteriores siguen siendo las últimas listas. Los caps
+de Vertex y Functions se activaron por consumo acumulado del mes. No se declara
+el piloto listo ni las cuotas nuevas activas en producción hasta un deploy exitoso.
+
 El piloto tiene como objetivo diez sesiones simultáneas. Los trabajos pesados se
 procesan en cola; esta cifra no promete diez análisis de IA simultáneos.
 
