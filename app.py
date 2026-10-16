@@ -41,6 +41,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from flask import Flask, jsonify, request, send_file, send_from_directory, has_request_context, g
 import user_accounts
+from job_runtime import JobError
 from PIL import Image
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
@@ -1715,6 +1716,11 @@ def archive_generated_resume(
 @app.errorhandler(AppError)
 def handle_app_error(error: AppError) -> Any:
     return jsonify({"error": str(error)}), error.status_code
+
+
+@app.errorhandler(JobError)
+def handle_job_storage_error(error):
+    return jsonify({"error": "El servicio temporal está ocupado. Vuelve a intentarlo en unos segundos."}), 503
 
 
 @app.errorhandler(413)

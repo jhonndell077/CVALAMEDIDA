@@ -63,13 +63,20 @@ class JobStore:
         self.bucket = storage.Client(project=PROJECT).bucket(BUCKET)
 
     def read(self, identifier):
-        blob = self.bucket.blob(f"jobs/{identifier}.json")
-        try:
-            blob.reload()
+        for _ in range(3):
+            blob = self.bucket.blob(f"jobs/{identifier}.json")
+            try:
+                blob.reload()
+            except NotFound:
+                return None, 0
             generation = blob.generation
-            return json.loads(blob.download_as_text(if_generation_match=generation)), generation
-        except NotFound:
-            return None, 0
+            try:
+                return json.loads(blob.download_as_text(if_generation_match=generation)), generation
+            except (NotFound, PreconditionFailed):
+                # Without object versioning, a concurrent replacement removes
+                # the generation just loaded. It does not remove the job itself.
+                continue
+        raise JobError("El registro está cambiando. Vuelve a consultarlo en unos segundos.")
 
     def write(self, identifier, data, generation):
         self.bucket.blob(f"jobs/{identifier}.json").upload_from_string(json.dumps(data),
