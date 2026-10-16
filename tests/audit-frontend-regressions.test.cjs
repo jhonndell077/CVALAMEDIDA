@@ -100,3 +100,50 @@ test('H14 configured Vertex can be used while availability is explicitly unverif
   assert.equal(qa.state.modelAvailable,true);assert.match(qa.$('#model-help').textContent,/sin verificar|no verificada/i);
   assert.match(qa.$('#privacy-note').innerHTML,/Cloud Storage/);assert.match(qa.$('#privacy-note').innerHTML,/privacy\.html/);
 });
+test('H02 late delete response cannot replace the next account profile',async()=>{
+  let release,remove;
+  const qa=setup({fetch:()=>new Promise(resolve=>release=resolve),canDeleteProfilePath:()=>true,profileEntryTitle:()=> 'Fixture',addText:()=>({setAttribute(){},addEventListener:(_,handler)=>remove=handler})});
+  qa.state.profile={courses:[{id:'one',title:'Private'}]};qa.state.profileDraft=structuredClone(qa.state.profile);
+  qa.context.window.confirm=()=>true;qa.context.window.cvLoading={run:(_,fn)=>fn()};
+  vm.runInContext(source.slice(source.indexOf('function addProfileDeleteButton('),source.indexOf('function renderProfileField(')),qa.context);
+  qa.context.addProfileDeleteButton({},['courses',0],qa.state.profile.courses[0]);
+  const pending=remove({preventDefault(){},stopPropagation(){}});await tick();
+  qa.state.user={uid:'bob'};qa.state.authEpoch++;qa.state.profile={name:'Bob'};
+  release({ok:true,json:async()=>({profile:{name:'PRIVATE_ALICE'}})});await pending;
+  assert.equal(qa.state.profile.name,'Bob');
+});
+test('H02 Gmail authorization completed after account switch never submits a message',async()=>{
+  let release,submitted=0;const qa=setup({processFetch:async()=>{submitted++;throw Error('must not send');},renderApplications(){}});
+  qa.context.window.cvGmail={connect:()=>new Promise(resolve=>release=resolve),headers:()=>({})};
+  qa.state.draft={position:'A'};qa.$('#application-email').value='a@example.test';qa.$('#application-message').value='A';
+  vm.runInContext(source.slice(source.indexOf('async function sendApplicationGmail('),source.indexOf('$("#send-whatsapp").addEventListener')),qa.context);
+  const pending=qa.context.sendApplicationGmail();await tick();qa.state.user={uid:'bob'};qa.state.authEpoch++;release();await pending;
+  assert.equal(submitted,0);assert.notEqual(qa.state.idToken,'synthetic');
+});
+test('H02 a confirmed Gmail response from an earlier account does not populate current history',async()=>{
+  let release;const qa=setup({processFetch:()=>new Promise(resolve=>release=resolve),renderApplications(){}});
+  qa.context.window.cvGmail={connect:async()=>{},headers:()=>({})};qa.state.draft={position:'A'};qa.$('#application-email').value='a@example.test';qa.$('#application-message').value='A';
+  vm.runInContext(source.slice(source.indexOf('async function sendApplicationGmail('),source.indexOf('$("#send-whatsapp").addEventListener')),qa.context);
+  const pending=qa.context.sendApplicationGmail();await tick();qa.state.user={uid:'bob'};qa.state.authEpoch++;qa.state.applications=[];
+  release({ok:true,json:async()=>({entry:{application_id:'PRIVATE_ALICE',status:'gmail_accepted'}})});await pending;
+  assert.equal(qa.state.applications.length,0);
+});
+test('H02 a canceled information form does not apply its delayed result',async()=>{
+  let handler,release,applied=0;const form={hidden:false,addEventListener:(_,fn)=>handler=fn};
+  const qa=setup({informationForm:form,informationSaving:false,informationRequestId:null,informationRequestSignature:null,FormData:class{*[Symbol.iterator](){yield ['type','courses'];yield ['title','Fixture'];}},requestJson:()=>new Promise(resolve=>release=resolve),applySavedProfile(){applied++;}});
+  qa.context.window.cvRepeaters={collect:()=>({})};
+  vm.runInContext(source.slice(source.indexOf('informationForm.addEventListener("submit"'),source.indexOf('const templateDetails')),qa.context);
+  const pending=handler({preventDefault(){}});await tick();qa.state.informationEpoch=(qa.state.informationEpoch||0)+1;form.hidden=true;
+  release({profile:{name:'PRIVATE_ALICE'}});await pending;assert.equal(applied,0);
+});
+test('H02 logout cancels the old Drive popup and ignores its late credential',async()=>{
+  const listeners=new Map();let closed=false,checks=0;
+  const popup={close(){closed=true;},closed:false};
+  const context=vm.createContext({Date,Promise,Event,crypto:{randomUUID:()=> 'nonce'},location:{origin:'https://cvalamedida.web.app'},setInterval:()=>1,clearInterval(){},
+    document:{querySelector:()=>({addEventListener(){}})},fetch:async()=>{checks++;return {ok:true,json:async()=>({})};},
+    window:{open:()=>popup,addEventListener:(type,fn)=>listeners.set(type,fn),removeEventListener:type=>listeners.delete(type),dispatchEvent(){},cvLoading:{start:()=>()=>{}}}});
+  vm.runInContext(fs.readFileSync('static/drive.js','utf8'),context);const drive=context.window.cvDrive;
+  await drive.initialize({provider:'drive'},()=>({}));const pending=drive.connect();const receive=listeners.get('message');drive.reset();
+  receive({origin:'https://cv-a-la-medida-jhonn.firebaseapp.com',source:popup,data:{nonce:'nonce',result:{access_token:'PRIVATE_ALICE'}}});
+  await assert.rejects(pending,/cuenta cambió|sesión cambió/);assert.equal(closed,true);assert.equal(checks,0);assert.equal(drive.isConnected(),false);
+});

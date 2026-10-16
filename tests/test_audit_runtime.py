@@ -5,13 +5,14 @@ import io
 import json
 import re
 import threading
+import time
 import unittest
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from email.message import EmailMessage
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from uuid import uuid4
 
 from flask import Flask, jsonify, request
@@ -73,6 +74,28 @@ HEADERS = {'X-Gmail-Access-Token': 'synthetic', 'X-Drive-Access-Token': 'synthet
 
 
 class AuditGmailTests(unittest.TestCase):
+    def test_completed_direct_dispatch_is_reused_by_background_worker(self):
+        core, store = fixture(), Store()
+        sent = []
+        def gmail(url, *args):
+            if url.endswith('userinfo'):
+                return {'email': 'fixture@example.invalid', 'email_verified': True}
+            sent.append(url)
+            return {'id': 'synthetic-message'}
+        core.gmail_request = gmail
+        core.bank_enabled = lambda: False
+        identifier = 'web-' + str(uuid4())
+        with patch.object(job_runtime, 'JobStore', return_value=store), \
+             patch.object(web_notifications, 'unprotect', return_value=HEADERS), \
+             patch.object(web_notifications, 'notify'):
+            self.assertEqual(core.app.test_client().post('/api/gmail/send', json=PAYLOAD, headers=HEADERS).status_code, 200)
+            store.write(identifier, {'path': '/api/gmail/send', 'operation': 'gmail', 'state': 'queued',
+                                    'payload': PAYLOAD, 'created_at': time.time()}, 0)
+            background_jobs.process_job(core, identifier, store)
+        self.assertEqual(store.read(identifier)[0]['state'], 'done')
+        self.assertTrue(store.read(identifier)[0]['result']['already_sent'])
+        self.assertEqual(len(sent), 1)
+
     def test_simultaneous_identical_requests_archive_and_send_once(self):
         core, store = fixture(), Store()
         barrier = threading.Barrier(2)
@@ -132,6 +155,33 @@ class AuditGmailTests(unittest.TestCase):
 
 
 class AuditAdmissionTests(unittest.TestCase):
+    def test_direct_work_shares_user_limit_and_releases_slot_after_request(self):
+        core, store = fixture(), Store()
+        marker = user_accounts.CURRENT.set({'uid': 'fixture-uid', 'email': 'fixture@example.invalid'})
+        try:
+            with patch.object(job_runtime, 'JobStore', return_value=store):
+                with core.app.test_request_context('/api/analyze', method='POST'):
+                    background_jobs.enforce_request_quota(core)
+                    for index in range(9):
+                        self.assertTrue(store.admit('queued-' + str(index), 'fixture-uid'))
+                    self.assertFalse(store.admit('eleventh', 'fixture-uid'))
+                    self.assertTrue(store.admit('other-account', 'another-uid'))
+                    background_jobs.release_request_quota()
+                    self.assertTrue(store.admit('after-release', 'fixture-uid'))
+                # Polling and health never consume an expensive-operation slot.
+                with core.app.test_request_context('/api/background/jobs/web-fixture', method='POST'):
+                    background_jobs.enforce_request_quota(core)
+                    self.assertFalse(hasattr(background_jobs.g, 'cv_request_slot'))
+        finally:
+            user_accounts.CURRENT.reset(marker)
+
+    def test_crashed_direct_request_releases_capacity_after_server_timeout(self):
+        store = Store()
+        store.write('direct-crashed', {'state': 'processing', 'lease_until': time.time() - 1}, 0)
+        self.assertTrue(store.admit('direct-crashed', 'fixture-uid'))
+        for index in range(10):
+            self.assertTrue(store.admit('queued-' + str(index), 'fixture-uid'))
+
     def test_eleventh_job_is_rejected_before_protecting_or_enqueueing(self):
         core, store = fixture(), Store()
         background_jobs.register_routes(core.app, core)
@@ -171,3 +221,27 @@ class AuditHistoryTests(unittest.TestCase):
             response = core.app.test_client().get('/api/applications?cursor=bad%0Avalue')
         self.assertEqual(response.status_code, 400)
         drive.assert_not_called()
+
+
+class AuditGoogleGrantTests(unittest.TestCase):
+    def test_firebase_popup_grant_returns_google_scopes_without_token_in_url(self):
+        core = fixture()
+        scopes = 'https://www.googleapis.com/auth/drive.file'
+        response = MagicMock(ok=True)
+        response.json.return_value = {'scope': scopes, 'expires_in': '3210'}
+        core.drive_request = lambda *args: {'email': 'fixture@example.invalid', 'email_verified': True}
+        with patch('requests.post', return_value=response) as post:
+            result = core.app.test_client().post('/api/google/grant', headers=HEADERS)
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json, {'scope': scopes, 'expires_in': 3210})
+        self.assertEqual(result.headers.get('Cache-Control'), 'no-store')
+        self.assertNotIn('synthetic', post.call_args.args[0])
+        self.assertEqual(post.call_args.kwargs['headers']['Authorization'], 'Bearer synthetic')
+
+    def test_google_grant_rejects_foreign_account_before_inspecting_scopes(self):
+        core = fixture()
+        core.drive_request = lambda *args: {'email': 'foreign@example.invalid', 'email_verified': True}
+        with patch('requests.post') as post:
+            result = core.app.test_client().post('/api/google/grant', headers=HEADERS)
+        self.assertEqual(result.status_code, 403)
+        post.assert_not_called()

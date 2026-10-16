@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 from drive_bank import BankError, DriveBank, clean_facts, merge_profile
 from profile_deletions import apply_deletions, deletion_for, identity
 from profile_edits import apply as apply_edits, prepare
+from profile_records import add_information, consolidate
 
 
 def blank():
@@ -75,6 +76,25 @@ class RecordIdentityRegressions(unittest.TestCase):
         profile['courses'] = profile['courses'][:1]
         profile['_deleted_records'] = [['courses', {'identity': token}]]
         self.assertEqual(apply_deletions(profile)['courses'], [])
+
+    def test_legacy_deletion_of_equivalent_spacing_variant_survives_consolidation(self):
+        profile = blank(); record = variants('courses')[0]
+        profile['courses'] = [record, {**record, 'title': 'Registro  de prueba'}]
+        token = old_identity(profile['courses'][1])
+        profile['_deleted_records'] = [['courses', {'identity': token}]]
+        self.assertEqual(apply_deletions(consolidate(profile))['courses'], [])
+
+    def test_explicit_readdition_clears_only_unambiguous_legacy_exclusion(self):
+        profile = blank(); record = variants('courses')[0]
+        profile['courses'] = [record]
+        token = old_identity(record)
+        profile['_deleted_records'] = [['courses', {'identity': token}]]
+        add_information(profile, 'courses', {**record, 'id': 'manual-a'})
+        self.assertEqual(apply_deletions(profile)['courses'], profile['courses'])
+        profile['courses'].append(variants('courses')[1])
+        profile['_deleted_records'] = [['courses', {'identity': token}]]
+        add_information(profile, 'courses', {**record, 'id': 'manual-b'})
+        self.assertIn(['courses', {'identity': token}], profile['_deleted_records'])
 
 
 class MemoryResponse:
@@ -160,6 +180,33 @@ class DriveConcurrencyRegressions(unittest.TestCase):
                 file_id = 'index' if action == 'index' else 'base'
                 self.assertTrue(drive.values[file_id]['concurrent_marker'])
                 self.assertEqual(drive.writes, [])
+
+    def test_two_overlapping_deletes_cannot_both_succeed_and_lose_one(self):
+        bank, drive = bank_and_drive()
+        profile = drive.values['base']; profile['courses'] = variants('courses')
+        first = deletion_for(profile, ['courses', 0], profile['courses'][0])
+        second = deletion_for(profile, ['courses', 1], profile['courses'][1])
+        other = DriveBank(bank.config, session=drive)
+        drive.before_write = lambda _: other.delete_record(second)
+        with self.assertRaises(BankError) as caught: bank.delete_record(first)
+        self.assertEqual(caught.exception.status_code, 409)
+        self.assertEqual(drive.values['base']['_deleted_records'], [second])
+        bank.delete_record(first)
+        self.assertEqual(drive.values['base']['_deleted_records'], [second, first])
+
+    def test_changes_between_version_and_content_read_are_not_overwritten(self):
+        bank, drive = bank_and_drive()
+        original_request = drive.request; changed = False
+        def racing_request(method, url, **kwargs):
+            nonlocal changed
+            if method == 'GET' and 'alt=media' in url and not changed:
+                changed = True; drive.versions['base'] += 1
+                drive.values['base']['concurrent_marker'] = True
+            return original_request(method, url, **kwargs)
+        drive.request = racing_request
+        with self.assertRaises(BankError) as caught: bank.delete_record(['courses', {'identity': 'synthetic'}])
+        self.assertEqual(caught.exception.status_code, 409)
+        self.assertTrue(drive.values['base']['concurrent_marker']); self.assertEqual(drive.writes, [])
 
 
 class DocumentAttributionRegressions(unittest.TestCase):
