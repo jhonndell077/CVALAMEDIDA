@@ -2,6 +2,16 @@ import unittest
 from unittest.mock import MagicMock, patch
 from types import SimpleNamespace
 import connection_probes as p
+import copy
+import json
+
+
+class MemoryStore:
+    def __init__(self):self.data={};self.generations={}
+    def read(self,key):return copy.deepcopy(self.data.get(key)),self.generations.get(key,0)
+    def write(self,key,value,generation):
+        if generation!=self.generations.get(key,0):raise p.job_runtime.PreconditionFailed('stale')
+        self.data[key]=copy.deepcopy(value);self.generations[key]=generation+1
 
 
 def response(data=None, status=200):
@@ -11,25 +21,62 @@ def response(data=None, status=200):
 class ProbeTests(unittest.TestCase):
     def setUp(self):
         p._cache.clear()
-        p._push_pending.clear()
+        p._receipt_window.clear()
 
     def test_push_targets_only_registered_owner_and_requires_receipt(self):
         identity={'uid':'owner','email':'owner@example.test'}
         nonce='12345678-1234-1234-1234-123456789abc'
         with self.assertRaises(p.ProbeFailure):p.send_push_probe(identity,'endpoint','bad')
-        with patch.object(p.job_runtime,'JobStore') as store,patch('web_notifications.configuration',return_value={'private_key':'fixture'}),patch('web_notifications.valid_subscription',return_value=True),patch('pywebpush.webpush') as send:
-            store.return_value.read.return_value=({'subscriptions':{}},0)
+        store=MemoryStore()
+        import web_notifications
+        with patch.object(p.job_runtime,'JobStore',return_value=store),patch('web_notifications.configuration',return_value={'private_key':'fixture'}),patch('web_notifications.valid_subscription',return_value=True),patch('pywebpush.webpush') as send:
             with self.assertRaises(p.ProbeFailure):p.send_push_probe(identity,'endpoint',nonce)
             send.assert_not_called()
-            store.return_value.read.return_value=({'subscriptions':{'registered':{'endpoint':'endpoint'}}},0)
+            store.data[web_notifications.subscription_key('owner')]={'subscriptions':{'registered':{'endpoint':'endpoint'}}}
             self.assertIn('esperando',p.send_push_probe(identity,'endpoint',nonce))
             self.assertIsNone(p.cached_check('owner','push'))
             with self.assertRaises(p.ProbeFailure):p.send_push_probe(identity,'endpoint',nonce)
             with self.assertRaises(p.ProbeFailure):p.confirm_push_probe('other',nonce)
             with self.assertRaises(p.ProbeFailure):p.confirm_push_probe('owner','wrong')
             self.assertEqual(p.confirm_push_probe('owner',nonce)['state'],'ok')
-            self.assertIn('No acredita',p.cached_check('owner','push')['detail'])
-            with self.assertRaises(p.ProbeFailure):p.confirm_push_probe('owner',nonce)
+            self.assertIn('persistente',p.cached_check('owner','push')['detail'])
+            self.assertEqual(p.confirm_push_probe('owner',nonce)['state'],'ok')
+            payload=json.loads(send.call_args.kwargs['data'])
+            self.assertNotIn(payload['receipt_token'],json.dumps(store.data[p.push_record('owner')]))
+
+    def test_background_receipt_survives_process_cache_loss_and_is_idempotent(self):
+        import secrets,hashlib
+        store=MemoryStore();token=secrets.token_urlsafe(32);key=p.push_record('owner')
+        store.write(key,{'token_hash':hashlib.sha256(token.encode()).hexdigest(),'nonce':'nonce','created_at':p.time.time()-30,'confirmed_at':0},0)
+        with patch.object(p.job_runtime,'JobStore',return_value=store):
+            with self.assertRaises(p.ProbeFailure):p.receive_push_proof(key.removeprefix('admin-push-receipt-'),'x'*43)
+            with self.assertRaises(p.ProbeFailure):p.receive_push_proof('invalid',token)
+            p.receive_push_proof(key.removeprefix('admin-push-receipt-'),token)
+            generation=store.generations[key]
+            p._cache.clear() # a new instance has no previous nonce or memory cache
+            self.assertIn('confirmadas',p.push_proof(store.data[key]))
+            with patch('google.cloud.storage.Client') as client:
+                client.return_value.__enter__.return_value.bucket.return_value.get_blob.return_value=object()
+                self.assertIn('confirmadas',p.push('owner'))
+            p.receive_push_proof(key.removeprefix('admin-push-receipt-'),token)
+            self.assertEqual(store.generations[key],generation)
+            store.data[key]['created_at']=p.time.time()-p.PUSH_RECEIPT_TTL-1
+            with self.assertRaises(p.ProbeFailure):p.receive_push_proof(key.removeprefix('admin-push-receipt-'),token)
+
+    def test_receipt_races_retry_and_old_proof_expires(self):
+        import secrets,hashlib
+        store=MemoryStore();token=secrets.token_urlsafe(32);key=p.push_record('owner')
+        store.data[key]={'token_hash':hashlib.sha256(token.encode()).hexdigest(),'nonce':'nonce','created_at':p.time.time()-1,'confirmed_at':0}
+        with patch.object(p.job_runtime,'JobStore',return_value=store),patch.object(store,'write',side_effect=p.job_runtime.PreconditionFailed('race')) as write:
+            with self.assertRaises(p.ProbeFailure):p.receive_push_proof(key.removeprefix('admin-push-receipt-'),token)
+            self.assertEqual(write.call_count,3)
+            with self.assertRaises(p.ProbeFailure):p.confirm_push_probe('owner','nonce')
+        with self.assertRaises(p.ProbeFailure):p.push_proof({'confirmed_at':p.time.time()-p.PUSH_PROOF_TTL-1})
+
+    def test_receipt_ingress_is_bounded(self):
+        self.assertTrue(all(p.allow_push_receipt() for _ in range(30)))
+        self.assertFalse(p.allow_push_receipt())
+        with patch.object(p.time,'monotonic',return_value=p.time.monotonic()+61):self.assertTrue(p.allow_push_receipt())
 
     def test_exception_values_are_never_returned(self):
         def fail():raise RuntimeError('secret-value')
@@ -70,7 +117,8 @@ class ProbeTests(unittest.TestCase):
         with self.assertRaises(p.ProbeFailure):p.drive({}, {})
 
     def test_storage_reads_metadata(self):
-        with patch('google.cloud.storage.Client') as client:
+        with patch('google.cloud.storage.Client') as client,patch.object(p.job_runtime,'JobStore') as store:
+            store.return_value.read.return_value=(None,0)
             client.return_value.__enter__.return_value.list_blobs.return_value=[]
             self.assertIn('metadatos',p.storage())
             client.return_value.__enter__.return_value.list_blobs.assert_called_once()
@@ -121,7 +169,8 @@ class ProbeTests(unittest.TestCase):
                 with self.assertRaises(p.ProbeFailure):p.telegram()
 
     def test_push_never_claims_delivery_from_configuration(self):
-        with patch('google.cloud.storage.Client') as client:
+        with patch('google.cloud.storage.Client') as client,patch.object(p.job_runtime,'JobStore') as store:
+            store.return_value.read.return_value=(None,0)
             for blob in (None,object()):
                 client.return_value.__enter__.return_value.bucket.return_value.get_blob.return_value=blob
                 with self.assertRaises(p.ProbeFailure) as error:p.push('owner')
@@ -146,5 +195,5 @@ class ProbeTests(unittest.TestCase):
             mocks=[stack.enter_context(patch.object(p,name,return_value='safe')) for name in names]
             first=p.inspect(core,{'uid':'owner'});second=p.inspect(core,{'uid':'owner'})
             self.assertEqual(len(first),7)
-            self.assertEqual(first,second)
-            self.assertTrue(all(mock.call_count==1 for mock in mocks))
+            self.assertEqual([r for r in first if r['id']!='push'],[r for r in second if r['id']!='push'])
+            self.assertEqual([mock.call_count for mock in mocks],[1,1,1,1,1,1,2])

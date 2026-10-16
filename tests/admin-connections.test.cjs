@@ -8,10 +8,18 @@ function setup(fetcher){
  const {window}=parseHTML(fs.readFileSync('static/admin-connections.html','utf8'));
  let callback;const auth={currentUser:null,onAuthStateChanged(fn){callback=fn;},signOut(){return Promise.resolve();}};
  window.firebase={auth:()=>auth};
- vm.runInNewContext(source,{window,navigator:{},document:window.document,fetch:fetcher,setInterval(){},AbortSignal,Date,Error,firebase:window.firebase});
- return {document:window.document,login(user){auth.currentUser=user;callback(user);}};
+ const context={window,navigator:{},document:window.document,fetch:fetcher,setInterval(){},setTimeout,clearTimeout,AbortSignal,Date,Error,firebase:window.firebase};
+ vm.runInNewContext(source,context);
+ return {document:window.document,readyWorker:context.readyPushWorker,login(user){auth.currentUser=user;callback(user);}};
 }
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
+test('Push waits for the updated worker to activate before sending',async()=>{
+ const ui=setup(async()=>{});let listener,removed=false,ready=false;
+ const worker={state:'installing',addEventListener(event,fn){listener=fn;},removeEventListener(){removed=true;}};
+ const pending=ui.readyWorker({installing:worker}).then(()=>{ready=true;});
+ await settle();assert.equal(ready,false);worker.state='activated';listener();await pending;assert.equal(removed,true);
+ await assert.rejects(ui.readyWorker({}));
+});
 test('non-admin denial never opens the diagnosis',async()=>{
  const ui=setup(async()=>new Response('',{status:403}));
  ui.login({getIdToken:async()=> 'fixture'});await settle();

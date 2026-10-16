@@ -4,13 +4,37 @@ from datetime import datetime, timezone
 import hashlib
 import threading
 import time
+from collections import deque
 from urllib.parse import quote
 import requests
 import job_runtime
 
 _lock = threading.Lock()
 _cache = {}
-_push_pending = {}
+PUSH_RECEIPT_TTL = 900
+PUSH_PROOF_TTL = 86400
+_receipt_window = deque()
+
+
+def allow_push_receipt():
+    with _lock:
+        now=time.monotonic()
+        while _receipt_window and now-_receipt_window[0]>=60:_receipt_window.popleft()
+        if len(_receipt_window)>=30:return False
+        _receipt_window.append(now)
+        return True
+
+
+def push_record(uid):
+    return 'admin-push-receipt-' + hashlib.sha256(uid.encode()).hexdigest()
+
+
+def push_proof(record):
+    confirmed = (record or {}).get('confirmed_at', 0)
+    if not isinstance(confirmed,(int,float)) or confirmed<=0 or not 0 <= time.time()-confirmed < PUSH_PROOF_TTL:
+        raise ProbeFailure('No hay una recepción Push confirmada durante las últimas 24 horas. Ejecuta una nueva prueba.', 'unknown')
+    stamp=datetime.fromtimestamp(confirmed,timezone.utc).isoformat()
+    return 'Recepción Push y notificación confirmadas por el service worker ('+stamp+'). Registro persistente; no implica disponibilidad permanente.'
 
 
 def send_push_probe(identity, endpoint, nonce):
@@ -20,30 +44,59 @@ def send_push_probe(identity, endpoint, nonce):
     from pywebpush import webpush
     if not isinstance(endpoint,str) or len(endpoint)>2048 or not isinstance(nonce,str) or not re.fullmatch(r'[a-f0-9-]{36}',nonce):
         raise ProbeFailure('La prueba Push no tiene un identificador válido.')
-    with _lock:
-        previous=_push_pending.get(identity['uid'])
-        if previous and time.monotonic()-previous[1]<60:
-            raise ProbeFailure('Espera un minuto antes de repetir la prueba Push.', 'unknown')
     store=job_runtime.JobStore()
+    key=push_record(identity['uid'])
+    previous,generation=store.read(key)
+    if previous and time.time()-previous.get('created_at',0)<60:
+        raise ProbeFailure('Espera un minuto antes de repetir la prueba Push.', 'unknown')
     record,_=store.read(web_notifications.subscription_key(identity['uid']))
     subscription=next((item for item in (record or {}).get('subscriptions',{}).values() if item.get('endpoint')==endpoint),None)
     if not subscription or not web_notifications.valid_subscription(subscription):
         raise ProbeFailure('La suscripción no pertenece al administrador o no es válida.')
     config=web_notifications.configuration(store)
-    # Reserve before sending: an uncertain response must not trigger an automatic resend.
-    with _lock:_push_pending[identity['uid']]=(nonce,time.monotonic())
-    webpush(subscription_info=subscription,data=json.dumps({'type':'cv-admin-probe','nonce':nonce}),
+    import secrets
+    proof_token=secrets.token_urlsafe(32)
+    # Durable CAS reservation survives a new process; store only a token digest.
+    store.write(key,{'nonce':nonce,'created_at':time.time(),'confirmed_at':0,
+        'token_hash':hashlib.sha256(proof_token.encode()).hexdigest()},generation)
+    webpush(subscription_info=subscription,data=json.dumps({'type':'cv-admin-probe','nonce':nonce,
+        'receipt':key.removeprefix('admin-push-receipt-'),'receipt_token':proof_token}),
         vapid_private_key=config['private_key'],vapid_claims={'sub':'mailto:'+identity['email']},ttl=60,timeout=10)
     return 'El proveedor aceptó la notificación de prueba; esperando recepción en este navegador.'
 
 
 def confirm_push_probe(uid, nonce):
-    with _lock:
-        pending=_push_pending.get(uid)
-        if not pending or pending[0]!=nonce or time.monotonic()-pending[1]>90:
+    store=job_runtime.JobStore()
+    for _ in range(3):
+        record,generation=store.read(push_record(uid))
+        if not record or record.get('nonce')!=nonce or not 0<=time.time()-record.get('created_at',0)<=PUSH_RECEIPT_TTL:
             raise ProbeFailure('La confirmación Push no corresponde a una prueba reciente.', 'unknown')
-        _push_pending.pop(uid,None)
-    return remember(uid,checked('push',lambda:'El navegador confirmó recepción Push y mostró la notificación de prueba. No acredita recepción con la app cerrada.'),300)
+        if record.get('confirmed_at'):
+            return remember(uid,checked('push',lambda:push_proof(record)),300)
+        record['confirmed_at']=time.time()
+        try:store.write(push_record(uid),record,generation)
+        except job_runtime.PreconditionFailed:continue
+        return remember(uid,checked('push',lambda:push_proof(record)),300)
+    raise ProbeFailure('La confirmación está cambiando. Reintenta actualizar el estado.', 'unknown')
+
+
+def receive_push_proof(receipt, token):
+    import hmac
+    import re
+    if not isinstance(receipt,str) or not re.fullmatch(r'[a-f0-9]{64}',receipt) or not isinstance(token,str) or not re.fullmatch(r'[A-Za-z0-9_-]{43}',token):
+        raise ProbeFailure('Confirmación Push inválida.')
+    store=job_runtime.JobStore()
+    key='admin-push-receipt-'+receipt
+    for _ in range(3):
+        record,generation=store.read(key)
+        if not record or not 0<=time.time()-record.get('created_at',0)<=PUSH_RECEIPT_TTL or not hmac.compare_digest(record.get('token_hash',''),hashlib.sha256(token.encode()).hexdigest()):
+            raise ProbeFailure('Confirmación Push inválida.')
+        if record.get('confirmed_at'):return
+        record['confirmed_at']=time.time()
+        try:store.write(key,record,generation)
+        except job_runtime.PreconditionFailed:continue
+        return
+    raise ProbeFailure('Confirmación Push temporalmente ocupada.', 'unknown')
 
 
 def cached_check(uid, identifier):
@@ -232,7 +285,8 @@ def push(uid):
         for key in (web_notifications.CONFIG_ID, web_notifications.subscription_key(uid)):
             if bucket.get_blob('jobs/'+key+'.json', timeout=12) is None:
                 raise ProbeFailure('Falta la configuración o una suscripción Push del administrador.', 'unknown')
-    raise ProbeFailure('Configuración y registro de suscripciones accesibles. Falta confirmar recepción Push en un dispositivo propio; no equivale a entrega.', 'unknown')
+    record,_=job_runtime.JobStore().read(push_record(uid))
+    return push_proof(record)
 
 
 def inspect(core, identity):
@@ -245,6 +299,10 @@ def inspect(core, identity):
     owner = hashlib.sha256(identity['uid'].encode()).hexdigest()
     def run(item):
         identifier, operation = item
+        if identifier=='push':
+            # Read durable delivery receipts on every poll; never mask a new
+            # confirmation behind the previous unknown result's cache.
+            return checked(identifier,operation)
         key = (owner, identifier)
         # One computation per process; concurrency=1 limits duplicate cloud probes.
         with _lock:

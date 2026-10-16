@@ -14,6 +14,24 @@ def register_routes(core):
         if core.request.headers.get('Origin') not in {'https://cvalamedida.web.app','https://cv-a-la-medida-jhonn.web.app'} or core.request.headers.get('X-Requested-With') != 'XmlHttpRequest':
             raise core.AppError('El origen de la comprobación no es válido.',403)
 
+    @core.app.post('/api/admin/connections/push/receipt')
+    def admin_push_receipt():
+        data=core.request.get_json(silent=True)
+        if not isinstance(data,dict) or set(data)!={'receipt','token'}:
+            raise core.AppError('Confirmación Push inválida.',400)
+        import connection_probes
+        if not connection_probes.allow_push_receipt():
+            response=core.jsonify(error='Demasiadas confirmaciones. Reintenta en un minuto.')
+            response.status_code=429
+            response.headers['Retry-After']='60'
+            response.headers['Cache-Control']='no-store'
+            return response
+        try:connection_probes.receive_push_proof(data['receipt'],data['token'])
+        except connection_probes.ProbeFailure:raise core.AppError('Confirmación Push inválida o caducada.',403) from None
+        response=core.jsonify(ok=True)
+        response.headers['Cache-Control']='no-store, private'
+        return response
+
     @core.app.get('/api/admin/connections')
     def admin_connections_status():
         require_admin(core)

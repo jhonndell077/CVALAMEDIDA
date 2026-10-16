@@ -4,6 +4,18 @@ import app as core
 
 
 class AdminConnectionsTests(unittest.TestCase):
+    def test_background_receipt_needs_capability_but_not_firebase_session(self):
+        import connection_probes
+        with patch.object(core,'verify_google_identity') as verify,patch('connection_probes.allow_push_receipt',return_value=True),patch('connection_probes.receive_push_proof') as receipt:
+            client=core.app.test_client()
+            self.assertEqual(client.post('/api/admin/connections/push/receipt',json={'receipt':'fixture','token':'fixture'}).status_code,200)
+            verify.assert_not_called();receipt.assert_called_once_with('fixture','fixture')
+            receipt.side_effect=connection_probes.ProbeFailure('private-token')
+            response=client.post('/api/admin/connections/push/receipt',json={'receipt':'fixture','token':'fixture'})
+            self.assertEqual(response.status_code,403);self.assertNotIn('private-token',response.get_data(as_text=True))
+            self.assertEqual(client.post('/api/admin/connections/push/receipt',json={}).status_code,400)
+        with patch('connection_probes.allow_push_receipt',return_value=False):
+            self.assertEqual(core.app.test_client().post('/api/admin/connections/push/receipt',json={'receipt':'fixture','token':'fixture'}).status_code,429)
     def test_missing_identity_is_denied_before_storage(self):
         with patch.object(core, 'ORIGINAL_OWNER_EMAIL', 'owner@example.test'), patch.object(core, 'verify_google_identity', side_effect=core.AppError('session',401)), patch.object(core.user_accounts, 'scope') as scope:
             response = core.app.test_client().get('/api/admin/connections')

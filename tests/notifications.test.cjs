@@ -2,16 +2,16 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const id='web-12345678-1234-1234-1234-123456789abc';
 function setup(){
- const handlers={},shown=[],messages=[];
+ const handlers={},shown=[],messages=[],receipts=[];
  const state={ready:false,visible:true,closed:false,waiting:null};
  const client={get url(){return state.admin?'https://example.com/admin/conexiones':'https://example.com/';},get visibilityState(){return state.visible?'visible':'hidden'},postMessage(data,ports){messages.push(data);if(ports)ports[0].reply({ready:state.ready})}};
  class Channel {constructor(){const port1={close(){},onmessage:null};this.port1=port1;this.port2={reply:data=>queueMicrotask(()=>port1.onmessage?.({data}))}}}
  const self={location:{origin:'https://example.com'},addEventListener:(type,fn)=>handlers[type]=fn,
   clients:{matchAll:async()=>state.closed?[]:[client]},registration:{showNotification:async(title,options)=>shown.push({title,...options})}};
- const context={self,URL,MessageChannel:Channel,setTimeout:(fn,delay)=>delay===250?setImmediate(()=>{state.waiting?.();fn()}):setTimeout(fn,delay),clearTimeout};
+ const context={self,URL,AbortController,MessageChannel:Channel,fetch:async(url,options)=>{receipts.push({url,...options});return {ok:true};},setTimeout:(fn,delay)=>delay===250?setImmediate(()=>{state.waiting?.();fn()}):setTimeout(fn,delay),clearTimeout};
  vm.runInNewContext(fs.readFileSync('static/sw.js','utf8'),context);
  const push=data=>{let promise=Promise.resolve();handlers.push({data:{json:()=>data},waitUntil:p=>promise=p});return promise};
- return {state,shown,messages,push};
+ return {state,shown,messages,receipts,push};
 }
 test('push waits for visible loading to reach 100 before notification', {timeout:3000},async()=>{
  const q=setup();let waits=0;
@@ -31,6 +31,14 @@ test('admin probe displays a distinct notification and acknowledges only its non
 test('admin probe does not send its acknowledgement to the ordinary app',async()=>{
  const q=setup();await q.push({type:'cv-admin-probe',nonce:'12345678-1234-1234-1234-123456789abc'});
  assert.equal(q.messages.length,0);
+});
+test('background push saves its receipt even with no open page',async()=>{
+ const q=setup();q.state.closed=true;
+ await q.push({type:'cv-admin-probe',nonce:'12345678-1234-1234-1234-123456789abc',receipt:'a'.repeat(64),receipt_token:'b'.repeat(43)});
+ assert.equal(q.shown.length,1);assert.equal(q.messages.length,0);
+ assert.equal(q.receipts.length,1);assert.equal(q.receipts[0].url,'/api/admin/connections/push/receipt');
+ assert.deepEqual(JSON.parse(q.receipts[0].body),{receipt:'a'.repeat(64),token:'b'.repeat(43)});
+ assert.equal(q.receipts[0].credentials,'omit');
 });
 for(const change of ['hidden','closed'])test(`confirmed completion notifies if the app becomes ${change}`,{timeout:3000},async()=>{
  const q=setup();q.state.waiting=()=>{assert.equal(q.shown.length,0);if(change==='closed')q.state.closed=true;else q.state.visible=false};

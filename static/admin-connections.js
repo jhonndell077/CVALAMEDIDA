@@ -4,6 +4,17 @@ const states={};
 let busy=false,lastSuccess=0,authEpoch=0;
 let auth;
 let pushNonce='';
+async function readyPushWorker(registration){
+ const worker=registration.installing||registration.waiting||registration.active;
+ if(!worker)throw new Error('worker');
+ if(worker.state==='activated')return;
+ await new Promise((resolve,reject)=>{
+  const finish=error=>{clearTimeout(timer);worker.removeEventListener('statechange',check);error?reject(error):resolve();};
+  const check=()=>{if(worker.state==='activated')finish();else if(worker.state==='redundant')finish(new Error('worker'));};
+  const timer=setTimeout(()=>finish(new Error('worker timeout')),15000);
+  worker.addEventListener('statechange',check);check();
+ });
+}
 async function adminPost(path,body){
  const epoch=authEpoch,user=auth?.currentUser;if(!user)throw new Error('session');
  const token=await user.getIdToken();if(epoch!==authEpoch||user!==auth.currentUser)throw new Error('session');
@@ -92,7 +103,8 @@ try {
    actionMessage.textContent='Solicitando permiso de notificaciones. Si aparece un aviso del navegador, permite las notificaciones para completar la prueba.';
    if(await Notification.requestPermission()!=='granted')throw new Error('permission');
    if(epoch!==authEpoch)return;
-   const registration=await navigator.serviceWorker.register('/sw.js');await registration.update();
+   const registration=await navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'});await registration.update();
+   await readyPushWorker(registration);
    const ready=await navigator.serviceWorker.ready;
    let subscription=await ready.pushManager.getSubscription();
    if(!subscription){
@@ -105,13 +117,13 @@ try {
    await adminPost('/api/notifications/subscribe',subscription.toJSON());
    if(epoch!==authEpoch)return;pushNonce=crypto.randomUUID();
    const result=await adminPost('/api/admin/connections/push/test',{endpoint:subscription.endpoint,nonce:pushNonce});
-   if(epoch!==authEpoch)return;actionMessage.textContent=result.check.detail;
+   if(epoch!==authEpoch)return;if(states.push?.state!=='ok')actionMessage.textContent=result.check.detail;
   }catch(_){if(epoch===authEpoch)actionMessage.textContent='No se pudo probar Push. Permite notificaciones en este navegador compatible y vuelve a intentarlo.';}
  });
  if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',async event=>{
   if(event.data?.type!=='cv-admin-probe-received'||!pushNonce||event.data.nonce!==pushNonce||!auth.currentUser)return;
-  const epoch=authEpoch,nonce=pushNonce;pushNonce='';
-  try{await adminPost('/api/admin/connections/push/confirm',{nonce});if(epoch===authEpoch){actionMessage.textContent='✅ Push recibido en este dispositivo.';update();}}catch(_){if(epoch===authEpoch)actionMessage.textContent='El navegador recibió Push, pero no se pudo registrar su confirmación.';}
+  const epoch=authEpoch,nonce=pushNonce;
+  try{const result=await adminPost('/api/admin/connections/push/confirm',{nonce});if(epoch===authEpoch){pushNonce='';states.push=result.check;renderNodes();actionMessage.textContent='✅ Push recibido y confirmación guardada.';update();}}catch(_){if(epoch===authEpoch)actionMessage.textContent='El dispositivo recibió Push. Pulsa Actualizar estado para recuperar su confirmación persistente.';}
  });
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)update();});
 } catch (_) {message.textContent='Google no pudo cargarse. Revisa la conexión y recarga la página.';}

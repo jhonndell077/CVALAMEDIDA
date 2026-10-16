@@ -1310,6 +1310,10 @@ def enforce_request_policy() -> tuple[Any, int] | None:
         hostname = request.host.partition(":")[0].strip("[]").casefold()
         if hostname not in {"127.0.0.1", "localhost", "::1"}:
             return jsonify({"error": "La app solo acepta conexiones locales."}), 403
+    if request.path == '/api/admin/connections/push/receipt' and request.method == 'POST':
+        # Background SW cannot renew Firebase identity. The receipt route instead
+        # verifies a short-lived, random, delivery-only capability server-side.
+        return None
     if request.path.startswith('/api/admin/'):
         # Deny non-owners before loading account records, Drive or job storage.
         verify_google_identity()
