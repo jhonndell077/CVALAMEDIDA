@@ -67,7 +67,11 @@ class ProfileDeletionTests(unittest.TestCase):
                     self.assertNotIn(original['references'][0], json.loads(path.read_text())['references'])
                     with self.assertRaisesRegex(app.AppError, 'Vuelve a analizar'):
                         app.make_draft(valid_analysis())
-                    draft = app.make_draft(app.sanitize_analysis(valid_analysis()))
+                    analysis = valid_analysis()
+                    analysis['matching']['selected_experiences'] = [
+                        {'experience_id': item['id'], 'responsibility_ids': [task['id'] for task in item['responsibilities']]}
+                        for item in app.MASTER_PROFILE['experiences']]
+                    draft = app.make_draft(app.sanitize_analysis(analysis))
                     self.assertNotIn(original['references'][0], draft['references'])
                     removed_name = original['references'][0]['name']
                     pdf = pymupdf.open(stream=app.make_pdf(draft).getvalue(), filetype='pdf')
@@ -84,7 +88,9 @@ class ProfileDeletionTests(unittest.TestCase):
         bank = DriveBank({'base_file_id': 'base'})
         writes = []
         def request(method, url, **kwargs):
-            if method == 'PATCH':
+            if method == 'GET' and 'fields=etag' in url:
+                return MagicMock(json=lambda: {'etag': 'v1'})
+            if method == 'PUT':
                 writes.append(kwargs)
                 base.update(json.loads(kwargs['data']))
             response = MagicMock(content=json.dumps(base).encode(), headers={'ETag': 'v1'})

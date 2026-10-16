@@ -91,11 +91,34 @@ def clean_facts(raw: Any) -> dict:
     return result
 
 
+def document_owner(facts, candidate_name):
+    """A shared first name or an initial cannot establish document ownership."""
+    expected = normalized(candidate_name)
+    personal = facts.get('candidate', {})
+    names = [normalized(value) for value in (facts.get('recipient'), personal.get('name'))
+             if isinstance(value, str) and value.strip()]
+    if not names:
+        return None
+    return bool(expected and len(expected.split()) >= 2 and all(name == expected for name in names))
+
+
 def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
     """Build from current files each time: deletion/changes cannot leave stale claims."""
     from profile_records import consolidate, find_record, merge_record
     profile = consolidate(base)
     warnings = []
+    # An explicit personal form is a user's correction of their Google display
+    # name, not an inferred identity from an imported certificate or CV.
+    personal_forms = [doc for doc in documents.values()
+        if doc.get('active') and doc.get('status') == 'incorporado'
+        and doc.get('facts', {}).get('_personal_form')
+        and doc.get('facts', {}).get('candidate', {}).get('name')]
+    form_names = {normalized(doc['facts']['candidate']['name']) for doc in personal_forms}
+    if len(form_names) == 1:
+        profile['candidate']['name'] = personal_forms[-1]['facts']['candidate']['name']
+    elif len(form_names) > 1:
+        warnings.append({'file_id': '', 'name': 'Información personal', 'message':
+            'Hay formularios personales con nombres diferentes. Revisa el titular antes de incorporar sus datos.'})
     def skill_identifier(label):
         value=identifier('skill',label)
         if any(item.get('id')==value for item in profile['skills']):
@@ -106,14 +129,18 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
             continue
         facts = doc.get("facts", {})
         source = {"file_id": file_id, "name": doc["name"], "fingerprint": doc["fingerprint"]}
-        recipient = normalized(facts.get("recipient"))
-        candidate = normalized(base["candidate"]["name"] + " " + profile["candidate"]["name"])
-        if recipient and not set(recipient.split()) & set(candidate.split()):
+        ownership = document_owner(facts, profile['candidate']['name'])
+        if facts.get('_personal_form') and len(form_names) == 1:
+            ownership = True
+        if ownership is False:
             warnings.append({"file_id": file_id, "name": doc["name"], "message": "El nombre del titular difiere del perfil. Se conserva el archivo, pero sus datos requieren revisión."})
             continue
         for key, value in facts.get('candidate', {}).items():
-            if value:
+            if value and ownership is True:
                 profile['candidate'][key] = copy.deepcopy(value)
+        if facts.get('candidate') and ownership is None:
+            warnings.append({'file_id': file_id, 'name': doc['name'], 'message':
+                'El documento no identifica al titular completo. Sus datos personales no se incorporaron; requieren revisión.'})
         for reference in facts.get('references', []):
             existing_reference=find_record(profile['references'], 'references', reference)
             if existing_reference is None: profile['references'].append(copy.deepcopy(reference))
@@ -176,15 +203,14 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
             if not doc.get("active") or doc.get("status") != "incorporado": continue
             facts=doc.get("facts",{})
             if not any(facts.get(key) for key in ("experiences","education","courses")): continue
-            recipient=normalized(facts.get("recipient"))
-            if recipient and not set(recipient.split()) & set(normalized(base["candidate"]["name"]+" "+profile["candidate"]["name"]).split()): continue
+            if document_owner(facts, profile['candidate']['name']) is False: continue
             for label in facts.get("generated_skills",[]):
                 if find_record(profile["skills"], "skills", {"label":label}) is not None: continue
                 profile["skills"].append({"id":skill_identifier(label),"label":label,"sources":[file_id],
                     "origin":"sugerida_por_experiencia_o_estudios", "source_documents":[{"file_id":file_id,"name":doc["name"],"fingerprint":doc["fingerprint"]}]})
     from profile_deletions import apply_deletions
     from profile_edits import apply as apply_edits
-    return apply_deletions(apply_edits(profile)), warnings
+    return apply_deletions(apply_edits(profile, warnings), warnings), warnings
 
 
 def extraction_input(name: str, mime: str, raw: bytes) -> tuple[str, bytes | None, str | None]:
@@ -261,7 +287,10 @@ def extract_facts(name: str, mime: str, raw: bytes, candidate_name: str) -> dict
         try:
             form=json.loads(raw.decode('utf-8-sig'))
             if isinstance(form,dict) and form.get('cv_bank_form') == 1:
-                return clean_facts(form)
+                facts = clean_facts(form)
+                if normalized(name) == normalized('Datos personales - formulario.json'):
+                    facts['_personal_form'] = True
+                return facts
         except (ValueError,UnicodeError):
             pass
     import vertex_retry
@@ -358,92 +387,75 @@ class DriveBank:
             raise BankError("Drive no pudo actualizar el banco. No se utilizará una copia desactualizada.")
         return response
 
-    def add_record(self, section: str, record: dict, validator) -> str:
-        files = self.inventory()
-        file_id = self.config["base_file_id"]
-        response = self.request("GET", f"https://www.googleapis.com/drive/v3/files/{quote(file_id, safe='')}?alt=media&supportsAllDrives=true")
+    def _read_json(self, file_id):
+        response = self.request('GET', f'https://www.googleapis.com/drive/v3/files/{quote(file_id, safe="")}?alt=media&supportsAllDrives=true')
         try:
             if len(response.content) > MAX_BYTES:
-                raise BankError("El banco supera 20 MB.", 422)
-            base = json.loads(response.content.decode("utf-8-sig"))
-            etag = response.headers.get("ETag")
+                raise BankError('El banco supera 20 MB.', 422)
+            value = json.loads(response.content.decode('utf-8-sig'))
+            if not isinstance(value, dict):
+                raise BankError('El banco no tiene un formato compatible.', 422)
+            return value
+        except (ValueError, UnicodeError) as error:
+            raise BankError('El banco no contiene JSON válido. Revisa el archivo antes de continuar.', 422) from error
         finally:
             response.close()
+
+    def _read_versioned_json(self, file_id):
+        # The version must precede the content read. Any change during or after
+        # that read makes the subsequent conditional update fail safely.
+        resource = quote(file_id, safe='')
+        response = self.request('GET', f'https://www.googleapis.com/drive/v2/files/{resource}?fields=etag&supportsAllDrives=true')
+        try:
+            etag = response.json().get('etag')
+        finally:
+            response.close()
+        if not isinstance(etag, str) or not etag.strip() or etag.strip() == '*':
+            raise BankError('Drive no confirmó la versión del banco. Vuelve a sincronizar.', 409)
+        return self._read_json(file_id), etag
+
+    def _write_versioned_json(self, file_id, value, etag):
+        if not isinstance(etag, str) or not etag.strip() or etag.strip() == '*':
+            raise BankError('Drive no confirmó la versión del banco. Vuelve a sincronizar.', 409)
+        raw = json.dumps(value, ensure_ascii=False, indent=2).encode('utf-8')
+        if len(raw) > MAX_BYTES:
+            raise BankError('El banco supera 20 MB.', 422)
+        self.request('PUT', f'https://www.googleapis.com/upload/drive/v2/files/{quote(file_id, safe="")}?uploadType=media&supportsAllDrives=true',
+                     headers={'If-Match': etag, 'Content-Type': 'application/json; charset=utf-8'}, data=raw).close()
+        self._downloads.clear()
+        if self._read_json(file_id) != value:
+            raise BankError('No se pudo verificar el guardado. Sincroniza antes de reintentar.', 409)
+
+    def add_record(self, section: str, record: dict, validator) -> str:
+        self.inventory()
+        file_id = self.config['base_file_id']
+        base, etag = self._read_versioned_json(file_id)
         from profile_records import consolidate, add_information
         before=copy.deepcopy(base)
         base=consolidate(base)
-        from profile_deletions import identity
-        incoming_selector=[section, {'identity': identity(record)}]
         try: record_id=add_information(base,section,record)
         except ValueError as error: raise BankError(str(error),409) from error
-        saved_record=next(item for item in base[section] if item.get('id')==record_id)
-        selectors=(incoming_selector,[section, {'identity':identity(saved_record)}])
-        base['_deleted_records']=[item for item in base.get('_deleted_records',[]) if item not in selectors]
         if base==before: return record_id
         validator(base)
-        data = json.dumps(base, ensure_ascii=False, indent=2).encode("utf-8")
-        if len(data) > MAX_BYTES:
-            raise BankError("El banco supera 20 MB.", 422)
-        headers = {"Content-Type": "application/json; charset=utf-8"}
-        if etag:
-            headers["If-Match"] = etag
-        self.request("PATCH", f"https://www.googleapis.com/upload/drive/v3/files/{quote(file_id, safe='')}?uploadType=media&supportsAllDrives=true", headers=headers, data=data).close()
-        self._downloads.clear()
-        saved = json.loads(self.download(files[file_id])[0].decode("utf-8-sig"))
-        if (not any(item.get("id")==record_id for item in saved.get(section, [])) or
-            saved.get('_information_requests',{}).get(record['id']) != base['_information_requests'][record['id']]):
-            raise BankError("No se pudo verificar el guardado. Reintenta con el mismo formulario.")
+        self._write_versioned_json(file_id, base, etag)
         return record_id
 
     def edit_profile(self, previous, updated, validator):
         from profile_edits import prepare
-        file_id=quote(self.config['base_file_id'],safe='')
-        # v3 media downloads can omit ETag. v2 exposes the file resource
-        # ETag explicitly and supports conditional updates of its content.
-        metadata=self.request('GET',f'https://www.googleapis.com/drive/v2/files/{file_id}?fields=etag&supportsAllDrives=true')
-        try: etag=metadata.json().get('etag')
-        finally: metadata.close()
-        if not isinstance(etag,str) or not etag:
-            raise BankError('Drive no confirmó la versión del banco. Vuelve a sincronizar.',409)
-        response=self.request('GET',f'https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true')
-        try:
-            base=json.loads(response.content.decode('utf-8-sig'))
-        finally: response.close()
+        file_id=self.config['base_file_id']
+        base,etag=self._read_versioned_json(file_id)
         saved=prepare(base,previous,updated);validator(saved)
         if getattr(self,'_edit_base_snapshot',base)!=base:
             raise BankError('El banco cambió mientras editabas. Sincroniza antes de guardar.',409)
-        raw=json.dumps(saved,ensure_ascii=False).encode('utf-8')
-        if len(raw)>MAX_BYTES: raise BankError('El banco supera 20 MB.',422)
-        self.request('PUT',f'https://www.googleapis.com/upload/drive/v2/files/{file_id}?uploadType=media&supportsAllDrives=true',headers={'If-Match':etag,'Content-Type':'application/json; charset=utf-8'},data=raw).close()
-        self._downloads.clear()
-        response=self.request('GET',f'https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true')
-        try:
-            if response.json()!=saved: raise BankError('No se pudo verificar el guardado. Sincroniza antes de reintentar.',409)
-        finally: response.close()
+        self._write_versioned_json(file_id,saved,etag)
 
     def delete_record(self, selector):
-        file_id = quote(self.config['base_file_id'], safe='')
-        response = self.request('GET', f'https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true')
-        try:
-            base = json.loads(response.content.decode('utf-8-sig'))
-            etag = response.headers.get('ETag')
-        finally:
-            response.close()
+        file_id = self.config['base_file_id']
+        base, etag = self._read_versioned_json(file_id)
         deleted = base.setdefault('_deleted_records', [])
         if selector not in deleted:
             deleted.append(selector)
-        headers = {'Content-Type': 'application/json; charset=utf-8'}
-        if etag:
-            headers['If-Match'] = etag
-        self.request('PATCH', f'https://www.googleapis.com/upload/drive/v3/files/{file_id}?uploadType=media&supportsAllDrives=true',
-                     headers=headers, data=json.dumps(base, ensure_ascii=False).encode()).close()
-        self._downloads.clear()
-        response = self.request('GET', f'https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true')
-        try:
-            if selector not in response.json().get('_deleted_records', []):
-                raise BankError('No se pudo verificar la eliminación. Recarga el banco.', 503)
-        finally:
-            response.close()
+        self._write_versioned_json(file_id, base, etag)
 
     def inventory(self) -> dict:
         queue = [self.config["folder_id"]]
@@ -600,7 +612,10 @@ class DriveBank:
             raise BankError("No se puede leer hoja_de_vida.jpeg. Sube una imagen válida y vuelve a sincronizar.", 422) from error
         base = json.loads(self.download(files[self.config["base_file_id"]])[0].decode("utf-8-sig"))
         self._edit_base_snapshot=copy.deepcopy(base)
-        index = json.loads(self.download(files[self.config["index_file_id"]])[0].decode("utf-8-sig"))
+        if process:
+            index, index_etag = self._read_versioned_json(self.config['index_file_id'])
+        else:
+            index = json.loads(self.download(files[self.config["index_file_id"]])[0].decode("utf-8-sig"))
         if not isinstance(index.get("documents"), dict) or index.get("version") != 1:
             raise BankError("indice_banco.json no tiene un formato compatible.", 422)
         system_ids = {self.config.get(k, '') for k in ("base_file_id", "index_file_id", "readme_file_id")} | ({photo_file["id"]} if photo_file else set())
@@ -630,6 +645,8 @@ class DriveBank:
             previous = copy.deepcopy(doc)
             if any(parent in contact_folders for parent in file.get('parents', [])) and file['mimeType'] != 'application/vnd.google-apps.folder':
                 file = dict(file, md5Checksum=str(file.get('md5Checksum') or file.get('modifiedTime')) + ':contacts-v1')
+            if file['mimeType'] == 'application/json' and normalized(file['name']) == normalized('Datos personales - formulario.json'):
+                file = dict(file, md5Checksum=str(file.get('md5Checksum') or file.get('modifiedTime')) + ':personal-form-v2')
             doc.update({"name": file["name"], "mime_type": file["mimeType"], "active": True})
             if file_id in bundled_ids:
                 doc.update({"status": "integrado_en_proyecto", "fingerprint": fingerprint(file), "facts": {}})
@@ -674,8 +691,7 @@ class DriveBank:
         remaining = sum(d.get("active") and d.get("status") == "pendiente" for d in documents.values())
         if process and documents != original_documents:
             index["last_sync"] = datetime.now(timezone.utc).isoformat()
-            content = json.dumps(index, ensure_ascii=False, indent=2).encode("utf-8")
-            self.request("PATCH", "https://www.googleapis.com/upload/drive/v3/files/" + self.config["index_file_id"] + "?uploadType=media", data=content, headers={"Content-Type": "application/json"})
+            self._write_versioned_json(self.config['index_file_id'], index, index_etag)
         return profile, {"folder_id": self.config["folder_id"], "pending": remaining, "last_sync": index.get("last_sync"),
             "photo": {"file_id": photo_file["id"], "name": photo_file["name"], "fingerprint": fingerprint(photo_file)} if photo_file else None,
             "warnings": warnings, "documents": [{"file_id": key, **{k: d.get(k) for k in ("name", "active", "status", "message", "processed_at")}} for key, d in documents.items()],

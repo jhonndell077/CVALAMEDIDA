@@ -1316,7 +1316,6 @@ def enforce_request_policy() -> tuple[Any, int] | None:
     ):
         verify_google_identity()
         if os.environ.get('CV_MULTI_ACCOUNT') == '1' and getattr(g, 'google_identity', None):
-            import sys
             # Job metadata and stored artifacts need the verified app identity,
             # not a live Drive OAuth token (which may expire while iOS suspends
             # the installed app). Ownership is still checked by each job route.
@@ -1326,6 +1325,9 @@ def enforce_request_policy() -> tuple[Any, int] | None:
             account_scope = user_accounts.scope(sys.modules[__name__], g.google_identity, account_headers)
             account_scope.__enter__()
             g.account_scope = account_scope
+    # Interactive requests share the durable per-user admission budget with jobs.
+    # Workers dispatch handlers inside their already-admitted job context.
+    background_jobs.enforce_request_quota(sys.modules[__name__])
     if bank_enabled() and request.path in {
         "/api/profile", "/api/profile-summary", "/api/profile-photo",
         "/api/analyze", "/api/draft", "/api/export/pdf", "/api/export/docx", "/api/gmail/send",
@@ -1337,6 +1339,10 @@ def enforce_request_policy() -> tuple[Any, int] | None:
 
 @app.teardown_request
 def restore_account_context(error=None):
+    try:
+        background_jobs.release_request_quota()
+    except Exception:
+        app.logger.warning("No se pudo liberar el cupo de la solicitud; vencerá su reserva.")
     scope = getattr(g, 'account_scope', None)
     if scope:
         g.account_scope = None
@@ -1367,7 +1373,7 @@ def static_asset(asset_name: str) -> Any:
         return send_from_directory(app.static_folder or "static",asset_name)
     if asset_name not in {"app.js", "background.js", "sw.js", "drive.js", "gmail.js", "loading.js", "styles.css", "card-motion.js", "card-motion.css", "app-version.js", "version.json", "logo-cv-a-la-medida.png", "app-background.png", "app-icon.png", "manifest.webmanifest", "telegram.js", "onboarding.js", "repeaters.js",
                          "profile-dialog.js", "data-panel.js", "employment-window.js", "ui-navigation.js",
-                         "drive-auth.html", "drive-auth.js", "drive-config.json", "manual.html", "manual.css", "manual.js",
+                         "drive-auth.html", "drive-auth.js", "drive-config.json", "privacy.html", "manual.html", "manual.css", "manual.js",
                          "manual-assets/flujo-datos.svg", "manual-assets/paso-vacante.jpg", "manual-assets/canales-envio.svg"}:
         return jsonify({"error": "No se encontró el recurso solicitado."}), 404
     return send_from_directory(app.static_folder or "static", asset_name)

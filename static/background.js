@@ -4,7 +4,7 @@ window.cvBackground = (() => {
     '/api/draft': 'Generación de CV', '/api/profile/information': 'Guardar información',
     '/api/export/pdf': 'Guardar PDF', '/api/export/docx': 'Guardar Word',
     '/api/gmail/send': 'Enviar postulación', '/api/applications': 'Guardar postulación'};
-  let options, owner = '', records = [], restoring = false;
+  let options, owner = '', records = [], restoring = false, generation = 0;
   const watchers = new Map(), rows = new Map(), delivered = new Set();
   const progressListeners = new Map();
   const wakeups = new Map();
@@ -119,6 +119,8 @@ window.cvBackground = (() => {
   }
   async function watch(record, recover = false, onProgress = null) {
     const watchOwner = owner;
+    const watchGeneration = generation;
+    const current = () => owner === watchOwner && generation === watchGeneration;
     if (watchers.has(record.id)) {
       if (onProgress) {
         if (!progressListeners.has(record.id)) progressListeners.set(record.id, new Set());
@@ -133,10 +135,10 @@ window.cvBackground = (() => {
       let failures = 0, progress = 1;
       const wasPending = !['done', 'failed'].includes(record.state);
       for (;;) {
-        if (!enabled() || owner !== watchOwner) throw new Error('La sesión cambió. El proceso permanece en su cuenta original.');
+        if (!enabled() || !current()) throw new Error('La sesión cambió. El proceso permanece en su cuenta original.');
         try {
           const job = await status(record.id); failures = 0;
-          if (owner !== watchOwner) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
+          if (!current()) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
           record.path = job.path || record.path;
           render(record, job);
           progress = Math.min(job.state === 'done' ? 100 : 99, job.progress || progress);
@@ -146,7 +148,7 @@ window.cvBackground = (() => {
             record.state = job.state; persist();
             if (job.state === 'failed') throw Object.assign(new Error(job.error || 'No se pudo completar el proceso.'), {terminal: true});
             if (finish.complete) await finish.complete();
-            if (owner !== watchOwner) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
+            if (!current()) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
             delivered.add(record.id);
             if (!window.cvLoading.currentSession?.()) notice.textContent = '100% · Estado Completado';
             if (record.pendingNotice || (recover && wasPending || record.backgrounded && !window.cvLoading.currentSession?.()) && !record.announced) {
@@ -157,7 +159,7 @@ window.cvBackground = (() => {
           }
         } catch (error) {
           if (error.terminal) throw error;
-          if (owner !== watchOwner) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
+          if (!current()) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
           if (error.wakeup) continue;
           if ([400, 401, 403, 404].includes(error.status)) {
             const message = error.status === 404 ? 'Este proceso ya no está disponible. Puedes iniciar una nueva acción.' : error.message;
@@ -176,7 +178,9 @@ window.cvBackground = (() => {
     watchers.set(record.id, promise);
     try { return await promise; }
     catch (error) { finish.cancel?.(); throw error; }
-    finally { watchers.delete(record.id); progressListeners.delete(record.id); finish(); }
+    finally {
+      if (current()) { watchers.delete(record.id); progressListeners.delete(record.id); finish(); }
+    }
   }
   async function run(path, payload, headers = {}, onProgress = null) {
     const startedOwner = owner;
@@ -238,12 +242,19 @@ window.cvBackground = (() => {
   async function initialize(settings) {
     const nextOwner = settings.user()?.uid || '';
     const sameOwner = Boolean(owner && owner === nextOwner);
-    if (owner && owner !== nextOwner && 'serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.getRegistration();
-      const subscription = await registration?.pushManager.getSubscription();
-      if (subscription) await subscription.unsubscribe();
+    if (!sameOwner) generation++;
+    const initializedGeneration = generation;
+    if (owner && owner !== nextOwner) {
       wakeups.forEach(wake => wake()); wakeups.clear();
       watchers.clear(); progressListeners.clear();
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.getRegistration();
+          const subscription = await registration?.pushManager.getSubscription();
+          if (subscription) await subscription.unsubscribe();
+        } catch { /* Account cleanup must not depend on the push provider. */ }
+        if (initializedGeneration !== generation) return;
+      }
     }
     options = settings;
     if (sameOwner) { await resume(); return; }

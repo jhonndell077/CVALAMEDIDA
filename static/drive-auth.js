@@ -42,7 +42,7 @@ async function prepareDriveAuth() {
     error_callback: () => { authorizeButton.disabled = false; oauthStatus.textContent = "La autorización se cerró. Vuelve a intentarlo."; },
   });
   authorizeButton.disabled = false;
-  oauthStatus.textContent = gmailMode ? "El permiso permite enviar correos desde esta página. Al crear tu CV, se enviará automáticamente al correo detectado en la vacante." : "Tu permiso se limita a los archivos y la carpeta que selecciones para esta aplicación.";
+  oauthStatus.textContent = gmailMode ? "El permiso permite enviar correos desde esta página. Al crear tu CV, se enviará automáticamente al correo detectado en la vacante." : "Google solicita permiso de lectura para todos los archivos de tu Drive (drive.readonly), aunque la aplicación procesa tu Banco de Datos. También solicita gestionar los archivos creados o abiertos con esta aplicación (drive.file)." + (combinedMode ? " Gmail solo quedará conectado si concedes además el permiso de envío (gmail.send)." : '');
   authorizeButton.addEventListener("click", () => {
     authorizeButton.disabled = true;
     client.requestAccessToken({ prompt: "" });

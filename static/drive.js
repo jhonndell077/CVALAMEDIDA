@@ -4,11 +4,13 @@ window.cvDrive = (() => {
   let connection = null;
   let generation = 0, connectedReady = false;
   let authorizationHandler = null;
+  let cancelPopup = null;
   function setAuthorizationHandler(handler) { authorizationHandler = handler; }
   const status = () => document.querySelector("#drive-status");
   const button = () => document.querySelector("#connect-drive");
   function reset() {
     generation++; connectedReady = false; connection = null;
+    cancelPopup?.(); cancelPopup = null;
     token = ""; expiresAt = 0;
     if (status()) status().textContent = "Conecta Drive para guardar los CV en CV GENERADOS.";
   }
@@ -68,27 +70,23 @@ window.cvDrive = (() => {
     connectedReady = true;
     return data;
   }
-  async function connected(result) {
-    const started = generation;
+  async function connected(result, started = generation) {
+    if (started !== generation) throw new Error('La cuenta cambió durante la autorización.');
     const finish = window.cvLoading.start("Conectando Google Drive");
     try {
       if (result.error) throw new Error("Google no autorizó Drive. Usa la cuenta permitida e inténtalo de nuevo.");
       token = result.access_token;
       expiresAt = Date.now() + Number(result.expires_in || 3600) * 1000 - 60000;
       connectedReady = false;
-      if (result.gmailRequested || result.scope) {
-        window.cvGmail?.acceptCredential(result.access_token, result.expires_in || 3600, result.scope);
-      }
       try { await check(); }
       catch (error) {
         if (config.multi_account || error.status !== 403) throw error;
         await picker(); await check();
       }
+      if (started !== generation) throw new Error('La sesión cambió.');
       status().textContent = "Drive conectado. Cada PDF o Word se guardará en CV GENERADOS.";
       button().textContent = "Reconectar Drive";
-      if (result.gmailRequested || result.scope) {
-        window.cvGmail?.acceptCredential(result.access_token, result.expires_in || 3600, result.scope);
-      }
+      window.cvGmail?.acceptCredential(result.access_token, result.expires_in || 3600, result.scope);
       window.dispatchEvent(new Event("cv-drive-connected"));
     } catch (error) { if (started === generation) { if (!config.multi_account) reset(); status().textContent = error.message; } throw error; }
     finally { if (started === generation) button().disabled = false; finish(); }
@@ -135,25 +133,32 @@ window.cvDrive = (() => {
       return Promise.reject(error);
     }
     const finish = window.cvLoading.start("Conectando Google Drive");
+    const started = generation;
     button().disabled = true;
     status().textContent = "Autoriza Drive y selecciona CV GENERADOS…";
-    connection = new Promise((resolve, reject) => {
+    const operation = connection = new Promise((resolve, reject) => {
       let timer;
-      const cleanup = () => { clearInterval(timer); window.removeEventListener("message", receive); };
+      const cleanup = () => { clearInterval(timer); window.removeEventListener("message", receive); if (cancelPopup === cancel) cancelPopup = null; };
+      const cancel = () => {
+        cleanup(); popup.close?.(); reject(new Error('La cuenta cambió durante la autorización.'));
+      };
+      cancelPopup = cancel;
       const receive = (event) => {
+        if (started !== generation) return;
         if (event.origin !== authOrigin || event.source !== popup || event.data?.nonce !== nonce) return;
         cleanup();
-        connected(event.data.result).then(resolve, reject);
+        connected(event.data.result, started).then(resolve, reject);
       };
       window.addEventListener("message", receive);
       timer = setInterval(() => {
         if (!popup.closed) return;
-        cleanup(); button().disabled = false;
+        cleanup(); if (started !== generation) return;
+        button().disabled = false;
         const error = new Error("La autorización se cerró. Sincroniza el banco para volver a conectar Drive.");
         status().textContent = error.message;
         reject(error);
       }, 500);
-    }).finally(() => { connection = null; finish(); });
+    }).finally(() => { if (connection === operation) connection = null; finish(); });
     return connection;
   }
   async function acceptCredential(accessToken, options = {}) {

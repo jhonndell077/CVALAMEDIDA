@@ -13,8 +13,8 @@ for(const telegram of [undefined,{synchronize(){throw Error('Telegram unavailabl
 }
 test('Google popup starts synchronously without requesting a Telegram session',async()=>{
  let authorize,opened=false;
- const user={getIdToken:async()=>'id',reauthenticateWithPopup(){opened=true;return Promise.resolve({user,credential:{accessToken:'drive-token'}})}};
- const context=vm.createContext({state:{user},googleProvider:()=>({}),window:{cvDrive:{setAuthorizationHandler:fn=>authorize=fn},cvTelegram:{restore(){throw Error('Must not use Telegram')}}}});
+ const user={uid:'fixture',getIdToken:async()=>'id',reauthenticateWithPopup(){opened=true;return Promise.resolve({user,credential:{accessToken:'drive-token'}})}};
+ const context=vm.createContext({state:{user},verifiedGoogleCredential:async token=>({access_token:token,scope:'https://www.googleapis.com/auth/drive.file'}),googleProvider:()=>({}),window:{cvDrive:{setAuthorizationHandler:fn=>authorize=fn},cvTelegram:{restore(){throw Error('Must not use Telegram')}}}});
  vm.runInContext(source.slice(source.indexOf('  window.cvDrive.setAuthorizationHandler('),source.indexOf('  state.auth.onIdTokenChanged')),context);
  const promise=authorize();assert.equal(opened,true);assert.equal((await promise).access_token,'drive-token');
 });

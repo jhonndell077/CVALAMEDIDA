@@ -1,6 +1,40 @@
 """HTTP routes; business operations are provided by the explicit core dependency."""
 from __future__ import annotations
 from typing import Any
+import hashlib
+import time
+import job_runtime
+import user_accounts
+import requests
+from google.api_core.exceptions import PreconditionFailed
+
+
+def _dispatch_key(owner, application_id):
+    return 'gmail-dispatch-' + hashlib.sha256((owner + ':' + application_id).encode()).hexdigest()
+
+
+def _reserve_dispatch(core, store, key, digest):
+    """A generation-zero create is the cross-instance at-most-once boundary."""
+    reservation = {'request_digest': digest, 'state': 'reserved', 'created_at': time.time()}
+    try:
+        store.write(key, reservation, 0)
+        return reservation, False
+    except PreconditionFailed:
+        existing, _ = store.read(key)
+        if not existing or existing.get('request_digest') != digest:
+            raise core.AppError('Este identificador ya corresponde a otra solicitud de envío.', 409) from None
+        if existing.get('state') == 'gmail_accepted':
+            return existing, True
+        raise core.AppError('Este envío está en proceso o sin confirmar. Revisa Enviados en Gmail antes de volver a enviarlo.', 409) from None
+
+
+def _save_dispatch(store, key, reservation, **values):
+    current, generation = store.read(key)
+    if not current or current.get('request_digest') != reservation['request_digest']:
+        raise job_runtime.JobError('No se pudo conservar la confirmación del envío.')
+    current.update(values)
+    store.write(key, current, generation)
+    reservation.update(values)
 
 
 def register_routes(core):
@@ -38,16 +72,48 @@ def register_routes(core):
 
     core.check_drive = check_drive
 
+    @core.app.post('/api/google/grant')
+    def google_grant():
+        # Popup credentials omit granted scopes. Inspect once, without tokens in URLs.
+        token = core.request.headers.get('X-Drive-Access-Token', '')
+        if not token or len(token) > 4096 or '\n' in token or '\r' in token:
+            raise core.AppError('Autoriza Google para comprobar los permisos.', 401)
+        identity = core.drive_request('https://www.googleapis.com/oauth2/v3/userinfo', token)
+        if identity.get('email_verified') is not True or identity.get('email', '').casefold() != core.account_state.ARCHIVE_CONFIG.get('allowed_email', '').casefold():
+            raise core.AppError('La autorización de Google no pertenece a esta cuenta.', 403)
+        try:
+            response = requests.post('https://oauth2.googleapis.com/tokeninfo', headers={
+                'Authorization': 'Bearer ' + token, 'Content-Type': 'application/x-www-form-urlencoded'}, timeout=25)
+            if not response.ok:
+                raise core.AppError('No se pudieron comprobar los permisos de Google. Vuelve a autorizar.',
+                                    401 if response.status_code in {400, 401, 403} else 503)
+            data = response.json()
+            scope = data.get('scope')
+            expires = int(data.get('expires_in', 0))
+            if not isinstance(scope, str) or not scope or expires <= 0:
+                raise ValueError('Invalid grant metadata')
+        except (requests.RequestException, ValueError, TypeError):
+            raise core.AppError('No se pudieron comprobar los permisos de Google. Vuelve a intentarlo.', 503) from None
+        result = core.jsonify(scope=scope, expires_in=expires)
+        result.headers['Cache-Control'] = 'no-store'
+        return result
+
     @core.app.route("/api/applications", methods=["GET", "POST"])
     def applications_history() -> Any:
         token = core.request.headers.get("X-Drive-Access-Token", "")
         folder = core.verify_drive_access(token)
         if core.request.method == "GET":
-            params = core.urllib.parse.urlencode({
+            cursor = core.request.args.get('cursor', '')
+            if len(cursor) > 4096 or any(ord(char) < 33 or ord(char) > 126 for char in cursor):
+                raise core.AppError('El cursor del historial no es válido.', 400)
+            parameters = {
                 "q": f"'{folder['id']}' in parents and trashed=false and appProperties has {{ key='cvDispatch' and value='1' }}",
                 "fields": "files(id,description),nextPageToken", "pageSize": 100,
                 "orderBy": "createdTime desc", "supportsAllDrives": "true", "includeItemsFromAllDrives": "true",
-            })
+            }
+            if cursor:
+                parameters['pageToken'] = cursor
+            params = core.urllib.parse.urlencode(parameters)
             files = core.drive_request("https://www.googleapis.com/drive/v3/files?" + params, token)
             entries = {}
             for item in files.get("files", []):
@@ -57,7 +123,8 @@ def register_routes(core):
                         entries.setdefault(record["application_id"], record)
                 except (ValueError, TypeError):
                     continue
-            return core.jsonify({"entries": list(entries.values()), "has_more": bool(files.get("nextPageToken"))})
+            return core.jsonify({"entries": list(entries.values()), "has_more": bool(files.get("nextPageToken")),
+                                 "next_cursor": files.get('nextPageToken') or None})
         payload = core.request.get_json(silent=True) or {}
         if not isinstance(payload, dict):
             raise core.AppError("Los datos de la postulación no son válidos.", 400)
@@ -108,6 +175,12 @@ def register_routes(core):
             raise core.AppError("Autoriza Gmail con la cuenta permitida para esta aplicación.", 403)
         drive_token = core.request.headers.get("X-Drive-Access-Token", "")
         folder = core.verify_drive_access(drive_token)
+        store = job_runtime.JobStore()
+        digest = hashlib.sha256(core.json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        key = _dispatch_key(user_accounts.owner() or sender.casefold(), application_id)
+        reservation, already_sent = _reserve_dispatch(core, store, key, digest)
+        if already_sent:
+            return core.jsonify({'entry': reservation['entry'], 'already_sent': True})
         query = core.urllib.parse.urlencode({"q": f"'{folder['id']}' in parents and trashed=false and appProperties has {{ key='cvApplicationId' and value='{application_id}' }}",
                                        "fields": "files(description)", "orderBy": "createdTime desc", "pageSize": 1})
         previous = core.drive_request("https://www.googleapis.com/drive/v3/files?" + query, drive_token).get("files", [])
@@ -117,6 +190,7 @@ def register_routes(core):
             except (ValueError, KeyError):
                 raise core.AppError("No se pudo comprobar el envío anterior. Revisa Gmail antes de reintentar.", 409)
             if prior.get("status") == "gmail_accepted":
+                _save_dispatch(store, key, reservation, state='gmail_accepted', entry=prior)
                 return core.jsonify({"entry": prior, "already_sent": True})
             if prior.get("status") != "failed":
                 raise core.AppError("Este envío está en proceso o sin confirmar. Revisa Enviados en Gmail antes de volver a enviarlo.", 409)
@@ -135,6 +209,8 @@ def register_routes(core):
         record = {"application_id": application_id, "position": position, "recipient": recipient, "channel": "gmail",
                   "status": "sending", "cv_url": cv_url, "date": core.datetime.now(core.timezone.utc).isoformat()}
         core.save_application_record(record, drive_token, folder)
+        # Persist before contacting Gmail. A lost response must never cause a resend.
+        _save_dispatch(store, key, reservation, state='send_started')
         try:
             result = core.gmail_request("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", gmail_token,
                                    core.json.dumps({"raw": core.base64.urlsafe_b64encode(message.as_bytes()).decode("ascii")}).encode())
@@ -143,12 +219,20 @@ def register_routes(core):
         except core.AppError as error:
             record["status"] = "failed" if error.status_code in {401, 403, 422} else "send_unknown"
             try:
+                _save_dispatch(store, key, reservation, state=record['status'], entry=record)
+            except Exception:
+                core.app.logger.warning('No se pudo actualizar la reserva del envío; continúa bloqueada contra duplicados.')
+            try:
                 core.save_application_record(record, drive_token, folder)
             except core.AppError:
                 pass
             raise
         record.update(status="gmail_accepted", gmail_message_id=result["id"], date=core.datetime.now(core.timezone.utc).isoformat())
         warning = ""
+        try:
+            _save_dispatch(store, key, reservation, state='gmail_accepted', entry=record)
+        except Exception:
+            warning = 'Gmail confirmó el envío, pero no se pudo conservar la confirmación. No vuelvas a enviarlo; comprueba Enviados.'
         try:
             core.save_application_record(record, drive_token, folder)
         except core.AppError:

@@ -27,7 +27,7 @@ window.cvTelegram = (() => {
     error().hidden = true;
     try {
       const data = await json("/api/telegram/drive/authorize", {code: response.code});
-      await window.cvDrive.acceptCredential(data.access_token,{gmailRequested:true});
+      await window.cvDrive.acceptCredential(data.access_token, data);
       if (sessionGeneration!==generation) return;
       await json("/api/telegram/drive/confirm", {});
       status().textContent = "Drive autorizado para el guardado automático. Envía una vacante a tu bot privado.";

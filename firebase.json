@@ -61,6 +61,30 @@
             {
               "key": "Cache-Control",
               "value": "no-store"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' https://www.gstatic.com https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.googleusercontent.com https://*.tile.openstreetmap.org; connect-src 'self' https://*.googleapis.com https://accounts.google.com https://*.firebaseapp.com https://www.gstatic.com; frame-src https://*.google.com https://*.firebaseapp.com; font-src 'self'; form-action 'self'"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            },
+            {
+              "key": "Cross-Origin-Opener-Policy",
+              "value": "same-origin-allow-popups"
+            },
+            {
+              "key": "Permissions-Policy",
+              "value": "camera=(), microphone=(), geolocation=(self)"
             }
           ]
         }
@@ -100,6 +124,30 @@
             {
               "key": "Cache-Control",
               "value": "no-store"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' https://www.gstatic.com https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.googleusercontent.com https://*.tile.openstreetmap.org; connect-src 'self' https://*.googleapis.com https://accounts.google.com https://*.firebaseapp.com https://www.gstatic.com; frame-src https://*.google.com https://*.firebaseapp.com; font-src 'self'; form-action 'self'"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            },
+            {
+              "key": "Cross-Origin-Opener-Policy",
+              "value": "same-origin-allow-popups"
+            },
+            {
+              "key": "Permissions-Policy",
+              "value": "camera=(), microphone=(), geolocation=(self)"
             }
           ]
         }

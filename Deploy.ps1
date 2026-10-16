@@ -13,6 +13,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo comprobar GitHub antes de publicar.' }
     git merge-base --is-ancestor origin/main HEAD
     if ($LASTEXITCODE -ne 0) { throw 'GitHub tiene cambios nuevos. Integra esos cambios con git pull antes de desplegar; no se sobrescribirán.' }
+    $releasePython = Join-Path $PSScriptRoot 'venv/Scripts/python.exe'
+    if (-not (Test-Path -LiteralPath $releasePython)) { $releasePython = 'python' }
+    & $releasePython scripts/verify_release.py
+    if ($LASTEXITCODE -ne 0) { throw 'La verificacion integral bloqueo el despliegue. Revisa tmp/verification.' }
     git add --all
     if ($LASTEXITCODE -ne 0) { throw 'No se pudieron preparar los archivos.' }
     python scripts/check_publish.py

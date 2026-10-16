@@ -85,7 +85,9 @@ class DataBankAuditTests(unittest.TestCase):
                 bank=DriveBank({'base_file_id':'base'}); bank.inventory=lambda:{'base':{'id':'base'}}
                 writes=[]
                 def request(method,url,**kwargs):
-                    if method=='PATCH': writes.append(kwargs);base.update(json.loads(kwargs['data']))
+                    if method=='GET' and 'fields=etag' in url:
+                        return MagicMock(json=lambda:{'etag':'fixture-v1'})
+                    if method=='PUT': writes.append(kwargs);base.update(json.loads(kwargs['data']))
                     return MagicMock(content=json.dumps(base).encode(),headers={'ETag':'fixture-v1'})
                 bank.request=request;bank.download=lambda file:(json.dumps(base).encode(),'','')
                 for _ in range(2): self.assertEqual(bank.add_record(section,record,app.validate_profile),record['id'])

@@ -1,0 +1,2 @@
+# Local/CI validation only; do not add these tools to the function runtime.
+coverage==7.16.2

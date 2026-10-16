@@ -41,10 +41,13 @@ def find_record(records, section, item):
     return matches[0] if len(matches)==1 else None
 
 def merge_record(target, incoming):
-    from profile_deletions import identity
+    from profile_deletions import identity, legacy_identity
     aliases = set(target.get('_merged_identities', [])) | set(incoming.get('_merged_identities', []))
     if any(key in incoming for key in ('title','name','label','text')) and identity(target) != identity(incoming):
         aliases.update((identity(target), identity(incoming)))
+    if any(key in incoming for key in ('title','name','label','text')) and legacy_identity(target) != legacy_identity(incoming):
+        # Legacy exclusions may name either spelling of a consolidated record.
+        aliases.update((legacy_identity(target), legacy_identity(incoming)))
     if aliases: target['_merged_identities']=sorted(aliases)
     for key, value in incoming.items():
         if key=='id': continue
@@ -105,8 +108,13 @@ def add_information(profile, section, record):
         if edit.get('section')==section and isinstance(value,dict) and (
             value.get('id')==existing.get('id') or identity(value)==identity(existing)):
             edit['value']=copy.deepcopy(existing)
-    selectors=([section,{'identity':identity(record)}],[section,{'identity':identity(existing)}])
-    selectors=(*selectors, *([section,{'identity':alias}] for alias in existing.get('_merged_identities',[])))
     if '_deleted_records' in profile:
-        profile['_deleted_records']=[item for item in profile['_deleted_records'] if item not in selectors]
+        from profile_deletions import matching_indices
+        def restored(selector):
+            if (not isinstance(selector,list) or len(selector)!=2 or selector[0]!=section
+                    or not isinstance(selector[1],dict)):
+                return False
+            matches=matching_indices(profile[section],selector[1].get('identity'))
+            return len(matches)==1 and profile[section][matches[0]] is existing
+        profile['_deleted_records']=[item for item in profile['_deleted_records'] if not restored(item)]
     return existing['id']

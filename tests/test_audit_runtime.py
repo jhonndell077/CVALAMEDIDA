@@ -165,6 +165,9 @@ class AuditAdmissionTests(unittest.TestCase):
                     for index in range(9):
                         self.assertTrue(store.admit('queued-' + str(index), 'fixture-uid'))
                     self.assertFalse(store.admit('eleventh', 'fixture-uid'))
+                    with self.assertRaises(AppError) as full:
+                        background_jobs.enforce_request_quota(core)
+                    self.assertEqual(full.exception.status_code, 429)
                     self.assertTrue(store.admit('other-account', 'another-uid'))
                     background_jobs.release_request_quota()
                     self.assertTrue(store.admit('after-release', 'fixture-uid'))
@@ -199,6 +202,33 @@ class AuditAdmissionTests(unittest.TestCase):
             self.assertEqual(protect.call_count, 10)
         finally:
             user_accounts.CURRENT.reset(marker)
+
+    def test_racing_submission_reuses_winner_and_rejects_changed_payload(self):
+        for conflict in (False, True):
+            with self.subTest(conflicting_payload=conflict):
+                class RaceStore(Store):
+                    def write(self, key, data, generation):
+                        if key.startswith('web-') and not self.read(key)[0]:
+                            winner = copy.deepcopy(data)
+                            if conflict:
+                                winner['request_digest'] = 'different-payload-digest'
+                            super().write(key, winner, generation)
+                            raise PreconditionFailed('Another instance created the job')
+                        return super().write(key, data, generation)
+                core, store = fixture(), RaceStore()
+                background_jobs.register_routes(core.app, core)
+                marker = user_accounts.CURRENT.set({'uid': 'fixture-uid', 'email': 'fixture@example.invalid'})
+                try:
+                    with patch.object(job_runtime, 'JobStore', return_value=store), \
+                         patch.object(job_runtime, 'configuration', return_value={}), \
+                         patch.object(job_runtime, 'enqueue') as enqueue, \
+                         patch.object(web_notifications, 'protect', return_value='synthetic'):
+                        response = core.app.test_client().post('/api/background/jobs', json={
+                            'path': '/api/analyze', 'payload': {'text': 'Vacante sintética'}, 'request_id': str(uuid4())})
+                    self.assertEqual(response.status_code, 409 if conflict else 202)
+                    self.assertEqual(enqueue.call_count, 0 if conflict else 1)
+                finally:
+                    user_accounts.CURRENT.reset(marker)
 
 
 class AuditHistoryTests(unittest.TestCase):

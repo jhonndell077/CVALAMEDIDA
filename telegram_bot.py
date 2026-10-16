@@ -574,7 +574,10 @@ def register_routes(app, core):
         else:
             config.update(drive_refresh_token=refresh, drive_connected=False)
             runtime.save_configuration(config)
-        return jsonify(access_token=tokens["access_token"])
+        result = jsonify(access_token=tokens['access_token'], expires_in=tokens.get('expires_in', 3600),
+                         scope=tokens.get('scope', ''))
+        result.headers['Cache-Control'] = 'no-store'
+        return result
 
     @app.post('/api/telegram/drive/session')
     def telegram_drive_session():
@@ -592,10 +595,10 @@ def register_routes(app, core):
                 raise core.AppError('El permiso de Google fue revocado. Vuelve a autorizar con Sincronizar todo.',409)
             raise core.AppError('No se pudo renovar la conexion de Google. Intentalo de nuevo.',503)
         scopes=set(tokens.get('scope','').split())
-        required={'https://www.googleapis.com/auth/drive.file','https://www.googleapis.com/auth/gmail.send'}
+        required={'https://www.googleapis.com/auth/drive.file'}
         if store: required.add('https://www.googleapis.com/auth/drive.readonly')
-        if not required.issubset(scopes):
-            raise core.AppError('Faltan permisos de Gmail o Drive. Autoriza con Sincronizar todo.',409)
+        if not required.issubset(scopes) and 'https://www.googleapis.com/auth/drive' not in scopes:
+            raise core.AppError('Faltan permisos de Drive. Autoriza con Sincronizar todo.',409)
         identity=requests.get('https://www.googleapis.com/oauth2/v3/userinfo',
             headers={'Authorization':'Bearer '+tokens['access_token']},timeout=25)
         account=identity.json()

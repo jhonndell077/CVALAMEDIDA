@@ -81,7 +81,11 @@ class NewInformationTests(unittest.TestCase):
         app.validate_profile(profile)
         from test_app import valid_analysis
         with patch.object(app, 'MASTER_PROFILE', profile):
-            self.assertIn(record, app.make_draft(valid_analysis())['references'])
+            analysis = valid_analysis()
+            analysis['matching']['selected_experiences'] = [
+                {'experience_id': item['id'], 'responsibility_ids': [task['id'] for task in item['responsibilities']]}
+                for item in app.MASTER_PROFILE['experiences']]
+            self.assertIn(record, app.make_draft(analysis)['references'])
         for field in ('name', 'role', 'phone'):
             invalid = copy.deepcopy(payload)
             invalid['fields'][field] = ' '
@@ -129,6 +133,8 @@ class NewInformationTests(unittest.TestCase):
         response = MagicMock(content=json.dumps(base).encode(), headers={'ETag':'version-one'})
         written = []
         def request(method, url, **kwargs):
+            if method == 'GET' and 'fields=etag' in url:
+                return MagicMock(json=lambda: {'etag': 'version-one'})
             if method == 'GET':
                 response.content = json.dumps(base).encode()
                 return response
@@ -154,7 +160,9 @@ class NewInformationTests(unittest.TestCase):
                 bank=DriveBank({'base_file_id':'base'});bank.inventory=lambda:{'base':{'id':'base'}}
                 writes=[]
                 def request(method,url,**kwargs):
-                    if method=='PATCH':
+                    if method=='GET' and 'fields=etag' in url:
+                        return MagicMock(json=lambda:{'etag':'v1'})
+                    if method=='PUT':
                         writes.append(kwargs);base.update(json.loads(kwargs['data']))
                     return MagicMock(content=json.dumps(base).encode(),headers={'ETag':'v1'})
                 bank.request=request;bank.download=lambda file:(json.dumps(base).encode(),'','')
@@ -173,7 +181,9 @@ class NewInformationTests(unittest.TestCase):
         bank.inventory=lambda:{'base':{'id':'base'}}
         writes=[]
         def request(method,url,**kwargs):
-            if method=='PATCH':
+            if method=='GET' and 'fields=etag' in url:
+                return MagicMock(json=lambda:{'etag':'v1'})
+            if method=='PUT':
                 writes.append(kwargs);base.update(json.loads(kwargs['data']))
             return MagicMock(content=json.dumps(base).encode(),headers={'ETag':'v1'})
         bank.request=request;bank.download=lambda file:(json.dumps(base).encode(),'','')

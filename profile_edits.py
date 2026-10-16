@@ -1,6 +1,6 @@
 """Keep manual edits authoritative when document evidence is reconstructed."""
 import copy
-from profile_deletions import identity
+from profile_deletions import identity, matching_indices, ambiguity_warning
 from profile_records import consolidate, SECTIONS
 
 
@@ -22,13 +22,16 @@ def prepare(base, previous, updated):
     return result
 
 
-def apply(profile):
+def apply(profile, warnings=None):
     result=copy.deepcopy(profile)
     result['candidate'].update(result.get('_candidate_edits',{}))
     for edit in result.get('_manual_edits',[]):
         records=result[edit['section']]
-        for index in range(len(records)-1,-1,-1):
-            if identity(records[index])==edit['identity']:
+        matches=matching_indices(records,edit['identity'],edit.get('previous'))
+        if len(matches)>1:
+            ambiguity_warning(warnings,edit['section'],'edición')
+        if len(matches)==1:
+            for index in matches:
                 if edit['value'] is None: records.pop(index)
                 else:
                     replacement=copy.deepcopy(edit['value'])

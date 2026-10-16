@@ -22,6 +22,9 @@ const state = {
   multiAccount: false,
   accountReady: false,
   activeUserId: null,
+  authEpoch: 0,
+  applicationCursor: null,
+  gmailAttempts: new Map(),
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -36,6 +39,8 @@ let informationRequestId = null;
 let informationRequestSignature = null;
 let informationSaving = false;
 function closeInformationForm() {
+  state.informationEpoch = (state.informationEpoch || 0) + 1;
+  informationSaving = false;
   informationForm.hidden = true;
   $("#new-information").setAttribute("aria-expanded", "false");
 }
@@ -56,6 +61,8 @@ informationForm.addEventListener("submit", async event => {
   event.preventDefault();
   if (informationSaving) return;
   informationSaving = true;
+  const owner = state.user?.uid, epoch = state.authEpoch, operation = state.informationEpoch;
+  const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch && operation === state.informationEpoch;
   const button = $("#save-information");
   const errorBox = $("#information-error");
   errorBox.hidden = true;
@@ -68,8 +75,13 @@ informationForm.addEventListener("submit", async event => {
     informationRequestId ||= crypto.randomUUID().replaceAll("-", "");
     informationRequestSignature = signature;
     setBusy(button, true, "Guardando nueva información");
-    if (state.user) state.idToken = await state.user.getIdToken();
+    if (state.user) {
+      const token = await state.user.getIdToken();
+      if (!isCurrent()) return;
+      state.idToken = token;
+    }
     const saved = await requestJson("/api/profile/information", { type, request_id: informationRequestId, fields: values });
+    if (!isCurrent()) return;
     // The save is complete even if the subsequent profile refresh fails.
     informationRequestId = null;
     informationRequestSignature = null;
@@ -88,12 +100,15 @@ informationForm.addEventListener("submit", async event => {
     if (saved.profile) applySavedProfile(saved.profile);
     else await loadProfileSummary();
   } catch (error) {
+    if (!isCurrent()) return;
     errorBox.textContent = error.message;
     errorBox.hidden = false;
     if (informationForm.hidden) $("#information-status").textContent += " No se pudo actualizar la vista: " + error.message;
   } finally {
-    informationSaving = false;
-    setBusy(button, false);
+    if (isCurrent() || (owner === state.user?.uid && epoch === state.authEpoch && informationForm.hidden)) {
+      informationSaving = false;
+      setBusy(button, false);
+    }
   }
 });
 const templateDetails = {
@@ -167,9 +182,10 @@ async function requestJson(url, payload) {
 
 async function directRequestJson(url, payload, headers = {}, requestOptions = {}) {
   const requestOwner = state.user?.uid;
+  const requestEpoch = state.authEpoch;
   if (state.user) {
     const token = await state.user.getIdToken();
-    if (requestOwner !== state.user?.uid) throw Object.assign(new Error('La cuenta cambió. Inicia esta operación con tu nueva sesión.'), {terminal: true});
+    if (requestOwner !== state.user?.uid || requestEpoch !== state.authEpoch) throw Object.assign(new Error('La cuenta cambió. Inicia esta operación con tu nueva sesión.'), {terminal: true});
     state.idToken = token;
   }
   const response = await fetch(url, {
@@ -179,7 +195,7 @@ async function directRequestJson(url, payload, headers = {}, requestOptions = {}
     body: JSON.stringify(payload),
   });
   const data = await response.json().catch(() => ({}));
-  if (requestOwner !== state.user?.uid) throw Object.assign(new Error('La cuenta cambió. Inicia esta operación con tu nueva sesión.'), {terminal: true});
+  if (requestOwner !== state.user?.uid || requestEpoch !== state.authEpoch) throw Object.assign(new Error('La cuenta cambió. Inicia esta operación con tu nueva sesión.'), {terminal: true});
   if (!response.ok) {
     throw Object.assign(new Error(data.error || `La solicitud falló (${response.status}).`), {status: response.status});
   }
@@ -187,10 +203,17 @@ async function directRequestJson(url, payload, headers = {}, requestOptions = {}
 }
 
 async function processFetch(url, settings) {
+  const owner = state.user?.uid, epoch = state.authEpoch;
+  const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch;
   if (!window.cvBackground.enabled() || !window.cvBackground.handles(url) || settings.method !== 'POST') return fetch(url, settings);
   const result = await window.cvBackground.run(url, JSON.parse(settings.body || '{}'), settings.headers);
+  if (!isCurrent()) throw new Error('La cuenta cambió.');
   if (result.download_url) {
-    if (state.user) state.idToken = await state.user.getIdToken();
+    if (state.user) {
+      const token = await state.user.getIdToken();
+      if (!isCurrent()) throw new Error('La cuenta cambió.');
+      state.idToken = token;
+    }
     const file = await fetch(result.download_url, {headers: authenticatedHeaders()});
     if (!file.ok) return file;
     return new Response(await file.blob(), {headers: {'Content-Type': file.headers.get('Content-Type'),
@@ -201,7 +224,7 @@ async function processFetch(url, settings) {
 
 function authenticatedHeaders(headers = {}) {
   if (state.idToken) headers.Authorization = `Bearer ${state.idToken}`;
-  Object.assign(headers, window.cvDrive?.headersIfConnected?.() || {});
+  Object.assign(headers, {...(window.cvDrive?.headersIfConnected?.() || {}), ...headers});
   return headers;
 }
 
@@ -232,10 +255,10 @@ async function loadModels(health) {
   const modelRow = modelSelect.closest('.model-row');
   if (modelRow) modelRow.hidden = health.model_available === true && (health.models || []).length === 1;
   state.provider = health.provider;
-  state.modelAvailable = health.model_available === true;
+  state.modelAvailable = health.model_available === true || (health.provider === 'vertex-ai' && health.model_configured === true);
   modelSelect.replaceChildren();
   if (health.provider === "vertex-ai") {
-    if (!health.model_available) {
+    if (!state.modelAvailable) {
       modelSelect.add(new Option("Vertex AI no está configurado", ""));
       help.textContent =
         "El servidor necesita un proyecto de Google Cloud para habilitar Gemini.";
@@ -245,11 +268,12 @@ async function loadModels(health) {
       modelSelect.value = model.name;
       state.model = model.name;
       help.textContent =
+        (health.model_status === 'not_verified' ? 'Vertex AI configurado; disponibilidad no verificada. Se comprobará al analizar. ' : '') +
         "Gemini analiza la vacante y la experiencia pertinente. Los datos de contacto no se incluyen en esa solicitud.";
     }
     $("#privacy-status").textContent = "IA en Google Cloud · cuenta protegida";
     $("#privacy-note").innerHTML =
-      "<b>Procesamiento en Google Cloud.</b> La vacante y las evidencias laborales se envían a Vertex AI para el análisis; tus datos personales de contacto no se incluyen en esa solicitud. El historial de postulaciones se guarda en tu Drive.";
+      '<b>Procesamiento en Google Cloud.</b> La vacante y las evidencias laborales se envían a Vertex AI para el análisis; tus datos de contacto no se incluyen en esa solicitud al modelo. Los trabajos en segundo plano y sus resultados, que pueden contener información personal y CV, se almacenan temporalmente en Cloud Storage. Tu banco y el historial se guardan en Drive. <a href="/privacy.html" target="_blank" rel="noopener">Ver privacidad y conservación de datos</a>.';
   } else {
     const models = health.models || [];
     if (!models.length) {
@@ -391,17 +415,19 @@ async function loadProfileSummary() {
 
 async function loadProfileSummaryWork() {
   const profileOwner = state.user?.uid;
+  const profileEpoch = state.authEpoch;
   const profileRevision = state.vacancyRevision || 0;
   const response = await fetch("/api/profile", {
     cache: "no-store",
     headers: authenticatedHeaders(),
   });
+  if (profileOwner !== state.user?.uid || profileEpoch !== state.authEpoch) return;
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.error || "No se pudo cargar el perfil profesional.");
   }
   const profile = await response.json();
-  if (profileOwner !== state.user?.uid || profileRevision !== (state.vacancyRevision || 0)) return;
+  if (profileOwner !== state.user?.uid || profileEpoch !== state.authEpoch || profileRevision !== (state.vacancyRevision || 0)) return;
   applySavedProfile(profile);
   if (state.profileEditable && !state.bankEnabled) {
     $("#knowledge-local-controls").hidden = false;
@@ -733,16 +759,25 @@ function addProfileDeleteButton(parent, path, value) {
     if (value === '') return;
     if (!window.confirm('¿Eliminar este dato del banco profesional? No aparecerá en los próximos CV, aunque vuelvas a sincronizar.')) return;
     state.profileDeleting = true;
+    const owner = state.user?.uid, epoch = state.authEpoch, editEpoch = state.profileEditEpoch;
+    const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch && editEpoch === state.profileEditEpoch;
     button.disabled = true;
     const errorBox = $('#profile-error');
     errorBox.hidden = true;
     try {
       await window.cvLoading.run('Eliminando del banco', async () => {
+        if (!isCurrent()) return;
+        if (state.user) {
+          const token = await state.user.getIdToken();
+          if (!isCurrent()) return;
+          state.idToken = token;
+        }
         const response = await fetch('/api/profile/delete', {
           method: 'POST', headers: authenticatedHeaders({'Content-Type': 'application/json'}),
           body: JSON.stringify({path, expected: value}),
         });
         const data = await response.json();
+        if (!isCurrent()) return;
         if (!response.ok) throw new Error(data.error || 'No se pudo eliminar el registro.');
         state.profile = data.profile;
         state.profileDraft = structuredClone(data.profile);
@@ -754,11 +789,11 @@ function addProfileDeleteButton(parent, path, value) {
         $('#profile-status').textContent = data.message;
       });
     } catch (error) {
+      if (!isCurrent()) return;
       errorBox.textContent = error.message || 'No se pudo eliminar el registro.';
       errorBox.hidden = false;
     } finally {
-      state.profileDeleting = false;
-      button.disabled = false;
+      if (isCurrent()) { state.profileDeleting = false; button.disabled = false; }
     }
   });
 }
@@ -914,19 +949,27 @@ async function saveProfileChanges() {
 }
 
 async function saveProfileChangesWork() {
+  const owner = state.user?.uid, epoch = state.authEpoch, editEpoch = state.profileEditEpoch;
+  const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch && editEpoch === state.profileEditEpoch;
+  const payload = structuredClone(state.bankEnabled ? {profile:state.profileDraft,expected_profile:state.profile} : state.profileDraft);
   const saveButton = $("#save-profile");
   const profileError = $("#profile-error");
   profileError.hidden = true;
   saveButton.disabled = true;
   saveButton.textContent = "Guardando…";
   try {
-    if (state.user) state.idToken = await state.user.getIdToken();
+    if (state.user) {
+      const token = await state.user.getIdToken();
+      if (!isCurrent()) return;
+      state.idToken = token;
+    }
     const response = await fetch("/api/profile", {
       method: "PUT",
       headers: authenticatedHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(state.bankEnabled ? {profile:state.profileDraft,expected_profile:state.profile} : state.profileDraft),
+      body: JSON.stringify(payload),
     });
     const data = await response.json().catch(() => ({}));
+    if (!isCurrent()) return;
     if (!response.ok) {
       throw new Error(data.error || `No se pudo guardar (${response.status}).`);
     }
@@ -939,12 +982,15 @@ async function saveProfileChangesWork() {
     renderProfileTree();
     $("#profile-status").textContent = data.message || "Guardado en tu banco";
   } catch (error) {
+    if (!isCurrent()) return;
     profileError.textContent = error.message || "No se pudieron guardar los cambios.";
     profileError.hidden = false;
     saveButton.disabled = false;
   } finally {
-    saveButton.textContent = "Guardar cambios";
-    saveButton.disabled = !state.profileEditable || !state.profileDirty;
+    if (isCurrent()) {
+      saveButton.textContent = "Guardar cambios";
+      saveButton.disabled = !state.profileEditable || !state.profileDirty;
+    }
   }
 }
 
@@ -956,6 +1002,15 @@ async function updateGoogleUserWork(user) {
   const changed = state.activeUserId !== (user?.uid || null);
   state.activeUserId = user?.uid || null;
   if (changed) {
+    state.authEpoch = (state.authEpoch || 0) + 1;
+    state.idToken = null;
+    window.cvProfileDialog?.reset();
+    document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
+    closeInformationForm(); informationForm.reset(); window.cvRepeaters?.reset(informationForm);
+    informationRequestId = null; informationRequestSignature = null;
+    state.profileEditEpoch = (state.profileEditEpoch || 0) + 1;
+    state.profileDeleting = false; state.gmailSending = false; state.whatsappPreparing = false;
+    state.gmailAttempts = new Map(); state.applicationCursor = null;
     window.cvDrive.reset(); window.cvGmail.reset(); window.cvOnboarding?.reset();
     state.analysis = null; state.draft = null; state.pdf = null; state.profile = null; state.profileDraft = null;
     state.employmentContact=null;
@@ -969,6 +1024,11 @@ async function updateGoogleUserWork(user) {
     $('#profile-tree').replaceChildren(); $('#draft-preview').replaceChildren();
     $('#bank-folder').removeAttribute('href'); $('#drive-folder').removeAttribute('href');
     $('#job-text').value = ''; fileInput.value = ''; renderApplications();
+    for (const id of ['application-email','application-phone','application-message','application-subject']) $('#'+id).value = '';
+    for (const id of ['application-send-status','application-contacts','profile-status','profile-error','information-error','information-status','application-history-status']) $('#'+id).textContent = '';
+    $('#drive-saved').replaceChildren(); $('#drive-saved').hidden = true;
+    $('#load-more-applications').hidden = true;
+    setBusy($('#save-information'), false); setBusy($('#save-profile'), false);
     if (state.photoUrl) URL.revokeObjectURL(state.photoUrl); state.photoUrl = null;
   }
   state.user = user;
@@ -1051,6 +1111,12 @@ async function updateGoogleUserWork(user) {
   }
 }
 
+async function verifiedGoogleCredential(accessToken) {
+  if (!accessToken) throw new Error('Google no entregó los permisos de Drive.');
+  const metadata = await directRequestJson('/api/google/grant', {}, {'X-Drive-Access-Token': accessToken});
+  return {access_token: accessToken, expires_in: metadata.expires_in, scope: metadata.scope};
+}
+
 async function initializeGoogleAuth() {
   await loadScript("/__/firebase/10.12.5/firebase-app-compat.js");
   await loadScript("/__/firebase/10.12.5/firebase-auth-compat.js");
@@ -1065,14 +1131,17 @@ async function initializeGoogleAuth() {
     return provider;
   };
   window.cvDrive.setAuthorizationHandler(async () => {
+    const owner = state.user?.uid, epoch = state.authEpoch;
     // Open Google authorization directly from the click, independently of Telegram.
     const result = state.user
       ? await state.user.reauthenticateWithPopup(googleProvider())
       : await state.auth.signInWithPopup(googleProvider());
-    state.user = result.user;
-    state.idToken = await result.user.getIdToken();
+    if (owner && (owner !== state.user?.uid || epoch !== state.authEpoch)) throw new Error('La cuenta cambió durante la autorización.');
+    if (state.user && state.user.uid !== result.user.uid) throw new Error('La cuenta cambió durante la autorización.');
+    if (!owner) await updateGoogleUser(result.user);
+    if (state.user?.uid !== result.user.uid) throw new Error('La cuenta cambió durante la autorización.');
     if (!result.credential?.accessToken) throw new Error("Google no entregó los permisos de Gmail y Drive.");
-    return { access_token: result.credential.accessToken, expires_in: 3600, gmailRequested: true };
+    return verifiedGoogleCredential(result.credential.accessToken);
   });
   state.auth.onIdTokenChanged((user) => {
     updateGoogleUser(user).catch((error) =>
@@ -1085,10 +1154,15 @@ async function initializeGoogleAuth() {
     try {
       const provider = googleProvider();
       const result = await state.auth.signInWithPopup(provider);
-      state.user = result.user;
-      state.idToken = await result.user.getIdToken();
+      if (state.user && state.user.uid !== result.user.uid) return;
       await updateGoogleUser(result.user);
-      if (state.driveEnabled) await window.cvDrive.acceptCredential(result.credential?.accessToken, { gmailRequested: true });
+      const owner = state.user?.uid, epoch = state.authEpoch;
+      if (owner !== result.user.uid) return;
+      if (state.driveEnabled) {
+        const credential = await verifiedGoogleCredential(result.credential?.accessToken);
+        if (owner !== state.user?.uid || epoch !== state.authEpoch) return;
+        await window.cvDrive.acceptCredential(credential.access_token, credential);
+      }
     } catch (error) {
       showError(error.message || "No se pudo iniciar sesión con Google.");
     } finally { finish(); }
@@ -1135,6 +1209,8 @@ async function bootstrap() {
     $("#save-profile").addEventListener("click", saveProfileChanges);
     $("#update-knowledge-map").addEventListener("click", updateKnowledgeMap);
     $("#discard-profile").addEventListener("click", () => {
+      state.profileEditEpoch = (state.profileEditEpoch || 0) + 1;
+      state.profileDeleting = false;
       state.profileDraft = structuredClone(state.profile);
       state.profileDirty = false;
       $("#profile-error").hidden = true;
@@ -1326,6 +1402,8 @@ function handleVacancyResponse(response, payload, revision = 0) {
 }
 
 window.addEventListener('cv-background-result', async event => {
+  const owner = state.user?.uid, epoch = state.authEpoch;
+  const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch;
   const {path, result} = event.detail;
   if (path === '/api/analyze') handleVacancyResponse(result, result.selection_payload || {}, state.vacancyRevision || 0);
   if (path === '/api/draft') {
@@ -1333,6 +1411,7 @@ window.addEventListener('cv-background-result', async event => {
     state.analysis = window.cvDraftAnalyses?.get(result.draft) || result.analysis || null;
     state.draft = result.draft;
     await renderDraft(result.draft);
+    if (!isCurrent()) return;
     jobPanel.hidden = true; analysisPanel.hidden = true; cvPanel.hidden = false; setActiveStep(3);
   }
   if (path === '/api/bank/sync') { renderBankStatus(result); await loadProfileSummary(); }
@@ -1484,26 +1563,31 @@ function findSkill(id) {
 $("#create-button").addEventListener("click", async (event) => {
   const button = event.currentTarget;
   const draftAnalysis = state.analysis;
+  const owner = state.user?.uid, epoch = state.authEpoch;
+  const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch && draftAnalysis === state.analysis;
   try {
     clearError();
     setBusy(button, true, "Generando Hoja de vida");
     const response = await requestJson("/api/draft", {
       analysis: state.analysis,
     });
+    if (!isCurrent()) return;
     state.draft = response.draft;
     window.cvDraftAnalyses ||= new WeakMap();
     window.cvDraftAnalyses.set(response.draft, draftAnalysis);
     await renderDraft(response.draft);
+    if (!isCurrent()) return;
     analysisPanel.hidden = true;
     cvPanel.hidden = false;
     setActiveStep(3);
     await sendApplicationGmail();
   } catch (error) {
+    if (!isCurrent()) return;
     const errorBox = cvPanel.hidden ? $("#gap-box") : $("#cv-error");
     errorBox.hidden = false;
     errorBox.textContent = error.message || "No se pudo crear el CV.";
   } finally {
-    setBusy(button, false);
+    if (isCurrent()) setBusy(button, false);
   }
 });
 
@@ -1514,6 +1598,9 @@ function addPreviewSection(parent, title) {
 }
 
 async function renderDraft(draft) {
+  const owner = state.user?.uid, epoch = state.authEpoch, revision = state.vacancyRevision;
+  const rendering = state.draftRenderEpoch = (state.draftRenderEpoch || 0) + 1;
+  const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch && revision === state.vacancyRevision && rendering === state.draftRenderEpoch;
   for (const id of ['download-pdf', 'download-docx', 'send-whatsapp']) {
     $("#" + id).disabled = !state.analysis;
   }
@@ -1537,12 +1624,15 @@ async function renderDraft(draft) {
     cache: "no-store",
     headers: authenticatedHeaders(),
   });
+  if (!isCurrent()) return;
   if (!photoResponse.ok && photoResponse.status !== 404) {
     const error = await photoResponse.json().catch(() => ({}));
     throw new Error(error.error || "No se pudo cargar la fotografía del perfil.");
   }
+  const photoBlob = photoResponse.ok ? await photoResponse.blob() : null;
+  if (!isCurrent()) return;
   if (state.photoUrl) URL.revokeObjectURL(state.photoUrl);
-  state.photoUrl = photoResponse.ok ? URL.createObjectURL(await photoResponse.blob()) : null;
+  state.photoUrl = photoBlob ? URL.createObjectURL(photoBlob) : null;
   const template = getTemplateDetails(draft.template);
   preview.classList.add("kitchen-preview");
   preview.style.setProperty("--accent", template.accent);
@@ -1611,11 +1701,13 @@ async function renderDraft(draft) {
   );
   $("#draft-title").textContent = `CV para ${draft.position}`;
   $("#template-confirmation").textContent =
-    `El CV aplica el perfil visual ${template.name} y se archiva en la carpeta «CV generados». ` +
+    `Borrador del CV con el perfil visual ${template.name}. El archivo se guarda en Drive al descargarlo o cuando Gmail confirma su generación para el envío. ` +
     "Revisa las fechas laborales antes de postular: no constan en las fuentes.";
 }
 
 async function download(format) {
+  const owner = state.user?.uid, epoch = state.authEpoch, analysis = state.analysis;
+  const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch && analysis === state.analysis;
   const button = format === "pdf" ? $("#download-pdf") : $("#download-docx");
   const cvError = $("#cv-error");
   cvError.textContent = "";
@@ -1624,18 +1716,25 @@ async function download(format) {
     if (!state.analysis) throw new Error('Analiza de nuevo esta vacante antes de generar el archivo.');
     setBusy(button, true, format === "pdf" ? "Generando y guardando PDF" : "Generando y guardando Word");
     await window.cvDrive.connect();
-    if (state.user) state.idToken = await state.user.getIdToken();
+    if (!isCurrent()) return null;
+    if (state.user) {
+      const token = await state.user.getIdToken();
+      if (!isCurrent()) return null;
+      state.idToken = token;
+    }
     $("#drive-saved").hidden = true;
     const response = await processFetch(`/api/export/${format}`, {
       method: "POST",
       headers: authenticatedHeaders({ "Content-Type": "application/json", ...window.cvDrive.headers() }),
-      body: JSON.stringify({ analysis: state.analysis }),
+      body: JSON.stringify({ analysis }),
     });
+    if (!isCurrent()) return null;
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.error || `No se pudo crear el archivo (${response.status}).`);
     }
     const blob = await response.blob();
+    if (!isCurrent()) return null;
     const driveUrl = response.headers.get("X-CV-Drive-URL");
     if (driveUrl?.startsWith("https://drive.google.com/")) {
       const saved = $("#drive-saved");
@@ -1656,25 +1755,34 @@ async function download(format) {
     if (format === "pdf") state.pdf = artifact;
     return artifact;
   } catch (error) {
+    if (!isCurrent()) return null;
     cvError.textContent = error.message || "No se pudo descargar el CV.";
     cvError.hidden = false;
     return null;
   } finally {
-    setBusy(button, false);
+    if (isCurrent()) setBusy(button, false);
   }
 }
 
 $("#download-pdf").addEventListener("click", () => download("pdf"));
 $("#download-docx").addEventListener("click", () => download("docx"));
 
-async function applicationRequest(payload) {
-  if (state.user) state.idToken = await state.user.getIdToken();
-  const response = await processFetch("/api/applications", {
+async function applicationRequest(payload, options = {}) {
+  const owner = state.user?.uid, epoch = state.authEpoch;
+  const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch;
+  if (state.user) {
+    const token = await state.user.getIdToken();
+    if (!isCurrent()) throw new Error('La cuenta cambió.');
+    state.idToken = token;
+  }
+  const path = '/api/applications' + (!payload && options.cursor ? '?' + new URLSearchParams({cursor: options.cursor}) : '');
+  const response = await processFetch(path, {
     method: payload ? "POST" : "GET",
     headers: authenticatedHeaders({ "Content-Type": "application/json", ...window.cvDrive.headers() }),
     ...(payload ? { body: JSON.stringify(payload) } : {}),
   });
   const data = await response.json().catch(() => ({}));
+  if (!isCurrent()) throw new Error('La cuenta cambió.');
   if (!response.ok) throw new Error(data.error || "No se pudo consultar o guardar el historial en Drive.");
   return data;
 }
@@ -1701,37 +1809,56 @@ function renderApplications() {
       const confirm = addText(card, "button", "Ya envié este CV", "button button-secondary");
       confirm.type = "button";
       confirm.addEventListener("click", async () => {
+        const owner = state.user?.uid, epoch = state.authEpoch;
+        const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch;
         setBusy(confirm, true, "Guardando confirmación");
         try {
           const result = await applicationRequest({ ...entry, status: "confirmed_by_user" });
+          if (!isCurrent()) return;
           Object.assign(entry, result.entry);
           renderApplications();
           $("#application-history-status").textContent = "Envío confirmado por ti y guardado en Drive.";
-        } catch (error) { $("#application-history-status").textContent = error.message; }
-        finally { setBusy(confirm, false); }
+        } catch (error) { if (isCurrent()) $("#application-history-status").textContent = error.message; }
+        finally { if (isCurrent()) setBusy(confirm, false); }
       });
     }
   });
 }
 
-async function refreshApplications() {
-  const button = $("#refresh-application-history");
+async function refreshApplications(more = false) {
+  const append = more === true;
+  if (append && !state.applicationCursor) return;
+  const owner = state.user?.uid, epoch = state.authEpoch;
+  const request = state.historyRequestEpoch = (state.historyRequestEpoch || 0) + 1;
+  const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch && request === state.historyRequestEpoch;
+  const button = $(append ? '#load-more-applications' : "#refresh-application-history");
   setBusy(button, true, "Cargando historial de envío");
   try {
     await window.cvDrive.connect();
-    const data = await applicationRequest();
-    state.applications = data.entries || [];
+    if (!isCurrent()) return;
+    const data = await applicationRequest(undefined, {cursor: append ? state.applicationCursor : undefined});
+    if (!isCurrent()) return;
+    const entries = append ? [...state.applications, ...(data.entries || [])] : data.entries || [];
+    const seen = new Set();
+    state.applications = entries.filter(entry => {
+      if (seen.has(entry.application_id)) return false;
+      seen.add(entry.application_id); return true;
+    });
+    state.applicationCursor = data.next_cursor || null;
+    $('#load-more-applications').hidden = !state.applicationCursor;
     renderApplications();
     $("#application-history-status").textContent = data.has_more
-      ? "Se muestran las postulaciones de los 100 registros más recientes. El historial completo permanece en Drive."
+      ? "Hay más postulaciones. Pulsa Cargar más para consultar los registros anteriores."
       : state.applications.length ? "Historial actualizado desde Drive." : "Todavía no has preparado postulaciones.";
-  } catch (error) { $("#application-history-status").textContent = error.message; }
-  finally { setBusy(button, false); }
+  } catch (error) { if (isCurrent()) $("#application-history-status").textContent = error.message; }
+  finally { if (isCurrent()) setBusy(button, false); }
 }
 
 async function prepareApplication(channel, button) {
   if (channel === "gmail") return sendApplicationGmail(button);
   if (state.whatsappPreparing) return;
+  const owner = state.user?.uid, epoch = state.authEpoch, draft = state.draft;
+  const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch && draft === state.draft;
   let recipient = $(channel === "gmail" ? "#application-email" : "#application-phone").value.trim();
   const status = $("#application-send-status");
   if (!state.draft) return;
@@ -1746,8 +1873,8 @@ async function prepareApplication(channel, button) {
     }
   }
   if (!window.cvDrive.isConnected()) {
-    try { await window.cvDrive.connect(); status.textContent = "Drive conectado. Pulsa de nuevo para preparar la postulación."; }
-    catch (error) { status.textContent = error.message; }
+    try { await window.cvDrive.connect(); if (isCurrent()) status.textContent = "Drive conectado. Pulsa de nuevo para preparar la postulación."; }
+    catch (error) { if (isCurrent()) status.textContent = error.message; }
     return;
   }
   const popup = window.open("about:blank", "_blank");
@@ -1757,6 +1884,7 @@ async function prepareApplication(channel, button) {
   setBusy(button, true, "Preparando postulación y PDF");
   try {
     const pdf = await download("pdf");
+    if (!isCurrent()) { popup.close(); return; }
     if (!pdf) throw new Error("No se pudo preparar el PDF. Revisa el aviso anterior.");
     const position = state.draft.position;
     const body = `Postulación: ${position}\n\nHola, me interesa aplicar a la vacante de ${position}. Adjunto mi hoja de vida para su consideración.\n\nSaludos,\n${state.draft.candidate.name}`;
@@ -1766,19 +1894,24 @@ async function prepareApplication(channel, button) {
     const record = { application_id: crypto.randomUUID(), position, recipient, channel, status: "whatsapp_opened", cv_url: pdf.driveUrl };
     try {
       const result = await applicationRequest(record);
+      if (!isCurrent()) { popup.close(); return; }
       state.applications.unshift(result.entry); renderApplications();
       status.textContent = "Postulación de WhatsApp guardada automáticamente en el historial con vacante, número, fecha y CV. Adjunta el PDF descargado y envíalo en WhatsApp. Puedes confirmar el envío en el historial.";
     } catch (error) {
+      if (!isCurrent()) { popup.close(); return; }
       status.textContent = `PDF descargado. ${error.message} El historial no quedó guardado. Adjunta el PDF y completa el envío en la aplicación.`;
     }
     // Persist before launching the native app: mobile browsers may suspend this page.
     popup.location.href = url;
-  } catch (error) { popup.close(); status.textContent = error.message; }
-  finally { state.whatsappPreparing = false; setBusy(button, false); }
+  } catch (error) { popup.close(); if (isCurrent()) status.textContent = error.message; }
+  finally { if (isCurrent()) { state.whatsappPreparing = false; setBusy(button, false); } }
 }
 
 async function sendApplicationGmail(button) {
   if (state.gmailSending || !state.draft) return;
+  const owner = state.user?.uid, epoch = state.authEpoch, draft = state.draft, analysis = state.analysis;
+  const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch;
+  const sameDraft = () => isCurrent() && draft === state.draft && analysis === state.analysis;
   const status = $("#application-send-status");
   const recipient = $("#application-email").value.trim();
   const message = $("#application-message").value.trim();
@@ -1788,15 +1921,19 @@ async function sendApplicationGmail(button) {
   if (!message || message.length > 5000) { status.textContent = "Revisa el mensaje antes de enviar."; return; }
   if (!window.cvDrive.isConnected()) {
     try { await window.cvDrive.connect({ requireGmail: true }); }
-    catch (error) { status.textContent = error.message; return; }
+    catch (error) { if (sameDraft()) status.textContent = error.message; return; }
   }
+  if (!sameDraft()) return;
   if (state.gmailSending) return;
-  if (state.gmailAttempt?.unknown) {
-    status.textContent = "No se confirmó la respuesta del envío anterior. Comprueba Enviados en Gmail antes de generar otra postulación."; return;
-  }
-  const signature = JSON.stringify([recipient, message, state.analysis]);
-  if (state.gmailAttempt?.signature !== signature) state.gmailAttempt = { id: crypto.randomUUID(), signature };
+  const signature = JSON.stringify([recipient.toLowerCase(), message, analysis || draft]);
+  state.gmailAttempts ||= new Map();
+  if (state.gmailAttempt?.signature) state.gmailAttempts.set(state.gmailAttempt.signature, state.gmailAttempt);
+  state.gmailAttempt = state.gmailAttempts.get(signature) || { id: crypto.randomUUID(), signature };
   const attempt = state.gmailAttempt;
+  state.gmailAttempts.set(signature, attempt);
+  if (attempt.unknown) {
+    status.textContent = 'No se confirmó la respuesta de esta postulación. Comprueba Enviados en Gmail antes de repetirla.'; return;
+  }
   if (attempt.sent) { status.textContent = `Gmail ya confirmó el envío a ${recipient}.`; return; }
   state.gmailSending = true;
   status.textContent = "Enviando automáticamente el mensaje y el CV por Gmail…";
@@ -1804,15 +1941,21 @@ async function sendApplicationGmail(button) {
   let submitted = false, responded = false, sent = false;
   try {
     await window.cvGmail.connect();
-    if (state.user) state.idToken = await state.user.getIdToken();
+    if (!sameDraft()) return;
+    if (state.user) {
+      const token = await state.user.getIdToken();
+      if (!sameDraft()) return;
+      state.idToken = token;
+    }
     const headers = authenticatedHeaders({"Content-Type": "application/json", ...window.cvDrive.headers(), ...window.cvGmail.headers()});
     submitted = true;
     const response = await processFetch("/api/gmail/send", {
       method: "POST", headers,
-      body: JSON.stringify({ application_id: attempt.id, recipient, message, analysis: state.analysis }),
+      body: JSON.stringify({ application_id: attempt.id, recipient, message, analysis }),
     });
     const result = await response.json().catch(() => ({}));
     responded = true;
+    if (!isCurrent()) return;
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) window.cvGmail.reset();
       attempt.unknown = response.status >= 500 || response.status === 409;
@@ -1823,18 +1966,20 @@ async function sendApplicationGmail(button) {
     attempt.sent = true;
     state.applications = [result.entry, ...state.applications.filter(entry => entry.application_id !== attempt.id)];
     renderApplications();
-    status.textContent = result.warning || `Gmail confirmó el envío a ${recipient}, con asunto «${state.draft.position}» y el PDF adjunto. El historial quedó guardado en Drive.`;
+    if (sameDraft()) status.textContent = result.warning || `Gmail confirmó el envío a ${recipient}, con asunto «${draft.position}» y el PDF adjunto. El historial quedó guardado en Drive.`;
   } catch (error) {
+    if (!isCurrent()) return;
     if (submitted && !responded) attempt.unknown = true;
-    status.textContent = error.message || "No se pudo confirmar el envío. Revisa Enviados en Gmail.";
+    if (sameDraft()) status.textContent = error.message || "No se pudo confirmar el envío. Revisa Enviados en Gmail.";
   } finally {
-    state.gmailSending = false;
-    if (button) { setBusy(button, false); if (sent) button.disabled = true; }
+    if (isCurrent()) state.gmailSending = false;
+    if (sameDraft() && button) { setBusy(button, false); if (sent) button.disabled = true; }
   }
 }
 
 $("#send-whatsapp").addEventListener("click", (event) => prepareApplication("whatsapp", event.currentTarget));
 $("#refresh-application-history").addEventListener("click", refreshApplications);
+$('#load-more-applications').addEventListener('click', () => refreshApplications(true));
 window.addEventListener('cv-account-ready', event => { state.accountReady = event.detail.ready; });
 window.addEventListener("cv-drive-connected", async () => {
   refreshApplications();

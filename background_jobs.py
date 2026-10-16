@@ -4,7 +4,7 @@ import time
 import uuid
 import hashlib
 import json
-from flask import jsonify, request, send_file
+from flask import jsonify, request, send_file, g
 import io
 import job_runtime as bot
 import web_notifications as notifications
@@ -14,6 +14,29 @@ PATHS = {'/api/draft': 'draft', '/api/profile/information': 'information',
          '/api/export/pdf': 'export', '/api/export/docx': 'export',
          '/api/gmail/send': 'gmail', '/api/applications': 'application',
          '/api/bank/sync': 'bank_sync', '/api/analyze': 'analysis'}
+
+
+def enforce_request_quota(core):
+    """Reserve one shared per-account slot for synchronous expensive requests."""
+    if request.method != 'POST' or request.path not in PATHS or not user_accounts.owner():
+        return
+    store = bot.JobStore()
+    identifier = 'direct-' + str(uuid.uuid4())
+    if not store.admit(identifier, user_accounts.owner()):
+        raise core.AppError('Tienes diez procesos pendientes. Espera a que termine uno para continuar.', 429)
+    store.write(identifier, {'state': 'processing', 'created_at': time.time(), 'lease_until': time.time() + 600}, 0)
+    g.cv_request_slot = (store, identifier)
+
+
+def release_request_quota():
+    slot = getattr(g, 'cv_request_slot', None)
+    if not slot:
+        return
+    g.cv_request_slot = None
+    store, identifier = slot
+    job, generation = store.read(identifier)
+    if job:
+        store.write(identifier, {'state': 'done', 'completed_at': time.time()}, generation)
 
 
 def valid_id(identifier):
@@ -170,6 +193,8 @@ def register_routes(app, core):
         if job and job.get('request_digest') != digest:
             raise core.AppError('Este identificador ya corresponde a otra solicitud.', 409)
         if not job:
+            if not store.admit(identifier, user_accounts.owner()):
+                raise core.AppError('Tienes diez procesos pendientes. Espera a que termine uno para continuar.', 429)
             headers = {key: request.headers[key] for key in ('X-Drive-Access-Token', 'X-Gmail-Access-Token') if request.headers.get(key)}
             job = {'operation': PATHS[data['path']], 'path': data['path'], 'payload': data['payload'],
                    'state': 'queued', 'created_at': time.time(), 'progress': 1, 'stage': 'Solicitud guardada en la cola',
@@ -178,7 +203,16 @@ def register_routes(app, core):
             if user_accounts.owner():
                 identity = user_accounts.CURRENT.get()
                 job.update(owner_uid=identity['uid'], owner_email=identity['email'], owner_name=identity.get('name',''))
-            store.write(identifier, job, generation)
+            try:
+                store.write(identifier, job, generation)
+            except bot.PreconditionFailed:
+                # Concurrent retries may share an ID; only the first payload wins.
+                job, _ = store.read(identifier)
+                if not job:
+                    raise core.AppError('No se pudo recuperar la solicitud. Vuelve a intentarlo.', 503) from None
+                user_accounts.require_owner(core, job)
+                if job.get('request_digest') != digest:
+                    raise core.AppError('Este identificador ya corresponde a otra solicitud.', 409) from None
         if job['state'] == 'queued':
             bot.enqueue(identifier, bot.configuration(), task_identifier=f"{identifier}-{job.get('step', 0)}", kind='web_analysis')
         return jsonify(job_id=identifier), 202

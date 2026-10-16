@@ -85,6 +85,8 @@ class JobStore:
                 job, _ = self.read(item["id"])
                 if job and job.get("state") in {"done", "failed", "delivery_started", "rejected"}:
                     continue
+                if job and item['id'].startswith('direct-') and job.get('lease_until', 0) < time.time():
+                    continue
                 if not job and time.time() - item["created_at"] > 1800:
                     continue
                 pending.append(item)

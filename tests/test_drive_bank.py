@@ -4,7 +4,8 @@ import json
 from pathlib import Path
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+from urllib.parse import urlsplit
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -28,8 +29,14 @@ class MemoryBank(DriveBank):
     def download(self, file):
         return self.contents[file['id']], file['name'], file['mimeType']
     def request(self, method, url, **kwargs):
+        file_id = urlsplit(url).path.rsplit('/', 1)[-1]
+        if method == 'GET' and 'fields=etag' in url:
+            return MagicMock(json=lambda: {'etag': 'fixture-version'})
+        if method == 'GET':
+            return MagicMock(content=self.contents[file_id])
         self.writes.append((method, url))
-        self.contents['index'] = kwargs['data']
+        self.contents[file_id] = kwargs['data']
+        return MagicMock()
 
 def memory():
     files = {i: {'id': i, 'name': i, 'mimeType': 'text/plain', 'md5Checksum': 'v1'} for i in ('base', 'index', 'photo', 'readme', 'certificate')}
@@ -98,7 +105,7 @@ class DriveBankTests(unittest.TestCase):
         self.assertEqual(photo, contents['photo'])
 
     def test_personal_data_and_references_are_merged_without_erasing_missing_fields(self):
-        facts = clean_facts({'candidate': {'residence': 'Nueva residencia'}, 'references': [
+        facts = clean_facts({'recipient': BASE['candidate']['name'], 'candidate': {'residence': 'Nueva residencia'}, 'references': [
             {'name': 'Referencia de prueba', 'role': 'Supervisor', 'phone': '555-0100'}]})
         profile, _ = merge_profile(BASE, {'doc': {'active': True, 'status': 'incorporado',
             'name': 'nota.txt', 'fingerprint': 'v1', 'facts': facts}})

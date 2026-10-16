@@ -59,7 +59,7 @@ async function main() {
   let authorizationCalls = 0;
   drive.setAuthorizationHandler(async () => {
     authorizationCalls++;
-    return {access_token: 'combined-token', expires_in: 3600, gmailRequested: true};
+    return {access_token: 'combined-token', expires_in: 3600, scope: 'openid email https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.send'};
   });
   await drive.connect({requireGmail: true});
   assert.equal(window.cvGmail.headers()['X-Gmail-Access-Token'], drive.headers()['X-Drive-Access-Token']);

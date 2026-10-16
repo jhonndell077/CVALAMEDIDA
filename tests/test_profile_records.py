@@ -98,7 +98,9 @@ class ProfileRecordsTests(unittest.TestCase):
         bank.inventory=lambda:{'fixture':{'id':'fixture'}}
         writes=[]
         def request(method,url,**kwargs):
-            if method=='PATCH':writes.append(kwargs);base.update(json.loads(kwargs['data']))
+            if method=='GET' and 'fields=etag' in url:
+                return MagicMock(json=lambda:{'etag':'fixture-version'})
+            if method=='PUT':writes.append(kwargs);base.update(json.loads(kwargs['data']))
             return MagicMock(content=json.dumps(base).encode(),headers={'ETag':'fixture-version'})
         bank.request=request;bank.download=lambda _:(json.dumps(base).encode(),'','')
         incoming={'id':'manual-'+'a'*32,'title':'PROYECTO','description':'Segundo detalle','technologies':['Python'],'url':''}

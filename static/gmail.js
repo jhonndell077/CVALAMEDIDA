@@ -4,7 +4,7 @@ window.cvGmail = (() => {
   function reset() { token = ""; expires = 0; }
   function isConnected() { return Boolean(token && Date.now() < expires); }
   function acceptCredential(accessToken, expiresIn = 3600, scope) {
-    if (!accessToken || (scope && !String(scope).split(" ").includes("https://www.googleapis.com/auth/gmail.send"))) {
+    if (!accessToken || !String(scope || '').split(/\s+/).includes("https://www.googleapis.com/auth/gmail.send")) {
       reset(); return false;
     }
     token = accessToken;

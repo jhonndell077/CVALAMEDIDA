@@ -223,6 +223,7 @@
         <div class="eyebrow">DESTINO DE TUS CV</div>
         <h2>Guardar en Google Drive</h2>
         <p>Los PDF y Word se guardan en <a id="drive-folder" target="_blank" rel="noopener">tu carpeta CV GENERADOS</a>. Al iniciar sesión o sincronizar se conectan Gmail y Drive en una autorización compartida. Los permisos concedidos se reutilizan al enviar y descargar. Selecciona CV GENERADOS si Google solicita elegir la carpeta.</p>
+        <p class="microcopy">Google solicita lectura de todos los archivos de tu Drive (drive.readonly) para localizar y leer tu Banco de Datos; también permite gestionar los archivos creados o abiertos con esta aplicación (drive.file). El permiso gmail.send permite enviar correos y se comprueba por separado. <a href="/privacy.html" target="_blank" rel="noopener">Privacidad y conservación de datos</a>.</p>
         <button id="connect-drive" hidden class="button button-secondary" type="button" disabled>Conectar Google Drive</button>
         <p id="drive-status" role="status">Conecta Drive para guardar los CV en CV GENERADOS.</p>
       </section>
@@ -361,7 +362,7 @@
           <div><div class="eyebrow">PASO 3</div><h2 id="draft-title">Tu CV personalizado</h2></div>
           <button class="text-button" id="back-to-analysis" type="button">← Volver al análisis</button>
         </div>
-        <div class="success-banner"><span>✓</span><span id="template-confirmation">El CV se adapta a la vacante y se archiva en la carpeta «CV generados». Revisa las fechas laborales antes de postular: no constan en las fuentes.</span></div>
+        <div class="success-banner"><span>✓</span><span id="template-confirmation">Borrador del CV adaptado a la vacante. El archivo se guarda en Drive al descargarlo o generarlo para enviar por Gmail. Revisa las fechas laborales antes de postular: no constan en las fuentes.</span></div>
         <div id="draft-preview" class="draft-preview"></div>
         <div class="download-row">
           <button id="download-pdf" class="button button-primary" type="button">Descargar PDF</button>
@@ -391,6 +392,7 @@
         <details id="application-history-details"><summary><span class="eyebrow">MIS POSTULACIONES</span><h2 id="application-history-title">Historial de env&#237;o</h2><span class="history-expand">Desplegar historial</span><span class="history-collapse">Minimizar historial</span></summary>
         <p class="panel-lead">Guardado en CV GENERADOS de Drive. Gmail registra el envío confirmado por Google. En WhatsApp, confirma aquí cuando hayas enviado el CV.</p>
         <button id="refresh-application-history" class="button button-secondary" type="button">Consultar historial en Drive</button>
+        <button id="load-more-applications" class="button button-secondary" type="button" hidden>Cargar más postulaciones</button>
         <p id="application-history-status" role="status">Conecta Drive para consultar tus postulaciones.</p>
         <div id="application-history" class="application-history"></div>
         </details>

@@ -60,6 +60,13 @@
     (opener?.isConnected ? opener : next)?.focus(); card = null;
   });
   window.cvProfileDialog = {
+    reset() {
+      restoreContent();
+      controls.forEach(({node,marker}) => { marker.replaceWith(node); }); controls = [];
+      activeKey = null; card = null; opener = null;
+      content.replaceChildren(); search.value = ''; title.textContent = ''; results.textContent = '';
+      if (dialog.open) dialog.close();
+    },
     beforeRender() { if (activeKey) restoreContent(); },
     afterRender(revealPath) {
       if (!activeKey) return;

@@ -7,6 +7,8 @@ from email.parser import BytesParser
 from unittest.mock import patch
 
 import app as cv_app
+import job_runtime
+from test_telegram import MemoryStore
 
 
 class GmailSendingTests(unittest.TestCase):
@@ -14,6 +16,9 @@ class GmailSendingTests(unittest.TestCase):
         env = patch.dict(os.environ, {"CV_AUTH_REQUIRED": "0", "CV_ALLOW_REMOTE": "1"})
         env.start()
         self.addCleanup(env.stop)
+        durable_store = patch.object(job_runtime, 'JobStore', return_value=MemoryStore())
+        durable_store.start()
+        self.addCleanup(durable_store.stop)
         self.client = cv_app.app.test_client()
         self.payload = {"application_id": "12345678-1234-1234-1234-123456789012",
                         "recipient": "empleos@example.com", "message": "Hola, adjunto mi CV.", "analysis": {}}

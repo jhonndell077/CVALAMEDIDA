@@ -1,5 +1,16 @@
 # CV a la medida
 
+## Verificación y operación desde la auditoría de octubre de 2026
+
+Antes de publicar, ejecuta `venv/Scripts/python.exe scripts/verify_release.py` (o el Python preparado con `requirements.txt` y `requirements-dev.txt`). El gate ejecuta todas las pruebas Python y JavaScript con datos de arranque copiados a un directorio descartable y red bloqueada; exige cobertura Python de al menos 80 %. `Deploy.ps1` y GitHub Actions usan este mismo gate. Las dependencias directas verificadas están fijadas en `requirements.txt`; los rangos anteriores se conservan en `requirements.in`.
+
+Las postulaciones Gmail reservan un intento por UID e identificador mediante una escritura atómica de GCS. Un resultado incierto requiere conciliación y no se reenvía automáticamente. Los trabajos web y las operaciones directas comparten diez cupos pendientes por cuenta; esto no representa una cuota mensual ni un límite financiero. El historial permite continuar con `cursor`/`next_cursor`.
+
+`/api/health` distingue modelo configurado de disponibilidad verificada. Los permisos Google se comprueban mediante `/api/google/grant`; sin `gmail.send` no se habilita envío. Un borrador no acredita un archivo archivado. Consulta [privacidad y permisos](static/privacy.html).
+
+La política de GCS conserva trabajos temporales web/Telegram 30 días y artefactos temporales dos días, con soft delete de siete días. Los registros de cuenta, vinculación, claves y reservas Gmail deben quedar fuera del borrado general de `jobs/`. No reviertas a lectores anteriores de metadatos sin preservar soporte de identidades `v2:` y las reservas de envío.
+
+
 Aplicación web para analizar una vacante contra el banco profesional de cada
 cuenta y generar un CV en PDF o Word. Conserva el banco original del propietario
 como cuenta heredada y permite configurar bancos independientes. Mantiene Ollama como
@@ -34,7 +45,7 @@ El proyecto Firebase dedicado es `cv-a-la-medida-jhonn`. La app usa:
 - Gemini 3.8 Flash mediante Vertex AI. La cuenta de servicio de la función
   necesita el rol `Vertex AI User` (`roles/aiplatform.user`).
 
-La función no guarda el anuncio completo. Las postulaciones se registran en CV GENERADOS de Drive con puesto, destinatario, canal, fecha y enlace privado del CV. El listado muestra los 100 eventos más recientes. Google solicita los permisos drive.file y gmail.send juntos al iniciar sesión o sincronizar. Se reutiliza la misma autorización para ambos servicios, sin forzar prompt=consent. Si los tokens caducan o se recarga la página, la sincronización obtiene una autorización nueva con la cuenta iniciada y reutiliza los permisos ya concedidos; el backend verifica la cuenta, genera y archiva el PDF, y envía un mensaje MIME con el destinatario revisado, el puesto como asunto, el mensaje y el PDF adjunto. Solo registra `gmail_accepted` cuando Google devuelve un identificador de mensaje (aceptación por Gmail, no garantía de entrega al destinatario). Usa un identificador por intento y un registro previo en Drive para evitar repetir envíos confirmados o inciertos; la función mantiene `max_instances=1` y `concurrency=1`. Un fallo de actualización del historial después del envío se muestra como advertencia sin reenviar el correo. WhatsApp abre el chat con texto preparado y requiere adjuntar el PDF y completar el envío; su estado enviado es una confirmación del usuario. Los tokens de Gmail y Drive se guardan solo en memoria, nunca en almacenamiento del navegador. El análisis envía a Vertex AI el
+La función no guarda el anuncio completo. Las postulaciones se registran en CV GENERADOS de Drive con puesto, destinatario, canal, fecha y enlace privado del CV. El listado muestra los 100 eventos más recientes. Google solicita los permisos drive.readonly, drive.file y gmail.send juntos al iniciar sesión o sincronizar. Se reutiliza la misma autorización para ambos servicios, sin forzar prompt=consent. Si los tokens caducan o se recarga la página, la sincronización obtiene una autorización nueva con la cuenta iniciada y reutiliza los permisos ya concedidos; el backend verifica la cuenta, genera y archiva el PDF, y envía un mensaje MIME con el destinatario revisado, el puesto como asunto, el mensaje y el PDF adjunto. Solo registra `gmail_accepted` cuando Google devuelve un identificador de mensaje (aceptación por Gmail, no garantía de entrega al destinatario). Usa un identificador por intento y un registro previo en Drive para evitar repetir envíos confirmados o inciertos; la función mantiene `max_instances=1` y `concurrency=1`. Un fallo de actualización del historial después del envío se muestra como advertencia sin reenviar el correo. WhatsApp abre el chat con texto preparado y requiere adjuntar el PDF y completar el envío; su estado enviado es una confirmación del usuario. Los tokens de Gmail y Drive se guardan solo en memoria, nunca en almacenamiento del navegador. El análisis envía a Vertex AI el
 texto de la vacante y evidencias laborales relevantes; los datos de contacto no
 se incluyen en ese prompt. El paquete conserva el banco original del propietario para compatibilidad.
 En modo multicuenta cada solicitud o tarea usa un perfil aislado, construido
@@ -45,8 +56,7 @@ Los PDF y DOCX se guardan en Google Drive, en la carpeta **CV GENERADOS**
 La configuración heredada está en `data/archive_config.json`. En modo
 multicuenta, **Conectar Google Drive** prepara Banco de Datos y CV Generados
 en el Drive de la sesión autenticada; permite elegir carpetas existentes.
-La carpeta indicada arriba corresponde únicamente a la cuenta heredada. Se solicita `drive.file`, no acceso a todo
-Drive. El token dura aproximadamente una hora, permanece en memoria y debe
+La carpeta indicada arriba corresponde únicamente a la cuenta heredada. Se solicita `drive.readonly` para leer documentos existentes y `drive.file` para los archivos creados o compartidos con la aplicación. El primer permiso permite leer todo Drive; el recorrido habitual usa la carpeta de banco configurada. El token dura aproximadamente una hora, permanece en memoria y debe
 reconectarse al recargar o vencer. No se guardan credenciales permanentes.
 
 Al exportar, el backend valida la cuenta y la capacidad de añadir archivos, sube
@@ -85,7 +95,7 @@ una función distinta que omita `verify_google_identity`.
 
 ## Flujo de uso
 
-**Empleo inteligente (RD):** escribe un cargo y pulsa **Buscar vacantes**, o usa **Ver últimas publicadas** para ver las publicaciones del RSS autorizado de Chiripas, ordenadas por fecha. La consulta general no necesita GPS ni sincronizar el banco de CV. Puedes abrir la oferta original y pulsar **Adaptar mi CV**; la ciudad y disponibilidad se revisan en la fuente. Los otros portales vinculados con RD y la ubicación son opciones plegables. Las fuentes globales dejaron de estar disponibles en la búsqueda activa. El feed puede contener hasta 200 resultados y se actualiza con una caché de cinco minutos; no abarca todos los portales de RD.
+**Empleo inteligente (RD):** escribe un cargo y pulsa **Buscar vacantes**, o usa **Ver últimas publicadas** para ver las publicaciones de las cuatro fuentes de RD configuradas, ordenadas por fecha. La consulta general no necesita GPS ni sincronizar el banco de CV. Puedes abrir la oferta original y pulsar **Adaptar mi CV**; la ciudad y disponibilidad se revisan en la fuente. Las fuentes muestran su procedencia y sus fallos parciales; la ubicación sigue siendo opcional. Las fuentes globales dejaron de estar disponibles en la búsqueda activa. El agregador consulta Chiripas, TuEmpleoRD, RD Trabaja y TuVacanteRD, con caché de quince minutos por consulta, hasta 50 resultados por fuente y 200 en total. Aldaba y Computrabajo son enlaces externos; no abarca todos los portales de RD.
 
 1. Inicia sesión con la cuenta de Google autorizada.
 2. Pega una vacante o adjunta PDF, DOCX, TXT, PNG o JPG.
@@ -117,7 +127,7 @@ en la etapa correspondiente hasta recibir su respuesta. «Continuar en
 segundo plano» cierra el modal y mantiene el trabajo en el servidor.
 
 «Activar notificaciones» solicita permiso y registra Web Push mediante un
-service worker. El servidor avisa al completar o fallar un proceso, incluso
+service worker. El servidor avisa al completar un proceso al 100%; los fallos permanecen en el panel, incluso
 sin una pestaña abierta, cuando el navegador y el dispositivo permiten push.
 No se incluye contenido privado del banco en las notificaciones. La entrega
 no condiciona la conservación del resultado. El navegador guarda únicamente

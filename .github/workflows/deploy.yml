@@ -31,18 +31,12 @@ jobs:
         env:
           CV_BOOTSTRAP_DATA: ${{ secrets.CV_BOOTSTRAP_DATA }}
         run: python scripts/restore_ci_data.py
-      - name: Verify frontend with local fixtures
-        run: npm test --prefix tests
-      - name: Verify backend with local fixtures
+      - name: Verify the complete release with isolated runtime data
         run: |
-          python -m unittest discover -s tests -p 'test_employment*.py'
-          if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas de Empleo inteligente.' }
-          python -m unittest discover -s tests -p test_new_information.py
-          if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas de guardado.' }
-          python -m unittest discover -s tests -p test_profile_deletions.py
-          if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas de eliminación.' }
-          python -m unittest discover -s tests -p test_separate_experiences.py
-          if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas de experiencias.' }
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudo preparar la herramienta de cobertura.' }
+          python scripts/verify_release.py
+          if ($LASTEXITCODE -ne 0) { throw 'Falló la verificación integral; no se publicará.' }
       - name: Remove synthetic test photo
         run: Remove-Item -LiteralPath 'data/hoja_de_vida.jpeg'
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
