@@ -6,7 +6,8 @@
 <div class="eyebrow">ADMINISTRACIÓN · AUDITORÍA OPERATIVA</div>
 <h1>¿Dónde se interrumpe la conexión?</h1>
 <p>Mapa de CV A LA MEDIDA. La web, la API y la sesión de administrador se comprueban cada 60 segundos mientras esta página está visible. Las tarjetas indican la prueba exacta realizada y su fecha. Los servicios se consultan con caché de hasta 5 minutos; Vertex hace una prueba sintética facturable breve cada 15 minutos mientras la vista esté en uso. Las flechas muestran dependencias, no tráfico observado.</p>
-<button id="refresh" type="button">Actualizar estado</button> <button id="gmail-check" type="button">Verificar permiso Gmail</button> <button id="push-check" type="button">Probar Push en este dispositivo</button> <span id="freshness" role="status" aria-live="polite">Sin comprobación actual</span>
+<button id="refresh" type="button">Actualizar estado</button> <button id="gmail-check" type="button">Verificar Drive y Gmail</button> <button id="push-check" type="button">Probar Push en este dispositivo</button> <span id="freshness" role="status" aria-live="polite">Sin comprobación actual</span>
+<p id="action-message" role="status" aria-live="polite"></p>
 <div class="scroll"><svg viewBox="0 0 1120 660" role="img" aria-labelledby="connections-title connections-desc">
 <title id="connections-title">Conexiones de CV A LA MEDIDA</title><desc id="connections-desc">La web, identidad Google y API se conectan con Drive, Vertex AI y el procesamiento de trabajos hacia Telegram, Gmail y Push; cada tarjeta explica el alcance de su comprobación.</desc>
 <defs><marker id="connections-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#67736d"/></marker></defs>

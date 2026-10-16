@@ -62,7 +62,7 @@ class ProbeTests(unittest.TestCase):
         with patch('drive_bank.DriveBank') as bank:
             bank.return_value.session.get.return_value=response({'mimeType':'application/vnd.google-apps.folder'})
             self.assertIn('Drive respondió',p.drive({'folder_id':'bank','service_account':'bank@example.test'},{'folder_id':'archive'}))
-            self.assertEqual(bank.return_value.session.get.call_count,2)
+            self.assertEqual(bank.return_value.session.get.call_count,1)
             self.assertEqual(bank.return_value.session.get.call_args.kwargs['params']['fields'],'id,mimeType,trashed')
             bank.return_value._session.close.assert_called_once()
             bank.return_value.session.get.return_value=response({'trashed':True})

@@ -43,7 +43,16 @@ def register_routes(core):
         token = core.request.headers.get('X-Drive-Access-Token','')
         result = connection_probes.checked('gmail',lambda:connection_probes.gmail(identity,token))
         result = connection_probes.remember(identity['uid'],result,300 if result['state']=='ok' else 60)
-        response = core.jsonify(check=result)
+        drive_check=None
+        if result['state']=='ok':
+            import requests
+            session=requests.Session()
+            session.headers['Authorization']='Bearer '+token
+            drive_check=connection_probes.checked('drive',lambda:connection_probes.drive(
+                dict(core.account_state.BANK_CONFIG),dict(core.account_state.ARCHIVE_CONFIG),identity['uid'],session))
+            session.close()
+            connection_probes.remember(identity['uid'],drive_check,300 if drive_check['state']=='ok' else 60)
+        response = core.jsonify(check=result,drive=drive_check)
         response.headers['Cache-Control']='no-store, private'
         return response
 

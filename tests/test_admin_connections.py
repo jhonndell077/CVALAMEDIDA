@@ -45,7 +45,7 @@ class AdminConnectionsTests(unittest.TestCase):
     def test_gmail_check_returns_no_oauth_token(self):
         def identity():core.g.google_identity={'uid':'owner','email':'owner@example.test'}
         headers={'Origin':'https://cvalamedida.web.app','X-Requested-With':'XmlHttpRequest','X-Drive-Access-Token':'private-fixture'}
-        with patch.object(core,'ORIGINAL_OWNER_EMAIL','owner@example.test'),patch.object(core,'verify_google_identity',side_effect=identity),patch('connection_probes.gmail',return_value='scope verified'):
+        with patch.object(core,'ORIGINAL_OWNER_EMAIL','owner@example.test'),patch.object(core,'verify_google_identity',side_effect=identity),patch('connection_probes.gmail',return_value='scope verified'),patch('connection_probes.drive',return_value='metadata verified'):
             result=core.app.test_client().post('/api/admin/connections/google',headers=headers)
             self.assertEqual(result.json['check']['state'],'ok')
             self.assertNotIn('private-fixture',result.get_data(as_text=True))

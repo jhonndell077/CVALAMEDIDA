@@ -87,7 +87,13 @@ def checked(identifier, operation, now=time.monotonic):
     except ProbeFailure as error:
         detail, state = error.detail, error.state
     except Exception:
-        detail, state = 'No se pudo completar la comprobación. Revisa disponibilidad y permisos del servicio.', 'unknown'
+        import sys
+        error = sys.exception()
+        code = getattr(error,'code',None) or getattr(error,'status_code',None)
+        code = code if isinstance(code,int) else None
+        kind = type(error).__name__
+        detail = f'Comprobación no completada ({kind}' + (f', HTTP {code}' if code else '') + '). Revisa permisos, capacidad y configuración.'
+        state = 'error' if code in {400,404,429,500,503,504} else 'unknown'
     return dict(id=identifier, state=state, detail=detail,
                 checkedAt=datetime.now(timezone.utc).isoformat(), ms=round((now()-started)*1000))
 
@@ -108,7 +114,7 @@ def cloud_get(url):
         return response_json(session.get(url, timeout=12))
 
 
-def drive(config, archive, uid=None):
+def drive(config, archive, uid=None, session=None):
     from drive_bank import DriveBank
     if uid:
         import user_accounts
@@ -116,12 +122,12 @@ def drive(config, archive, uid=None):
         if record:
             config=dict(record.get('bank') or {})
             archive={**archive,'folder_id':record.get('archive_id')}
-    if not config.get('service_account'):
+    if not config.get('service_account') and session is None:
         raise ProbeFailure('El banco requiere una autorización OAuth de Drive para comprobar sus carpetas.', 'unknown')
-    folders = [config.get('folder_id'), archive.get('folder_id')]
+    folders = [config.get('folder_id')] if session is None else [config.get('folder_id'), archive.get('folder_id')]
     if not all(folders):
         raise ProbeFailure('Falta una carpeta del banco o archivo.', 'unknown')
-    client = DriveBank(config)
+    client = DriveBank(config,session=session)
     try:
         for folder in set(folders):
             data = response_json(client.session.get('https://www.googleapis.com/drive/v3/files/' + quote(folder, safe=''),
@@ -131,7 +137,8 @@ def drive(config, archive, uid=None):
     finally:
         if client._session:
             client._session.close()
-    return 'Drive respondió y permitió leer los metadatos de ambas carpetas del administrador. No se modificaron documentos.'
+    return ('Drive respondió y permitió leer los metadatos del banco y archivo mediante OAuth del administrador.' if session is not None
+            else 'Drive respondió y permitió leer los metadatos del banco con su cuenta de servicio. El archivo utiliza OAuth del usuario y requiere su comprobación separada.') + ' No se modificaron documentos.'
 
 
 def storage():
@@ -186,7 +193,7 @@ def vertex(model):
     try:
         result = client.models.generate_content(model=model, contents='Responde únicamente con el objeto JSON {"ok":true}.',
             config=types.GenerateContentConfig(response_mime_type='application/json', temperature=0,
-                max_output_tokens=512, thinking_config=types.ThinkingConfig(thinking_level='MINIMAL') if model.startswith('gemini-3') else None))
+                max_output_tokens=1024, thinking_config=types.ThinkingConfig(thinking_level='LOW') if model.startswith('gemini-3') else None))
         import json
         if json.loads(result.text or '{}').get('ok') is not True:
             raise ProbeFailure('Vertex respondió, pero no completó correctamente el JSON de prueba.')

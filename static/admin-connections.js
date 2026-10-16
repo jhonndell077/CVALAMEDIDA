@@ -61,10 +61,11 @@ async function update(){
 document.getElementById('refresh').addEventListener('click',update);setInterval(update,60000);setInterval(()=>{if(lastSuccess&&Date.now()-lastSuccess>90000){stale();document.getElementById('freshness').textContent='Estado vencido: esperando una nueva lectura.';}},5000);
 
 const message=document.getElementById('access-message');
+const actionMessage=document.getElementById('action-message');
 try {
  auth=window.firebase.auth();
  auth.onAuthStateChanged(user=>{
-  authEpoch++;pushNonce='';busy=false;lastSuccess=0;stale();document.querySelector('main').hidden=true;document.getElementById('checks').replaceChildren();
+  authEpoch++;pushNonce='';actionMessage.textContent='';busy=false;lastSuccess=0;stale();document.querySelector('main').hidden=true;document.getElementById('checks').replaceChildren();
   document.getElementById('signin').disabled=false;document.getElementById('signout').hidden=!user;
   message.textContent=user?'Verificando acceso de administrador…':'Inicia sesión con tu cuenta de administrador.';
   if(user)update();
@@ -75,19 +76,20 @@ try {
  });
  document.getElementById('signout').addEventListener('click',()=>auth.signOut().catch(()=>{message.textContent='No se pudo cerrar sesión. Inténtalo de nuevo.';}));
  document.getElementById('gmail-check').addEventListener('click',()=>{
-  if(!auth.currentUser)return;const epoch=authEpoch;
-  const provider=new firebase.auth.GoogleAuthProvider();provider.addScope('https://www.googleapis.com/auth/gmail.send');provider.setCustomParameters({login_hint:auth.currentUser.email,include_granted_scopes:'true'});
+  if(!auth.currentUser)return;const epoch=authEpoch;actionMessage.textContent='Comprobando autorización de Drive y Gmail…';
+  const provider=new firebase.auth.GoogleAuthProvider();provider.addScope('https://www.googleapis.com/auth/gmail.send');provider.addScope('https://www.googleapis.com/auth/drive.readonly');provider.setCustomParameters({login_hint:auth.currentUser.email,include_granted_scopes:'true'});
   auth.currentUser.reauthenticateWithPopup(provider).then(async result=>{
    if(epoch!==authEpoch)return;const access=result.credential?.accessToken;if(!access)throw new Error('grant');
    const token=await auth.currentUser.getIdToken();if(epoch!==authEpoch)return;
    const response=await fetch('/api/admin/connections/google',{method:'POST',headers:{Authorization:'Bearer '+token,'X-Drive-Access-Token':access,'X-Requested-With':'XmlHttpRequest'},signal:AbortSignal.timeout(30000)});
-   if(!response.ok)throw new Error('grant');if(epoch===authEpoch)update();
-  }).catch(()=>{message.textContent='No se pudo comprobar Gmail. Autoriza la cuenta administradora y vuelve a intentarlo.';});
+   if(!response.ok)throw new Error('grant');const grantResult=await response.json();if(epoch===authEpoch){actionMessage.textContent=grantResult.check.detail+' '+(grantResult.drive?.detail||'');update();}
+  }).catch(()=>{actionMessage.textContent='No se pudo comprobar Gmail. Autoriza la cuenta administradora y vuelve a intentarlo.';});
  });
  document.getElementById('push-check').addEventListener('click',async()=>{
   if(!auth.currentUser)return;const epoch=authEpoch;
   try{
    if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))throw new Error('unsupported');
+   actionMessage.textContent='Solicitando permiso de notificaciones. Si aparece un aviso del navegador, permite las notificaciones para completar la prueba.';
    if(await Notification.requestPermission()!=='granted')throw new Error('permission');
    if(epoch!==authEpoch)return;
    const registration=await navigator.serviceWorker.register('/sw.js');await registration.update();
@@ -103,13 +105,13 @@ try {
    await adminPost('/api/notifications/subscribe',subscription.toJSON());
    if(epoch!==authEpoch)return;pushNonce=crypto.randomUUID();
    const result=await adminPost('/api/admin/connections/push/test',{endpoint:subscription.endpoint,nonce:pushNonce});
-   if(epoch!==authEpoch)return;message.textContent=result.check.detail;
-  }catch(_){if(epoch===authEpoch)message.textContent='No se pudo probar Push. Permite notificaciones en este navegador compatible y vuelve a intentarlo.';}
+   if(epoch!==authEpoch)return;actionMessage.textContent=result.check.detail;
+  }catch(_){if(epoch===authEpoch)actionMessage.textContent='No se pudo probar Push. Permite notificaciones en este navegador compatible y vuelve a intentarlo.';}
  });
  if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',async event=>{
   if(event.data?.type!=='cv-admin-probe-received'||!pushNonce||event.data.nonce!==pushNonce||!auth.currentUser)return;
   const epoch=authEpoch,nonce=pushNonce;pushNonce='';
-  try{await adminPost('/api/admin/connections/push/confirm',{nonce});if(epoch===authEpoch){message.textContent='✅ Push recibido en este dispositivo.';update();}}catch(_){if(epoch===authEpoch)message.textContent='El navegador recibió Push, pero no se pudo registrar su confirmación.';}
+  try{await adminPost('/api/admin/connections/push/confirm',{nonce});if(epoch===authEpoch){actionMessage.textContent='✅ Push recibido en este dispositivo.';update();}}catch(_){if(epoch===authEpoch)actionMessage.textContent='El navegador recibió Push, pero no se pudo registrar su confirmación.';}
  });
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)update();});
 } catch (_) {message.textContent='Google no pudo cargarse. Revisa la conexión y recarga la página.';}
