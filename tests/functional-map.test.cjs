@@ -10,6 +10,10 @@ test('inventory resolves root, initial guards, handlers and conservative API rel
  assert.equal(sync.initialDisabled,true);assert.ok(sync.handlers.some(h=>h.endpoints.includes('/api/bank/sync')));
  assert.ok(sync.guards.length);assert.equal(new Set(map.controls.map(c=>c.key)).size,map.controls.length);
  assert.equal(map.controls.some(c=>c.page.startsWith('//')),false);
+ const history=map.controls.find(c=>c.id==='refresh-application-history');
+ assert.ok(history.handlers[0].endpoints.includes('/api/applications'));
+ assert.ok(history.handlers[0].loading.includes('window.cvLoading.start'));
+ assert.deepEqual(history.handlers[0].loadingLabels,['Cargando historial de envío']);
 });
 test('version diff distinguishes additions removals and changed semantics',()=>{
  const before={controls:[{key:'a',fingerprint:'1'},{key:'b',fingerprint:'1'}]};

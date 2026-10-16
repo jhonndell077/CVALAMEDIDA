@@ -72,30 +72,46 @@ function discover(){
   const modules=used.map(script),elements=[...document.querySelectorAll('button,a,input,select,textarea,summary')];
   const ids=new Set();
   function action(binding){
-   const endpoints=new Set(),destinations=new Set(),loading=new Set(),visited=new Set(),dependencies=new Set();let unresolved=0;
-   function scan(node,depth=0){
+   const endpoints=new Set(),destinations=new Set(),loading=new Set(),loadingLabels=new Set(),visited=new Set(),dependencies=new Set();let unresolved=0;
+   const initial=modules.find(m=>m.bindings.includes(binding));
+   function resolve(callee,owner){
+    if(callee?.type==='Identifier'){
+     const own=owner.functions.get(callee.name)||[];
+     if(own.length)return own.length===1?[{node:own[0],owner}]:[];
+     return modules.flatMap(m=>(m.functions.get(callee.name)||[]).map(node=>({node,owner:m})));
+    }
+    const method=name(callee),match=/^window\.cv([A-Z][A-Za-z]*)\.(\w+)$/.exec(method);
+    if(!match)return [];
+    return modules.filter(m=>m.bindings.some(b=>b.source===`static/${match[1].toLowerCase()}.js`)||used.some(f=>scripts.get(f)===m&&path.basename(f)===match[1].toLowerCase()+'.js'))
+     .flatMap(m=>(m.functions.get(match[2])||[]).map(node=>({node,owner:m})));
+   }
+   function prefix(node){if(node?.type==='BinaryExpression'&&node.operator==='+')return prefix(node.left);return text(node);}
+   function scan(node,depth=0,owner=initial){
     if(!node||depth>6||visited.has(node))return;visited.add(node);dependencies.add(semantic(node));
     if(node.type==='Identifier'){
-     const candidates=modules.flatMap(m=>m.functions.get(node.name)||[]);
-     if(candidates.length===1)scan(candidates[0],depth+1);else unresolved++;return;
+     const candidates=resolve(node,owner);
+     if(candidates.length===1)scan(candidates[0].node,depth+1,candidates[0].owner);else unresolved++;return;
     }
     walk(node,child=>{
+     if(child.type==='VariableDeclarator'){
+      const target=prefix(child.init);if(target?.startsWith('/api/'))endpoints.add(safeTarget(target));
+     }
      if(child.type==='CallExpression'){
       const method=name(child.callee),arg=text(child.arguments[0]);
       if(arg?.startsWith('/api/'))endpoints.add(safeTarget(arg));
       if(['window.open','location.assign','location.replace','window.location.assign','window.location.replace'].includes(method)){const target=safeTarget(arg);if(target)destinations.add(target);}
       if(method==='emit'&&arg?.startsWith('cv-loading-'))loadingEvents.add(arg);
       if(method.includes('cvLoading')||method.toLowerCase().includes('loading'))loading.add(method);
-      const called=child.callee.type==='Identifier'?child.callee.name:child.callee.property?.name;
-      const candidates=modules.flatMap(m=>m.functions.get(called)||[]);
-      if(candidates.length===1)scan(candidates[0],depth+1);
+      if(method==='setBusy'&&depth<=1){const label=text(child.arguments[2]);if(label)loadingLabels.add(label);}
+      const candidates=resolve(child.callee,owner);
+      if(candidates.length===1)scan(candidates[0].node,depth+1,candidates[0].owner);
      }
      if(child.type==='AssignmentExpression'&&name(child.left).includes('location')){const target=safeTarget(text(child.right));if(target)destinations.add(target);}
     });
    }
    scan(binding.handler);
    return {event:binding.event,source:binding.source,line:binding.line,confidence:binding.confidence,
-    fingerprint:digest([...dependencies].sort().join('|')),endpoints:[...endpoints].filter(Boolean).sort(),destinations:[...destinations].sort(),loading:[...loading].sort(),unresolved};
+    fingerprint:digest([...dependencies].sort().join('|')),endpoints:[...endpoints].filter(Boolean).sort(),destinations:[...destinations].sort(),loading:[...loading].sort(),loadingLabels:[...loadingLabels],unresolved};
   }
   for(const element of elements){
    const selector=keyOf(element),key=url+'::'+selector;
@@ -118,9 +134,9 @@ function discover(){
   pages.push({path:url,label:document.querySelector('title')?.textContent?.trim()||url,controls:elements.length,scripts:used.map(relative)});
  }
  const dynamicHandlers=[...scripts.values()].flatMap(m=>m.bindings).filter(b=>!b.target).map(({handler,...rest})=>rest);
- return {sourceHash:sourceHash(),pages,controls,loadingEvents:[...loadingEvents].sort(),dynamicHandlers,warnings,parser:'acorn '+acorn.version};
+ return {analysisVersion:2,sourceHash:sourceHash(),pages,controls,loadingEvents:[...loadingEvents].sort(),dynamicHandlers,warnings,parser:'acorn '+acorn.version};
 }
-function compact(snapshot){return {buildId:snapshot.buildId||null,sourceHash:snapshot.sourceHash,controls:snapshot.controls.map(({key,label,page,group,fingerprint})=>({key,label,page,group,fingerprint}))};}
+function compact(snapshot){return {analysisVersion:snapshot.analysisVersion||1,buildId:snapshot.buildId||null,sourceHash:snapshot.sourceHash,controls:snapshot.controls.map(({key,label,page,group,fingerprint})=>({key,label,page,group,fingerprint}))};}
 function build(previous=null,evidence=null,buildId=null){
  const current={...discover(),buildId};const same=previous?.current?.sourceHash===current.sourceHash;
  const baseline=previous?.baseline||compact(current);

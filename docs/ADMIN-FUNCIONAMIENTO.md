@@ -34,3 +34,15 @@ No es una prueba exhaustiva de todas las ramas. La resolución estática conserv
 La vista actualiza el inventario cada minuto mientras está visible. Su endpoint es de lectura y no ejecuta sondas de Vertex, Drive, Telegram o Gmail. Usa Hosting y la API existentes. No cambia presupuestos ni cuotas.
 
 Reversión: recuperar el commit anterior y volver a desplegar con la suite aprobada, o restaurar la versión anterior de Hosting y la revisión anterior de la API. Conservar el manifiesto publicado como referencia de comparación. No modificar manualmente las señales para convertir pendientes en éxitos.
+
+## Verificación del botón «Consultar historial en Drive» · 16/10/2026
+
+Identificador estable: `/::#refresh-application-history`; sección `application-history-panel`; evento click en `static/app.js`, función `refreshApplications`.
+
+El botón no abre directamente una carpeta: consulta y representa registros de postulaciones dentro de la web. Solicita autorización Drive si falta; se deshabilita y cambia a «Cargando historial de envío»; lee `GET /api/applications`. El backend valida la carpeta autorizada, consulta Drive v3 por registros con appProperties cvDispatch=1, interpreta su descripción y devuelve entradas y cursor. La consulta no genera CV, no invoca IA ni envía correo. Las acciones posteriores de confirmación de envío son independientes.
+
+Se probaron con fixtures: carga pendiente (botón deshabilitado y operación de carga activa), historial vacío y restauración del botón, fallo de autorización sin petición al historial y fallo HTTP conservando registros existentes. La suite ya contempla cursor sin duplicados y respuesta tardía tras cambio de cuenta. No se consultó el historial personal en producción.
+
+Se corrigió una omisión del inventario: resolver funciones por nombre en todos los módulos confundía dos funciones setBusy distintas y no detectaba rutas construidas en una variable. Ahora se prioriza el módulo de origen, no se siguen métodos genéricos como Array.filter como si fueran funciones de otro módulo, se reconocen prefijos de rutas y se muestra la etiqueta de carga. La versión del método de análisis queda registrada para distinguir este cambio de inventario de cambios en la aplicación.
+
+El estado observado muestra disponibilidad, carga y fallos HTTP temporalmente posteriores al click. Los mensajes de negocio y errores OAuth capturados por la aplicación no se leen ni se traducen automáticamente a éxito/fallo del resultado; no se debe confundir HTTP 200 con entrega o consulta semánticamente correcta.
