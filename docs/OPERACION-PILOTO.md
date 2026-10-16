@@ -1,14 +1,15 @@
 # Operación del piloto de CV A LA MEDIDA
 
-Objetivo confirmado: diez usuarios simultáneos y US$5 mensuales. El procesamiento
+Objetivo confirmado: diez usuarios simultáneos y US$20 mensuales. El procesamiento
 pesado utiliza cola; las pruebas de concurrencia locales no certifican el tiempo
 de espera de diez trabajos reales en Google Cloud.
 
-Estado de cierre: las correcciones de esta rama aprobaron 515 pruebas locales,
-pero el despliegue no superó el arranque de contenedor. Las revisiones anteriores
-siguen siendo las últimas listas. Vertex y Functions tienen caps en `ENFORCED`;
-se necesita revisar el consumo y la decisión de presupuesto antes de levantar
-cortes. No se ha aislado la causa definitiva del fallo de arranque.
+Estado de cierre actualizado: 515 pruebas locales aprobadas. El primer despliegue
+falló el arranque; después del cambio autorizado a US$20, el reintento terminó
+correctamente. Las últimas revisiones listas son `api-00097-xeq` y
+`telegram-worker-00070-cig`, ambas Functions `ACTIVE`. Los caps quedaron
+`CONFIGURED`. No se presenta la correlación temporal como una causa raíz probada
+del primer fallo ni como una prueba de todas las integraciones reales.
 
 ## Límites y síntomas
 
@@ -28,14 +29,14 @@ cortes. No se ha aislado la causa definitiva del fallo de arranque.
 
 ## Presupuestos configurados
 
-Presupuesto de proyecto: US$5. Caps independientes: Vertex US$3, Cloud Run US$1,
-Functions US$0,50. El presupuesto global anterior de la cuenta de facturación se
+Presupuesto de proyecto: US$20. Caps independientes: Vertex US$15, Cloud Run US$2,
+Functions US$1. El presupuesto global anterior de la cuenta de facturación se
 conservó. No se cambiaron permisos IAM. Destinatarios administrativos comprobados
 como la cuenta propietaria antes de crear las nuevas alertas.
 
 Los servicios no cubiertos, gastos fijos y solicitudes en curso pueden facturarse.
 La demora de enforcement también puede causar exceso. El margen orientativo de
-US$0,50 para otros servicios no es un corte. Un mes de uso y sus costes reales
+US$2 para otros servicios no es un corte. Un mes de uso y sus costes reales
 deben medirse antes de aumentar carga o cuotas.
 
 ## Banco documental y revisión humana
@@ -98,6 +99,10 @@ Completar alta, consentimiento parcial, revocación y recuperación con una segu
 cuenta Google controlada. Probar popup en navegador real y Push en móvil con la
 app cerrada; conservar navegador, versión, fecha y resultado. El titular realiza
 el acceso interactivo y no comparte contraseñas ni tokens con el informe.
+
+El titular confirmó que no dispone de segunda cuenta y móvil para estas pruebas.
+Se mantienen no realizadas, sin sustituirlas por cuentas de terceros o simular
+una aprobación real de Google.
 
 No se presenta la aprobación de Google, la calidad de documentos ambiguos o la
 recepción en un dispositivo no disponible como un fallo corregido en código.

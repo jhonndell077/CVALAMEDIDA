@@ -439,10 +439,11 @@ Repositorio privado: https://github.com/jhonndell077/CVALAMEDIDA. Un push a main
 
 ## Piloto y controles de operación (2026-10-16)
 
-**Estado de esta rama:** correcciones probadas localmente; publicación nueva no
-completada. Las revisiones anteriores siguen siendo las últimas listas. Los caps
-de Vertex y Functions se activaron por consumo acumulado del mes. No se declara
-el piloto listo ni las cuotas nuevas activas en producción hasta un deploy exitoso.
+**Estado publicado:** reintento completado después del ajuste autorizado a US$20
+mensuales. Ambas Functions están `ACTIVE`, con últimas revisiones listas
+`api-00097-xeq` y `telegram-worker-00070-cig`. Los tres caps se verificaron
+`CONFIGURED`. La preparación del piloto conserva las condiciones de OAuth externo,
+alta independiente y móvil no verificadas. No se realizó una prueba de carga real.
 
 El piloto tiene como objetivo diez sesiones simultáneas. Los trabajos pesados se
 procesan en cola; esta cifra no promete diez análisis de IA simultáneos.
@@ -457,8 +458,9 @@ del worker no consumen otra unidad. Los rechazos por periodo devuelven HTTP 429,
 `code=period_quota_exceeded` y `Retry-After`. Los contadores comienzan a registrar
 admisiones con esta versión; no reconstruyen el consumo anterior a su activación.
 
-Presupuesto objetivo autorizado: **US$5/mes**. Se configuraron presupuesto por
-proyecto y spend caps para Vertex (US$3), Cloud Run (US$1) y Functions (US$0,50).
+Presupuesto objetivo autorizado: **US$20/mes**. Se configuraron presupuesto por
+proyecto y spend caps para Vertex (US$15), Cloud Run (US$2) y Functions (US$1).
+El margen orientativo para otros servicios es US$2.
 El corte puede pausar nuevas solicitudes y los importes están sujetos a demora
 de medición; otros servicios siguen acumulando gastos. No es una garantía de
 factura total exacta. No se elevó el máximo de instancias para esta fase.

@@ -2,7 +2,7 @@
 
 Fecha: 2026-10-16. Base: `ab2f210e4d15e92cd187b25237e0496a768c4bae`.
 Objetivo confirmado: hasta **10 usuarios simultáneos**.
-Presupuesto objetivo confirmado: **US$5 mensuales**.
+Presupuesto objetivo actualizado por el titular: **US$20 mensuales**.
 
 ## Resultado esperado
 
@@ -47,12 +47,12 @@ la aceptación HTTP, el tiempo en cola y el procesamiento. Se conserva inicialme
 concurrencia uno por instancia por el uso de PDF y memoria; escalar instancias y
 despachos exige antes comprobar consistencia, memoria y presupuesto.
 
-El usuario confirmó US$5 mensuales. Se aplica un presupuesto de proyecto por ese
-importe y spend caps separados: Vertex US$3, Cloud Run US$1 y Functions US$0,50.
-Quedan US$0,50 de margen orientativo para otros servicios, sin corte nativo total
+El usuario actualizó el objetivo a US$20 mensuales. Se aplica un presupuesto de
+proyecto por ese importe y spend caps separados: Vertex US$15, Cloud Run US$2 y
+Functions US$1. Quedan US$2 de margen orientativo para otros servicios, sin corte nativo total
 para todas esas categorías. Las alertas ordinarias no detienen por sí mismas el
 gasto y el corte de spend caps tiene demora y permite terminar solicitudes en
-curso. Por tanto, no se promete una factura total matemáticamente limitada a US$5.
+curso. Por tanto, no se promete una factura total matemáticamente limitada a US$20.
 Los destinatarios administrativos se verifican como la cuenta propietaria antes
 de crear alertas. Los límites de trabajos tampoco equivalen a importes de dinero.
 
@@ -109,7 +109,7 @@ en nube. Publicar correcciones no elimina esas condiciones de apertura.
 Ver el informe `REESTRUCTURACION-PILOTO.md` de la carpeta de auditoría para el
 resultado del despliegue y la evidencia. El runbook está en `OPERACION-PILOTO.md`.
 
-**Bloqueo del cierre desplegado:** 515 pruebas locales aprobadas, incluido arranque
+**Primer intento (histórico):** 515 pruebas locales aprobadas, incluido arranque
 de ambos entry points con Functions Framework sin red. La publicación Linux no
 superó el health check de contenedor; no hay causa definitiva aislada. Google
 conserva como últimas revisiones listas `api-00095-say` y
@@ -117,3 +117,11 @@ conserva como últimas revisiones listas `api-00095-say` y
 consumo acumulado. No se levantan ni se amplía el presupuesto por inferencia.
 La rama de correcciones se conserva separada de `main` hasta cerrar publicación
 y verificaciones. La facturación bruta de caps no prueba gasto neto exacto.
+
+**Actualización posterior autorizada:** el titular indicó US$20 mensuales. Se
+actualizaron los cuatro controles y se verificaron los tres caps `CONFIGURED`.
+Los dos controles levantados requirieron sustitución respaldada por restricciones
+de estado/cost view de la API. El reintento terminó correctamente: ambas Functions
+`ACTIVE`, últimas revisiones listas `api-00097-xeq` y `telegram-worker-00070-cig`.
+La ausencia de segunda cuenta y móvil de prueba quedó confirmada;
+no se repite la solicitud ni se acredita un recorrido real independiente.
