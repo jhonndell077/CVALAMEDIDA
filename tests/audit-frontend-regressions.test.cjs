@@ -156,3 +156,19 @@ test('H09 Firebase login verifies actual granted scopes through the authenticate
   assert.equal(calls[0][0],'/api/google/grant');assert.equal(calls[0][2]['X-Drive-Access-Token'],'synthetic-google');
   assert.equal(grant.scope,'https://www.googleapis.com/auth/drive.file');assert.equal(grant.gmailRequested,undefined);
 });
+
+
+test('a recovered preview does not reopen private panels after a session change', async () => {
+  const source = fs.readFileSync('static/app.js', 'utf8');
+  let handler, finish;
+  const state = {user:{uid:'alice'},authEpoch:1,vacancyRevision:0};
+  const panels = {jobPanel:{hidden:false},analysisPanel:{hidden:false},cvPanel:{hidden:true}};
+  const context = {state,...panels,
+    window:{addEventListener:(name,callback)=>{handler=callback},cvDraftAnalyses:new Map()},
+    renderDraft:()=>new Promise(resolve=>{finish=resolve}),setActiveStep(){}};
+  vm.runInNewContext(source.slice(source.indexOf("window.addEventListener('cv-background-result'"), source.indexOf('function setActiveStep(')),context);
+  const pending=handler({detail:{path:'/api/draft',result:{draft:{candidate:{name:'Alice'}}}}});
+  state.user={uid:'bob'};state.authEpoch=2;state.draft=null;
+  finish();await pending;
+  assert.equal(panels.cvPanel.hidden,true);
+});
