@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -62,6 +63,7 @@ def main():
     from check_requirements import verify
     verify(ROOT)
     output = Path(args.output).resolve(); output.mkdir(parents=True, exist_ok=True)
+    source_hash = subprocess.check_output(['node', str(ROOT / 'generate_functional_map.cjs'), '--hash'], cwd=ROOT, text=True).strip()
     for path in ROOT.glob('*.py'):
         ast.parse(path.read_text(encoding='utf-8-sig'), filename=path.name)
     for path in (ROOT / 'static').glob('*.js'):
@@ -88,6 +90,17 @@ def main():
     summary = {'frontend_exit': node.returncode, 'backend_exit': backend.returncode,
                'passed': node.returncode == backend.returncode == 0}
     (output / 'release-summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
+    python_summary = json.loads((output / 'python-summary.json').read_text(encoding='utf-8'))
+    node_output = (output / 'node-tests.txt').read_text(encoding='utf-8')
+    import re
+    count = re.search(r'(?:#|ℹ) tests (\d+)', node_output)
+    evidence = {'sourceHash': source_hash, 'passed': summary['passed'],
+        'checkedAt': datetime.now(timezone.utc).isoformat(),
+        'pythonTests': python_summary['tests'], 'javascriptTests': int(count.group(1)) if count else None,
+        'coveragePercent': python_summary['coverage_percent'], 'network': 'blocked',
+        'scope': 'Suite local; no acredita cada acción ni servicios desplegados.'}
+    (ROOT / 'tmp').mkdir(exist_ok=True)
+    (ROOT / 'tmp' / 'functional-map-test-evidence.json').write_text(json.dumps(evidence, indent=2), encoding='utf-8')
     print(json.dumps(summary))
     return 0 if summary['passed'] else 1
 

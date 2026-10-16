@@ -6,6 +6,8 @@ from firebase_functions.private.serving import functions_as_yaml, get_functions
 
 root = Path(__file__).resolve().parent
 os.chdir(root)
+from generate_functional_map import generate as generate_map
+generate_map()
 (root / "functions.yaml").write_text(
     functions_as_yaml(get_functions()), encoding="utf-8"
 )

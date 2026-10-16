@@ -1377,7 +1377,9 @@ def index() -> Any:
 
 @app.get("/<path:asset_name>")
 def static_asset(asset_name: str) -> Any:
-    if asset_name in {'admin-connections.html', 'admin-connections.css', 'admin-connections.js'}:
+    if asset_name in {'admin-connections.html', 'admin-connections.css', 'admin-connections.js',
+                      'admin-functionality.html', 'admin-functionality.css', 'admin-functionality.js',
+                      'functional-telemetry.js', 'functional-map.manifest.json'}:
         return send_from_directory(app.static_folder or 'static', asset_name)
     employment_assets={"employment.js","employment.css","vendor/leaflet/leaflet.js","vendor/leaflet/leaflet.css",
         "vendor/leaflet/LICENSE","vendor/leaflet/images/marker-icon.png","vendor/leaflet/images/marker-icon-2x.png","vendor/leaflet/images/marker-shadow.png"}

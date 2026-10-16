@@ -4,6 +4,21 @@ import app as core
 
 
 class AdminConnectionsTests(unittest.TestCase):
+    def test_functionality_requires_owner_and_never_probes_services(self):
+        client=core.app.test_client()
+        with patch.object(core,'verify_google_identity',side_effect=core.AppError('session',401)):
+            self.assertEqual(client.get('/api/admin/functionality').status_code,401)
+        def other():core.g.google_identity={'uid':'other','email':'other@example.test'}
+        with patch.object(core,'ORIGINAL_OWNER_EMAIL','owner@example.test'),patch.object(core,'verify_google_identity',side_effect=other):
+            self.assertEqual(client.get('/api/admin/functionality').status_code,403)
+        def owner():core.g.google_identity={'uid':'owner','email':'owner@example.test'}
+        with patch.object(core,'ORIGINAL_OWNER_EMAIL','owner@example.test'),patch.object(core,'verify_google_identity',side_effect=owner),patch('connection_probes.inspect') as probe,patch.object(core.user_accounts,'scope') as scope:
+            response=client.get('/api/admin/functionality')
+            self.assertEqual(response.status_code,200)
+            self.assertTrue(any(route['path']=='/api/admin/functionality' for route in response.json['routes']))
+            self.assertEqual(set(response.json['flags']),{'CV_AUTH_REQUIRED','CV_MULTI_ACCOUNT','CV_EMPLOYMENT_ENABLED'})
+            self.assertIn('private',response.headers['Cache-Control']);probe.assert_not_called();scope.assert_not_called()
+
     def test_background_receipt_needs_capability_but_not_firebase_session(self):
         import connection_probes
         with patch.object(core,'verify_google_identity') as verify,patch('connection_probes.allow_push_receipt',return_value=True),patch('connection_probes.receive_push_proof') as receipt:

@@ -41,6 +41,10 @@
       ],
       "rewrites": [
         {
+          "source": "/admin/funcionamiento{,/**}",
+          "destination": "/admin-functionality.html"
+        },
+        {
           "source": "/admin/conexiones{,/**}",
           "destination": "/admin-connections.html"
         },
@@ -107,6 +111,10 @@
         "**/node_modules/**"
       ],
       "rewrites": [
+        {
+          "source": "/admin/funcionamiento{,/**}",
+          "destination": "/admin-functionality.html"
+        },
         {
           "source": "/admin/conexiones{,/**}",
           "destination": "/admin-connections.html"

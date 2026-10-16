@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parent / "static"
 def generate():
     now = datetime.now(timezone.utc)
     build = now.strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
+    from generate_functional_map import generate as generate_map
+    generate_map(build_id=build)
     path = ROOT / "index.html"
     html = path.read_text(encoding="utf-8")
     tag = f'<meta name="cv-build" content="{build}">'
