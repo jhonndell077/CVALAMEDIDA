@@ -50,3 +50,11 @@ test('a failed dependency remains visible and prevents the job group from turnin
  assert.equal(ui.document.getElementById('node-jobs').dataset.state,'error');
  assert.equal(ui.document.getElementById('node-channels').dataset.state,'unknown');
 });
+test('channels names the missing grant instead of suggesting a confirmed push failed',async()=>{
+ const at=new Date().toISOString();
+ const checks=['api','telegram','push','gmail'].map(id=>({id,state:id==='gmail'?'unknown':'ok',checkedAt:at,ms:0,detail:'fixture'}));
+ const ui=setup(async url=>url==='/'?new Response('',{headers:{'Content-Type':'text/html'}}):new Response(JSON.stringify({at,checks})));
+ ui.login({getIdToken:async()=> 'fixture'});await settle();await settle();
+ assert.equal(ui.document.getElementById('node-channels').querySelector('.status').textContent,'? Falta: Gmail');
+ assert.equal(ui.document.getElementById('node-channels').dataset.state,'unknown');
+});

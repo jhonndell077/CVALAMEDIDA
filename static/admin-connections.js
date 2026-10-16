@@ -1,4 +1,4 @@
-const labels={hosting:'Web publicada',api:'API autenticada',google:'Identidad Google / Firebase',drive:'Drive · carpetas',vertex:'Vertex · generación sintética',storage:'Cloud Storage · lectura',tasks:'Cloud Tasks · cola',worker:'Worker · disponibilidad',telegram:'Telegram · bot y webhook',gmail:'Gmail · permiso de envío',push:'Push · entrega pendiente'};
+const labels={hosting:'Web publicada',api:'API autenticada',google:'Identidad Google / Firebase',drive:'Drive · carpetas',vertex:'Vertex · generación sintética',storage:'Cloud Storage · lectura',tasks:'Cloud Tasks · cola',worker:'Worker · disponibilidad',telegram:'Telegram · bot y webhook',gmail:'Gmail · permiso de envío',push:'Push · recepción'};
 const groups={queue:['tasks','worker'],jobs:['storage','tasks','worker','vertex'],channels:['telegram','gmail','push']};
 const states={};
 let busy=false,lastSuccess=0,authEpoch=0;
@@ -31,7 +31,11 @@ function renderNodes(){
  const combined={...states};
  for(const [key,ids] of Object.entries(groups))combined[key]={state:ids.some(id=>states[id]?.state==='error')?'error':ids.every(id=>states[id]?.state==='ok')?'ok':'unknown'};
  for(const [key,check] of Object.entries(combined)){
-  const label=check.state==='ok'?'✅ Prueba correcta':check.state==='error'?'✕ Fallo observado':'? Requiere comprobación';
+  let label=check.state==='ok'?'✅ Prueba correcta':check.state==='error'?'✕ Fallo observado':'? Requiere comprobación';
+  if(key==='channels'&&check.state!=='ok'){
+   const missing=groups.channels.filter(id=>check.state==='error'?states[id]?.state==='error':states[id]?.state!=='ok');
+   label=(check.state==='error'?'✕ Falla: ':'? Falta: ')+missing.map(id=>({telegram:'Telegram',gmail:'Gmail',push:'Push'})[id]).join(' / ');
+  }
   const node=document.getElementById('node-'+key);
   if(node){node.dataset.state=check.state;node.querySelector('.status').textContent=label;}
   const tag=document.querySelector('[data-resource="'+key+'"] .tag');
