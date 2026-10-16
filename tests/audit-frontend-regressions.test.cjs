@@ -93,3 +93,10 @@ test('H10 initial preview banner explicitly identifies draft without claiming ar
   assert.match(document.querySelector('#template-confirmation').textContent,/borrador/i);
   assert.doesNotMatch(document.querySelector('#template-confirmation').textContent,/se archiva/);
 });
+test('H14 configured Vertex can be used while availability is explicitly unverified',async()=>{
+  const select={closest:()=>({}),replaceChildren(){},add(){}};const qa=setup({modelSelect:select,Option:class{},updateAnalyzeButton(){}});
+  vm.runInContext(source.slice(source.indexOf('async function loadModels('),source.indexOf('function loadScript(')),qa.context);
+  await qa.context.loadModels({provider:'vertex-ai',model_available:false,model_configured:true,model_status:'not_verified',models:[{name:'fixture-model'}]});
+  assert.equal(qa.state.modelAvailable,true);assert.match(qa.$('#model-help').textContent,/sin verificar|no verificada/i);
+  assert.match(qa.$('#privacy-note').innerHTML,/Cloud Storage/);assert.match(qa.$('#privacy-note').innerHTML,/privacy\.html/);
+});
