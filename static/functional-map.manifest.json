@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "generatedAt": "2026-10-16T22:31:02.633Z",
+  "generatedAt": "2026-10-16T22:31:48.314Z",
   "baseline": {
-    "buildId": null,
+    "buildId": "20261016T223144Z-bb10ff7c",
     "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
     "controls": [
       {
@@ -1128,7 +1128,7 @@
     ]
   },
   "previous": {
-    "buildId": null,
+    "buildId": "20261016T223144Z-bb10ff7c",
     "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
     "controls": [
       {
@@ -6577,7 +6577,7 @@
     ],
     "warnings": [],
     "parser": "acorn 8.16.0",
-    "buildId": null
+    "buildId": "20261016T223144Z-bb10ff7c"
   },
   "changesSincePrevious": {
     "added": [],
