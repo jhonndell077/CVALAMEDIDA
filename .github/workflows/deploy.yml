@@ -33,8 +33,14 @@ jobs:
         run: python scripts/restore_ci_data.py
       - name: Verify the complete release with isolated runtime data
         run: |
-          python -m pip install -r requirements.txt -r requirements-dev.txt
+          python -m pip install --require-hashes -r requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudo instalar el runtime verificado.' }
+          python -m pip install --require-hashes -r requirements-dev.txt
           if ($LASTEXITCODE -ne 0) { throw 'No se pudo preparar la herramienta de cobertura.' }
+          npm ci --prefix tests --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudieron preparar las dependencias frontend fijadas.' }
+          python -m pip_audit --disable-pip --no-deps --strict -r requirements.txt --progress-spinner off
+          if ($LASTEXITCODE -ne 0) { throw 'La revisión de dependencias bloqueó la publicación.' }
           python scripts/verify_release.py
           if ($LASTEXITCODE -ne 0) { throw 'Falló la verificación integral; no se publicará.' }
       - name: Remove synthetic test photo

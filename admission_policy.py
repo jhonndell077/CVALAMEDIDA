@@ -16,7 +16,7 @@ class QuotaExceeded(Exception):
 
 def limits():
     values = []
-    for key, default in (('CV_DAILY_JOB_LIMIT', '50'), ('CV_MONTHLY_JOB_LIMIT', '500')):
+    for key, default in (('CV_DAILY_JOB_LIMIT', '10'), ('CV_MONTHLY_JOB_LIMIT', '50')):
         value = os.environ.get(key, default)
         if not value.isascii() or not value.isdecimal() or not 0 <= int(value) <= 10000:
             raise ValueError('La política de admisión no tiene límites válidos.')

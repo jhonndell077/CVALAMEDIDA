@@ -59,6 +59,8 @@ def main():
     args = parser.parse_args()
     if args.child:
         return child(*(Path(value) for value in args.child))
+    from check_requirements import verify
+    verify(ROOT)
     output = Path(args.output).resolve(); output.mkdir(parents=True, exist_ok=True)
     for path in ROOT.glob('*.py'):
         ast.parse(path.read_text(encoding='utf-8-sig'), filename=path.name)

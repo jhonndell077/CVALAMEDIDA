@@ -161,6 +161,15 @@ class TelegramAdmissionTests(unittest.TestCase):
         enqueue.assert_not_called()
         self.assertIsNone(store.read('20')[0])
 
+    def test_http_quota_response_includes_retry_after_and_machine_code(self):
+        import app as core
+        with core.app.test_request_context('/'):
+            response = core.handle_admission_limit(job_runtime.AdmissionLimit('month', 600))
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.headers['Retry-After'], '600')
+        self.assertEqual(response.json['code'], 'period_quota_exceeded')
+        self.assertEqual(response.json['period'], 'month')
+
 
 if __name__ == '__main__':
     unittest.main()

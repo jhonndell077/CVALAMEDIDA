@@ -15,6 +15,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'GitHub tiene cambios nuevos. Integra esos cambios con git pull antes de desplegar; no se sobrescribirán.' }
     $releasePython = Join-Path $PSScriptRoot 'venv/Scripts/python.exe'
     if (-not (Test-Path -LiteralPath $releasePython)) { $releasePython = 'python' }
+    & $releasePython -m pip_audit --disable-pip --no-deps --strict -r requirements.txt --progress-spinner off
+    if ($LASTEXITCODE -ne 0) { throw 'Dependency audit blocked deployment.' }
     & $releasePython scripts/verify_release.py
     if ($LASTEXITCODE -ne 0) { throw 'La verificacion integral bloqueo el despliegue. Revisa tmp/verification.' }
     git add --all

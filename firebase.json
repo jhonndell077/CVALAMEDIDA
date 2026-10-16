@@ -24,6 +24,7 @@
       "gha-creds-*.json",
       ".github",
       "scripts",
+      "docs",
       "Deploy.ps1"
     ]
   },

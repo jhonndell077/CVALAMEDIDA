@@ -2,6 +2,7 @@
 
 Fecha: 2026-10-16. Base: `ab2f210e4d15e92cd187b25237e0496a768c4bae`.
 Objetivo confirmado: hasta **10 usuarios simultáneos**.
+Presupuesto objetivo confirmado: **US$5 mensuales**.
 
 ## Resultado esperado
 
@@ -27,8 +28,8 @@ resultado de esta fase.
 ## Diseño de la primera etapa
 
 - Mantener el máximo existente de diez pendientes por cuenta.
-- Añadir, como política inicial conservadora del piloto, 50 admisiones nuevas por
-  día UTC y 500 por mes UTC y cuenta. Son límites de trabajo, no importes de dinero.
+- Añadir, como política conservadora tras confirmar US$5/mes, 10 admisiones nuevas
+  por día UTC y 50 por mes UTC y cuenta. Son límites de trabajo, no importes de dinero.
   Las operaciones directas y en cola comparten el mismo registro durable.
 - Identificadores repetidos no consumen otra unidad; las continuaciones de un
   trabajo admitido conservan su admisión. El registro se actualiza mediante CAS.
@@ -46,10 +47,14 @@ la aceptación HTTP, el tiempo en cola y el procesamiento. Se conserva inicialme
 concurrencia uno por instancia por el uso de PDF y memoria; escalar instancias y
 despachos exige antes comprobar consistencia, memoria y presupuesto.
 
-Falta un presupuesto monetario aprobado. No se asigna un importe ni se contratan
-opciones de pago por inferencia. Revisar alertas y elegibilidad de spend caps:
-las alertas ordinarias no detienen por sí mismas el gasto. Los límites de trabajos
-no equivalen a un techo de factura, y no cubren tráfico rechazado ni cada token IA.
+El usuario confirmó US$5 mensuales. Se aplica un presupuesto de proyecto por ese
+importe y spend caps separados: Vertex US$3, Cloud Run US$1 y Functions US$0,50.
+Quedan US$0,50 de margen orientativo para otros servicios, sin corte nativo total
+para todas esas categorías. Las alertas ordinarias no detienen por sí mismas el
+gasto y el corte de spend caps tiene demora y permite terminar solicitudes en
+curso. Por tanto, no se promete una factura total matemáticamente limitada a US$5.
+Los destinatarios administrativos se verifican como la cuenta propietaria antes
+de crear alertas. Los límites de trabajos tampoco equivalen a importes de dinero.
 
 ## Reestructuración de código
 

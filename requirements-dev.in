@@ -1,0 +1,3 @@
+# Local/CI tools, separate from the deployed runtime.
+coverage==7.16.2
+pip-audit==2.10.1

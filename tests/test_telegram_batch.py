@@ -10,6 +10,7 @@ from test_telegram import MemoryStore, CONFIG, message
 
 
 class TelegramBatchTests(unittest.TestCase):
+    @patch.dict(os.environ, {'CV_DAILY_JOB_LIMIT': '100', 'CV_MONTHLY_JOB_LIMIT': '1000'})
     def test_ten_pending_messages_limit_duplicates_and_freed_slot(self):
         store = MemoryStore()
         with patch.object(job_runtime, 'configuration', return_value=CONFIG), patch.object(job_runtime, 'JobStore', return_value=store), patch.object(bot,'telegram'), patch.object(job_runtime, 'enqueue') as enqueue, patch.object(bot, 'say') as say, patch.dict(os.environ, {'CV_AUTH_REQUIRED':'1','CV_ALLOW_REMOTE':'1'}):

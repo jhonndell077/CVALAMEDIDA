@@ -13,7 +13,7 @@ from test_telegram import MemoryStore
 
 class AccountContextTests(unittest.TestCase):
     def test_simultaneous_profile_requests_never_share_identity_or_indexes(self):
-        barrier = threading.Barrier(2)
+        barrier = threading.Barrier(10)
         original = app.MASTER_PROFILE
 
         def verify():
@@ -37,9 +37,10 @@ class AccountContextTests(unittest.TestCase):
              patch.object(app, 'bank_enabled', return_value=True), \
              patch.object(app, 'load_drive_bank', side_effect=load_bank), \
              patch.object(job_runtime, 'JobStore', return_value=MemoryStore()):
-            with ThreadPoolExecutor(max_workers=2) as pool:
-                futures = [pool.submit(fetch, uid) for uid in ('alice', 'bob')]
-                self.assertEqual([future.result(timeout=10) for future in futures], ['alice', 'bob'])
+            identities = ['pilot-' + str(index) for index in range(10)]
+            with ThreadPoolExecutor(max_workers=10) as pool:
+                futures = [pool.submit(fetch, uid) for uid in identities]
+                self.assertEqual([future.result(timeout=10) for future in futures], identities)
         self.assertIs(app.MASTER_PROFILE, original)
         self.assertIsNone(user_accounts.CURRENT.get())
 

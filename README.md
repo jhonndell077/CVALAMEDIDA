@@ -436,3 +436,35 @@ correo o autorización, se informa el motivo. WhatsApp conserva su flujo actual.
 ## GitHub y publicación automática
 
 Repositorio privado: https://github.com/jhonndell077/CVALAMEDIDA. Un push a main activa pruebas y publica todas las funciones y Hosting. El Deploy local directo se conserva: ./Deploy.ps1 publica y luego sincroniza GitHub sin repetir CI. Consulta GITHUB-Y-DEPLOY.md para cambios desde el móvil, datos privados y errores de sincronización.
+
+## Piloto y controles de operación (2026-10-16)
+
+El piloto tiene como objetivo diez sesiones simultáneas. Los trabajos pesados se
+procesan en cola; esta cifra no promete diez análisis de IA simultáneos.
+
+La admisión durable aplica por cuenta tanto a operaciones web directas/en cola
+como al bot y sus botones Gmail. `CV_DAILY_JOB_LIMIT` y `CV_MONTHLY_JOB_LIMIT`
+permiten ajustar la política: sus valores iniciales son 10 procesos nuevos por
+día UTC y 50 por mes UTC, además de diez pendientes. Cero cierra admisiones
+nuevas; los trabajos ya admitidos y las consultas de resultados siguen disponibles.
+Los reintentos con el mismo identificador conservan su admisión. Las continuaciones
+del worker no consumen otra unidad. Los rechazos por periodo devuelven HTTP 429,
+`code=period_quota_exceeded` y `Retry-After`. Los contadores comienzan a registrar
+admisiones con esta versión; no reconstruyen el consumo anterior a su activación.
+
+Presupuesto objetivo autorizado: **US$5/mes**. Se configuraron presupuesto por
+proyecto y spend caps para Vertex (US$3), Cloud Run (US$1) y Functions (US$0,50).
+El corte puede pausar nuevas solicitudes y los importes están sujetos a demora
+de medición; otros servicios siguen acumulando gastos. No es una garantía de
+factura total exacta. No se elevó el máximo de instancias para esta fase.
+
+`requirements.in` y `requirements-dev.in` contienen las dependencias directas
+fijadas; los `.txt` son locks transitivos universales con hashes. Instalar por
+separado con `python -m pip install --require-hashes -r requirements.txt` y el
+equivalente para `requirements-dev.txt`. Regenerar con `uv pip compile` usando
+`--universal --python-version 3.13 --generate-hashes`. El gate comprueba su
+coherencia; CI y `Deploy.ps1` también revisan avisos conocidos con pip-audit.
+
+El [plan de reestructuración](docs/PLAN-REESTRUCTURACION.md) conserva las etapas y
+sus criterios de aceptación. La aprobación Google externa, una segunda cuenta
+real controlada y la recepción Push en dispositivos no se acreditan con fixtures.

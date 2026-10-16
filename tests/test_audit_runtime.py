@@ -155,6 +155,12 @@ class AuditGmailTests(unittest.TestCase):
 
 
 class AuditAdmissionTests(unittest.TestCase):
+    def setUp(self):
+        # These regressions isolate concurrent slots from period admission.
+        policy = patch.dict('os.environ', {'CV_DAILY_JOB_LIMIT': '100', 'CV_MONTHLY_JOB_LIMIT': '1000'})
+        policy.start()
+        self.addCleanup(policy.stop)
+
     def test_direct_work_shares_user_limit_and_releases_slot_after_request(self):
         core, store = fixture(), Store()
         marker = user_accounts.CURRENT.set({'uid': 'fixture-uid', 'email': 'fixture@example.invalid'})
