@@ -41,6 +41,10 @@
       ],
       "rewrites": [
         {
+          "source": "/admin/conexiones{,/**}",
+          "destination": "/admin-connections.html"
+        },
+        {
           "source": "/telegram/**",
           "function": {
             "functionId": "api",
@@ -103,6 +107,10 @@
         "**/node_modules/**"
       ],
       "rewrites": [
+        {
+          "source": "/admin/conexiones{,/**}",
+          "destination": "/admin-connections.html"
+        },
         {
           "source": "/telegram/**",
           "function": {

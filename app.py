@@ -1310,6 +1310,11 @@ def enforce_request_policy() -> tuple[Any, int] | None:
         hostname = request.host.partition(":")[0].strip("[]").casefold()
         if hostname not in {"127.0.0.1", "localhost", "::1"}:
             return jsonify({"error": "La app solo acepta conexiones locales."}), 403
+    if request.path.startswith('/api/admin/'):
+        # Deny non-owners before loading account records, Drive or job storage.
+        verify_google_identity()
+        admin_connections.require_admin(sys.modules[__name__])
+        return None
     if (
         os.environ.get("CV_AUTH_REQUIRED") == "1"
         and request.path.startswith("/api/")
@@ -1368,6 +1373,8 @@ def index() -> Any:
 
 @app.get("/<path:asset_name>")
 def static_asset(asset_name: str) -> Any:
+    if asset_name in {'admin-connections.html', 'admin-connections.css', 'admin-connections.js'}:
+        return send_from_directory(app.static_folder or 'static', asset_name)
     employment_assets={"employment.js","employment.css","vendor/leaflet/leaflet.js","vendor/leaflet/leaflet.css",
         "vendor/leaflet/LICENSE","vendor/leaflet/images/marker-icon.png","vendor/leaflet/images/marker-icon-2x.png","vendor/leaflet/images/marker-shadow.png"}
     if asset_name in employment_assets:
@@ -1744,6 +1751,9 @@ def handle_internal_error(error: Any) -> Any:
         {"error": "Ocurrió un error interno. Inténtalo de nuevo."}
     ), 500
 
+
+import admin_connections
+admin_connections.register_routes(sys.modules[__name__])
 
 import profile_routes
 import resume_routes

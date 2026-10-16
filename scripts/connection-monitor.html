@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CV A LA MEDIDA · Conexiones</title>
+<style>
+:root{--paper:#fbfcf9;--panel:#f2f6ef;--ink:#18251f;--muted:#67736d;--accent:#315d46;--bad:#a42a28;--warn:#805500}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px 'Segoe UI',Arial,sans-serif}main{max-width:1240px;margin:auto;padding:32px 24px}h1{font-size:32px;font-weight:400;margin:8px 0}p{line-height:1.55;max-width:950px}.eyebrow{letter-spacing:.16em;font-size:12px;color:var(--accent)}button{font:inherit;background:var(--accent);color:white;border:0;border-radius:6px;padding:10px 18px;cursor:pointer}button:disabled{opacity:.6}button:focus-visible,a:focus-visible{outline:3px solid var(--warn);outline-offset:3px}.scroll{overflow-x:auto;border:1px solid #e2e8df;border-radius:8px;margin:24px 0}svg{display:block;width:100%;min-width:1120px;background:var(--panel)}.node rect{fill:var(--paper);stroke:var(--muted);stroke-width:1.5}.node text{fill:var(--ink);font-size:16px;font-weight:600}.node .sub{font:12px ui-monospace,monospace;fill:var(--muted)}.node .status{font:13px 'Segoe UI',Arial,sans-serif;fill:var(--warn)}.node[data-state=ok] rect{stroke:var(--accent);stroke-width:3}.node[data-state=ok] .status{fill:var(--accent)}.node[data-state=error] rect{stroke:var(--bad);stroke-width:3}.node[data-state=error] .status{fill:var(--bad)}.edge{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:6 5;marker-end:url(#connections-arrow)}.legend{font-size:13px;fill:var(--ink)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px}article{border:1px solid #e2e8df;border-radius:8px;padding:18px}h2{font-size:21px}h3{font-size:17px;margin:0 0 8px}article p{font-size:14px;margin:8px 0}.tag{color:var(--warn);font-weight:600}.small{font-size:14px;color:var(--muted)}#freshness{font-weight:600}footer{border-top:1px solid #e2e8df;margin-top:28px;padding-top:14px}@media print{button{display:none}.scroll{overflow:visible}svg{min-width:0}article{break-inside:avoid}}
+</style>
+<main>
+<div class="eyebrow">ADMINISTRACIÓN · AUDITORÍA OPERATIVA</div>
+<h1>¿Dónde se interrumpe la conexión?</h1>
+<p>Mapa de CV A LA MEDIDA. La web y la API se consultan en vivo cada 60 segundos desde este equipo. Las líneas discontinuas describen el recorrido implementado; su tráfico y sus permisos <strong>no están verificados en vivo</strong>.</p>
+<button id="refresh" type="button">Actualizar estado</button> <span id="freshness" role="status" aria-live="polite">Sin comprobación actual</span>
+<div class="scroll"><svg viewBox="0 0 1120 660" role="img" aria-labelledby="connections-title connections-desc">
+<title id="connections-title">Conexiones de CV A LA MEDIDA</title><desc id="connections-desc">La web, identidad Google y API se conectan con Drive, Vertex AI y el procesamiento de trabajos hacia Telegram, Gmail y Push; solo web y salud de API tienen comprobaciones actuales.</desc>
+<defs><marker id="connections-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#67736d"/></marker></defs>
+<!-- Connectors precede nodes. Each attachment is distinct; no transit crosses a box. -->
+<path class="edge" d="M240 100 H408"/><path class="edge" d="M508 144 V200 Q508 208 500 208 H340 Q332 208 332 216 V244 Q332 252 324 252 H240"/>
+<path class="edge" d="M240 276 H408"/><path class="edge" d="M620 100 H784"/>
+<path class="edge" d="M620 264 H784"/><path class="edge" d="M508 308 V344 Q508 352 500 352 H148 Q140 352 140 360 V412"/>
+<path class="edge" d="M240 456 H408"/><path class="edge" d="M620 456 H784"/>
+<g class="node" id="node-google" transform="translate(28 56)"><rect width="212" height="88" rx="8"/><text x="16" y="28">Google / Firebase Auth</text><text class="sub" x="16" y="49">Identidad y autorización</text><text class="status" x="16" y="72">? Sin verificar en vivo</text></g>
+<g class="node" id="node-api" transform="translate(408 56)"><rect width="212" height="88" rx="8"/><text x="16" y="28">API · Firebase Functions</text><text class="sub" x="16" y="49">Flask · /api/health</text><text class="status" x="16" y="72">? Sin verificar en vivo</text></g>
+<g class="node" transform="translate(784 56)"><rect width="280" height="88" rx="8"/><text x="16" y="28">Drive · banco y archivos</text><text class="sub" x="16" y="49">Perfil · evidencias · CV · historial</text><text class="status" x="16" y="72">? Sin verificar en vivo</text></g>
+<g class="node" id="node-hosting" transform="translate(28 244)"><rect width="212" height="88" rx="8"/><text x="16" y="28">Web · Firebase Hosting</text><text class="sub" x="16" y="49">Frontend del usuario</text><text class="status" x="16" y="72">? Sin verificar en vivo</text></g>
+<g class="node" transform="translate(408 244)"><rect width="212" height="64" rx="8"/><text x="16" y="26">Trabajos de la API</text><text class="status" x="16" y="49">? Flujo sin verificar</text></g>
+<g class="node" transform="translate(784 220)"><rect width="280" height="88" rx="8"/><text x="16" y="28">Vertex AI · análisis y CV</text><text class="sub" x="16" y="49">Datos laborales y vacante</text><text class="status" x="16" y="72">? Sin invocar IA</text></g>
+<g class="node" transform="translate(28 412)"><rect width="212" height="88" rx="8"/><text x="16" y="28">Cloud Storage</text><text class="sub" x="16" y="49">Cuentas · trabajos · cuotas</text><text class="status" x="16" y="72">? Sin verificar en vivo</text></g>
+<g class="node" transform="translate(408 412)"><rect width="212" height="88" rx="8"/><text x="16" y="28">Cloud Tasks + worker</text><text class="sub" x="16" y="49">Cola · telegram_worker</text><text class="status" x="16" y="72">? Sin verificar en vivo</text></g>
+<g class="node" transform="translate(784 412)"><rect width="280" height="88" rx="8"/><text x="16" y="28">Canales de salida</text><text class="sub" x="16" y="49">Telegram · Gmail · Push</text><text class="status" x="16" y="72">? Entrega sin verificar</text></g>
+<text x="28" y="554" class="legend">Las flechas agrupan dependencias; no representan una secuencia única ni garantizan entrega.</text>
+<path d="M28 590 H72" stroke="#315d46" stroke-width="3"/><text x="84" y="595" class="legend">OK del recurso consultado</text>
+<path d="M340 590 H384" stroke="#a42a28" stroke-width="3"/><text x="396" y="595" class="legend">Fallo HTTP / contrato</text>
+<path d="M660 590 H704" stroke="#67736d" stroke-dasharray="6 5"/><text x="716" y="595" class="legend">? Conexión sin comprobación actual</text>
+<text x="28" y="632" class="legend">Sin credenciales en el navegador · Sin correos, mensajes ni invocaciones de IA de prueba</text>
+</svg></div>
+<h2>Estado y diagnóstico</h2><div id="checks" class="grid" aria-live="polite"></div>
+<h2>Qué hace cada conexión y cómo reconocer un fallo</h2>
+<div class="grid">
+<article><h3>Identidad · Google y Firebase</h3><p>Google identifica al usuario; Firebase emite la identidad que la API valida. El permiso OAuth de Drive/Gmail es independiente de iniciar sesión.</p><p class="tag">Sin comprobar ahora</p><p>401: sesión caducada o inválida. 403: acceso o permisos insuficientes. Alta con una segunda cuenta y móvil siguen pendientes.</p></article>
+<article><h3>Drive · banco y exportaciones</h3><p>Lee evidencias, sincroniza el índice y guarda CV e historial en las carpetas del usuario. Las actualizaciones del banco usan control de versión.</p><p class="tag">Sin comprobar ahora</p><p>403: autorización revocada o carpeta sin acceso. 409: sincronización o conflicto. La auditoría registró cuatro advertencias de documentos pendientes de revisión humana.</p></article>
+<article><h3>Vertex AI</h3><p>Analiza la vacante y elabora el borrador con evidencias. El endpoint de salud solo informa configuración: no demuestra disponibilidad del modelo.</p><p class="tag">Sin comprobar ahora</p><p>429 puede indicar cuota o capacidad. Revisar además el estado real del corte de gasto; un presupuesto configurado no demuestra saldo disponible.</p></article>
+<article><h3>Storage → Tasks → worker</h3><p>Storage conserva cuentas, reservas y resultados; Tasks despacha el trabajo y el worker lo procesa. El banco documental se conserva en Drive.</p><p class="tag">Sin comprobar ahora</p><p>Un trabajo atascado exige revisar cola, intento, lease y revisión lista del worker. Firestore y Realtime Database no intervienen en este diseño auditado.</p></article>
+<article><h3>Telegram · Gmail · Push</h3><p>Telegram recibe eventos por webhook y responde mediante el worker. Gmail envía desde el flujo autorizado; Push notifica trabajos web. Son rutas distintas.</p><p class="tag">Entrega sin comprobar ahora</p><p>Una aceptación de proveedor no prueba recepción. Gmail conserva reservas para evitar duplicados; no reenviar automáticamente una entrega incierta. Push con la app cerrada sigue pendiente de prueba.</p></article>
+<article><h3>Presupuesto y despliegue · evidencia histórica</h3><p>Auditoría 16/10/2026: objetivo US$20/mes; controles Vertex 15, Run 2, Functions 1 y reserva orientativa 2. No es un techo exacto de factura.</p><p>Últimas revisiones registradas: <code>api-00097-xeq</code> y <code>telegram-worker-00070-cig</code>, listas al verificarse. Estos valores no se consultan en vivo en esta vista.</p></article>
+</div>
+<footer class="small">515 pruebas aprobadas en la reestructuración auditada. Esto es evidencia histórica, no una garantía del estado actual. Este monitor funciona mientras su servidor local esté encendido. No sustituye alertas permanentes ni observabilidad autenticada por servicio.</footer>
+</main>
+<script>
+const labels={hosting:'Web publicada',api:'API y exigencia de autenticación'};
+let busy=false,lastSuccess=0;
+function stale(){document.querySelectorAll('#node-api,#node-hosting').forEach(node=>{delete node.dataset.state;node.querySelector('.status').textContent='? Estado vencido / sin conexión';});}
+async function update(){
+ if(busy)return;busy=true;document.getElementById('refresh').disabled=true;
+ try{
+  const response=await fetch('/status',{cache:'no-store',signal:AbortSignal.timeout(20000)});
+  if(!response.ok)throw new Error('monitor');const data=await response.json();
+  if(!Array.isArray(data.checks)||data.checks.length!==2||!Number.isFinite(Date.parse(data.at))||Date.now()-Date.parse(data.at)>90000)throw new Error('stale');
+  const container=document.getElementById('checks');container.replaceChildren();
+  for(const check of data.checks){
+   if(!labels[check.id]||!['ok','error','unknown'].includes(check.state))throw new Error('schema');
+   const node=document.getElementById('node-'+check.id);node.dataset.state=check.state;
+   node.querySelector('.status').textContent=check.state==='ok'?'✓ Recurso responde':check.state==='error'?'✕ Fallo observado':'? No se pudo comprobar';
+   const card=document.createElement('article'),title=document.createElement('h3'),detail=document.createElement('p'),time=document.createElement('p');
+   title.textContent=labels[check.id]+' · '+node.querySelector('.status').textContent;detail.textContent=check.detail;
+   time.textContent='Comprobación: '+new Date(check.checkedAt).toLocaleString('es-DO')+' · '+check.ms+' ms';time.className='small';card.append(title,detail,time);container.append(card);
+  }
+  lastSuccess=Date.parse(data.at);document.getElementById('freshness').textContent='Última lectura: '+new Date(data.at).toLocaleTimeString('es-DO');
+ }catch(_){stale();document.getElementById('freshness').textContent='Sin estado actual: inicia o revisa el monitor local. No se conservan verdes anteriores.';}
+ finally{busy=false;document.getElementById('refresh').disabled=false;}
+}
+document.getElementById('refresh').addEventListener('click',update);setInterval(update,60000);setInterval(()=>{if(lastSuccess&&Date.now()-lastSuccess>90000){stale();document.getElementById('freshness').textContent='Estado vencido: esperando una nueva lectura.';}},5000);update();
+</script></html>
