@@ -41,7 +41,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from flask import Flask, jsonify, request, send_file, send_from_directory, has_request_context, g
 import user_accounts
-from job_runtime import JobError
+from job_runtime import JobError, AdmissionLimit
 from PIL import Image
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
@@ -1721,6 +1721,15 @@ def handle_app_error(error: AppError) -> Any:
 @app.errorhandler(JobError)
 def handle_job_storage_error(error):
     return jsonify({"error": "El servicio temporal está ocupado. Vuelve a intentarlo en unos segundos."}), 503
+
+
+@app.errorhandler(AdmissionLimit)
+def handle_admission_limit(error):
+    response = jsonify(error=str(error), code='period_quota_exceeded', period=error.period,
+                       retry_after=error.retry_after)
+    response.status_code = 429
+    response.headers['Retry-After'] = str(error.retry_after)
+    return response
 
 
 @app.errorhandler(413)

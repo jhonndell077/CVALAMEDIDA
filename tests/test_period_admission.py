@@ -43,7 +43,7 @@ class PeriodAdmissionTests(unittest.TestCase):
         self.addCleanup(self.policy.stop)
         self.now = datetime(2026, 10, 16, 12, tzinfo=timezone.utc).timestamp()
         self.clock = patch('job_runtime.time.time', return_value=self.now)
-        self.clock.start()
+        self.clock_value = self.clock.start()
         self.addCleanup(self.clock.stop)
 
     def test_completed_work_still_counts_and_duplicate_does_not(self):
@@ -63,13 +63,13 @@ class PeriodAdmissionTests(unittest.TestCase):
         for index in range(3):
             key = str(index)
             store.admit(key, 'alice'); store.done(key)
-        self.clock.return_value = self.now + 86400
+        self.clock_value.return_value = self.now + 86400
         for key in ('3', '4'):
             store.admit(key, 'alice'); store.done(key)
         with self.assertRaises(job_runtime.AdmissionLimit) as error:
             store.admit('5', 'alice')
         self.assertEqual(error.exception.period, 'month')
-        self.clock.return_value = datetime(2026, 11, 1, tzinfo=timezone.utc).timestamp()
+        self.clock_value.return_value = datetime(2026, 11, 1, tzinfo=timezone.utc).timestamp()
         self.assertTrue(store.admit('6', 'alice'))
 
     def test_zero_limit_blocks_new_work_but_not_existing_pending(self):
@@ -108,6 +108,35 @@ class PeriodAdmissionTests(unittest.TestCase):
             store.done('1')
             with self.assertRaises(job_runtime.AdmissionLimit):
                 store.admit('twelfth', 'alice')
+
+    def test_active_delivery_still_occupies_pending_slot(self):
+        store = Store()
+        with patch.dict(os.environ, {'CV_DAILY_JOB_LIMIT': '20', 'CV_MONTHLY_JOB_LIMIT': '20'}):
+            for index in range(10):
+                store.admit(str(index), 'alice')
+                store.write(str(index), {'state': 'delivery_started', 'lease_until': self.now + 300}, 0)
+            self.assertFalse(store.admit('eleventh', 'alice'))
+
+    def test_ten_simultaneous_accounts_share_no_slots_or_period_usage(self):
+        store = Store()
+        def session(index):
+            uid = 'pilot-' + str(index)
+            first = [store.admit(f'{uid}-{step}', uid) for step in range(3)]
+            try:
+                store.admit(uid + '-over-limit', uid)
+            except job_runtime.AdmissionLimit:
+                return all(first)
+            return False
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            self.assertTrue(all(pool.map(session, range(10))))
+
+    def test_december_monthly_reset_handles_year_boundary(self):
+        store = Store()
+        self.clock_value.return_value = datetime(2026, 12, 31, 23, 59, tzinfo=timezone.utc).timestamp()
+        with patch.dict(os.environ, {'CV_DAILY_JOB_LIMIT': '5', 'CV_MONTHLY_JOB_LIMIT': '0'}):
+            with self.assertRaises(job_runtime.AdmissionLimit) as error:
+                store.admit('new', 'alice')
+        self.assertEqual(error.exception.retry_after, 60)
 
 
 class TelegramAdmissionTests(unittest.TestCase):

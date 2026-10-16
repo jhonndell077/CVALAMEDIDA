@@ -720,6 +720,14 @@ def register_routes(app, core):
                 return jsonify(ok=True)
             if not job:
                 try:
+                    admitted = store.admit(identifier, config.get('owner_uid', ''))
+                except runtime.AdmissionLimit as error:
+                    acknowledge(config, query['id'], str(error))
+                    return jsonify(ok=True)
+                if not admitted:
+                    acknowledge(config, query['id'], 'Tienes diez procesos pendientes. Espera a que termine uno para continuar.')
+                    return jsonify(ok=True)
+                try:
                     store.write(identifier, {"state": "queued", "owner_id": config["owner_id"], **owner_fields,
                         "action": {"channel": "gmail", "source_job": match[1], "recipient_index": int(match[2])}, "created_at": time.time()}, 0)
                 except PreconditionFailed:
@@ -741,13 +749,18 @@ def register_routes(app, core):
                 say(config,status_summary(config,store),message.get('message_id'))
                 store.write(identifier,{'state':'done','owner_id':config['owner_id'],**owner_fields,'created_at':time.time()},0)
                 return jsonify(ok=True)
-            admitted=True if command in {"/start", "/help", "/ayuda", "/estado"} else (store.admit(identifier,config['owner_uid']) if config.get('owner_uid') else store.admit(identifier))
+            rejection = 'Ya hay 10 vacantes pendientes. Espera a que termine alguna y vuelve a enviar esta vacante.'
+            try:
+                admitted=True if command in {"/start", "/help", "/ayuda", "/estado"} else (store.admit(identifier,config['owner_uid']) if config.get('owner_uid') else store.admit(identifier))
+            except runtime.AdmissionLimit as error:
+                admitted = False
+                rejection = str(error)
             if not admitted:
                 try:
                     store.write(identifier, {"state": "rejected", "created_at": time.time()}, 0)
                 except PreconditionFailed:
                     return jsonify(ok=True)
-                say(config, "Ya hay 10 vacantes pendientes. Espera a que termine alguna y vuelve a enviar esta vacante.", message.get("message_id"))
+                say(config, rejection, message.get("message_id"))
                 return jsonify(ok=True)
             try:
                 store.write(identifier, {"state": "queued", "message": message, "source_message_id": message.get("message_id"), "created_at": time.time(), 'owner_id':config['owner_id'], **owner_fields}, 0)

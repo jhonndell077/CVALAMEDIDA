@@ -10,6 +10,7 @@ from google.api_core.exceptions import NotFound, PreconditionFailed
 from google.auth.transport.requests import AuthorizedSession
 from google.cloud import storage
 import google.auth
+import admission_policy
 
 PROJECT = "cv-a-la-medida-jhonn"
 
@@ -31,6 +32,15 @@ _session = None
 
 class JobError(Exception):
     pass
+
+
+class AdmissionLimit(JobError):
+    def __init__(self, period, retry_after):
+        self.period = period
+        self.retry_after = retry_after
+        label = 'diario' if period == 'day' else 'mensual'
+        super().__init__(f'Alcanzaste el límite {label} de procesos de esta cuenta. '
+                         'Podrás iniciar nuevos procesos al comenzar el siguiente periodo UTC.')
 
 
 def cloud_request(method, url, **kwargs):
@@ -90,7 +100,9 @@ class JobStore:
             pending = []
             for item in (queue or {}).get("pending", []):
                 job, _ = self.read(item["id"])
-                if job and job.get("state") in {"done", "failed", "delivery_started", "rejected"}:
+                if job and job.get("state") in {"done", "failed", "rejected"}:
+                    continue
+                if job and job.get('state') == 'delivery_started' and job.get('lease_until', 0) < time.time():
                     continue
                 if job and item['id'].startswith('direct-') and job.get('lease_until', 0) < time.time():
                     continue
@@ -101,9 +113,17 @@ class JobStore:
                 return True
             if len(pending) >= 10:
                 return False
+            try:
+                usage = admission_policy.reserve(queue or {}, identifier, time.time())
+            except admission_policy.QuotaExceeded as error:
+                raise AdmissionLimit(error.period, error.retry_after) from None
+            except ValueError:
+                raise JobError('La política de admisión no está disponible.') from None
+            if usage is None:
+                return True
             pending.append({"id": identifier, "created_at": time.time()})
             try:
-                self.write(queue_key, {"pending": pending}, generation)
+                self.write(queue_key, {"pending": pending, "usage": usage}, generation)
                 return True
             except PreconditionFailed:
                 continue
