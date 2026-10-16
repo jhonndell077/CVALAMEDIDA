@@ -14,7 +14,7 @@ function stale(){
  for(const key of Object.keys(states))delete states[key];
  document.querySelectorAll('.node').forEach(node=>{delete node.dataset.state;node.querySelector('.status').textContent='? Sin lectura actual';});
  document.querySelectorAll('[data-resource] .tag').forEach(tag=>{tag.textContent='? Sin lectura actual';tag.style.color='';});
- document.querySelectorAll('#checks article').forEach(card=>{card.dataset.state='unknown';});
+ document.getElementById('checks').replaceChildren();
 }
 function renderNodes(){
  const combined={...states};

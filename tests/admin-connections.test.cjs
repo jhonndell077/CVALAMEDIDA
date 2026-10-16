@@ -33,3 +33,12 @@ test('authorized response displays current state and logout clears it',async()=>
  assert.equal(ui.document.getElementById('checks').children.length,0);
  assert.equal(ui.document.getElementById('node-api').dataset.state,undefined);
 });
+test('a failed dependency remains visible and prevents the job group from turning green',async()=>{
+ const at=new Date().toISOString();
+ const checks=['api','storage','tasks','worker','vertex'].map(id=>({id,state:id==='tasks'?'error':'ok',checkedAt:at,ms:1,detail:'fixture'}));
+ const ui=setup(async url=>url==='/'?new Response('',{headers:{'Content-Type':'text/html'}}):new Response(JSON.stringify({at,checks})));
+ ui.login({getIdToken:async()=> 'fixture'});await settle();await settle();
+ assert.equal(ui.document.getElementById('node-queue').dataset.state,'error');
+ assert.equal(ui.document.getElementById('node-jobs').dataset.state,'error');
+ assert.equal(ui.document.getElementById('node-channels').dataset.state,'unknown');
+});
