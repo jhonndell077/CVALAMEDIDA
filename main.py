@@ -48,6 +48,11 @@ def api(req: https_fn.Request) -> https_fn.Response:
 )
 def telegram_worker(req: https_fn.Request) -> https_fn.Response:
     # Telegram acknowledges new messages quickly while this separate service works.
+    if req.path == '/telegram/health' and req.method == 'GET':
+        import connection_probes
+        import json
+        result, status = connection_probes.worker_health(req)
+        return https_fn.Response(json.dumps(result), status=status, content_type='application/json', headers={'Cache-Control':'no-store'})
     if req.path != "/telegram/work":
         return https_fn.Response("Not found", status=404)
     with flask_app.request_context(req.environ):

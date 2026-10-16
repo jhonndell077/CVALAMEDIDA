@@ -8,7 +8,7 @@ function setup(fetcher){
  const {window}=parseHTML(fs.readFileSync('static/admin-connections.html','utf8'));
  let callback;const auth={currentUser:null,onAuthStateChanged(fn){callback=fn;},signOut(){return Promise.resolve();}};
  window.firebase={auth:()=>auth};
- vm.runInNewContext(source,{window,document:window.document,fetch:fetcher,setInterval(){},AbortSignal,Date,Error,firebase:window.firebase});
+ vm.runInNewContext(source,{window,navigator:{},document:window.document,fetch:fetcher,setInterval(){},AbortSignal,Date,Error,firebase:window.firebase});
  return {document:window.document,login(user){auth.currentUser=user;callback(user);}};
 }
 const settle=()=>new Promise(resolve=>setImmediate(resolve));

@@ -39,12 +39,24 @@ async function notifyCompleted(data, id) {
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data?.json() || {}; } catch { /* Ignore malformed payloads. */ }
+  if(data.type==='cv-admin-probe' && /^[a-f0-9-]{36}$/.test(data.nonce||'')) {
+    event.waitUntil((async()=>{
+      await self.registration.showNotification('CV a la medida · Prueba Push',{
+        body:'El canal Push respondió en este dispositivo.',tag:'cv-admin-probe',data:{admin_probe:true},
+      });
+      const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+      windows.filter(client=>new URL(client.url).pathname.startsWith('/admin/conexiones'))
+        .forEach(client=>client.postMessage({type:'cv-admin-probe-received',nonce:data.nonce}));
+    })());
+    return;
+  }
   const id = /^web-[0-9a-f-]{36}$/.test(data.job_id || '') ? data.job_id : '';
   if (!id || data.state !== 'done' || data.progress !== 100) return;
   event.waitUntil(notifyCompleted(data, id));
 });
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+    if(event.notification.data?.admin_probe){event.waitUntil(self.clients.openWindow('/admin/conexiones'));return;}
   const id = event.notification.data?.job_id || '';
   const url = new URL('/', self.location.origin);
   if (/^web-[0-9a-f-]{36}$/.test(id)) url.searchParams.set('job', id);
