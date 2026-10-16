@@ -147,3 +147,12 @@ test('H02 logout cancels the old Drive popup and ignores its late credential',as
   receive({origin:'https://cv-a-la-medida-jhonn.firebaseapp.com',source:popup,data:{nonce:'nonce',result:{access_token:'PRIVATE_ALICE'}}});
   await assert.rejects(pending,/cuenta cambió|sesión cambió/);assert.equal(closed,true);assert.equal(checks,0);assert.equal(drive.isConnected(),false);
 });
+test('H09 Firebase login verifies actual granted scopes through the authenticated backend',async()=>{
+  const calls=[];const qa=setup({directRequestJson:async(...args)=>{calls.push(args);return {scope:'https://www.googleapis.com/auth/drive.file',expires_in:3500};}});
+  const match=source.match(/async function verifiedGoogleCredential\([\s\S]*?(?=async function initializeGoogleAuth\()/);
+  if (match) vm.runInContext(match[0],qa.context);
+  assert.equal(typeof qa.context.verifiedGoogleCredential,'function','Firebase credentials must obtain confirmed scopes');
+  const grant=await qa.context.verifiedGoogleCredential('synthetic-google');
+  assert.equal(calls[0][0],'/api/google/grant');assert.equal(calls[0][2]['X-Drive-Access-Token'],'synthetic-google');
+  assert.equal(grant.scope,'https://www.googleapis.com/auth/drive.file');assert.equal(grant.gmailRequested,undefined);
+});
