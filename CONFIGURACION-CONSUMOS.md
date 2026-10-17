@@ -6,6 +6,8 @@ Se añade Configuración al centro de Arquitectura y Diagnóstico Inteligente en
 
 El administrador consulta las cuentas de Firebase Authentication por páginas y el consumo de procesos de cada cuenta. Las barras representan cupo disponible, con valores numéricos de consumido, límite y restante. No representan dinero, tokens del modelo ni facturación de Google Cloud. Los períodos son UTC y la interfaz muestra las fechas de renovación.
 
+Cada tarjeta muestra junto a las barras la hora local de renovación diaria y la fecha y hora de los restablecimientos diario y mensual, con la zona horaria del navegador y su referencia UTC. Se utilizan las fechas devueltas por el backend; si faltan, se indica que no están disponibles. La consulta sigue siendo manual y no añade llamadas periódicas.
+
 Permite cambiar límites diarios y mensuales generales y excepciones por cuenta. Restablecer la herencia vuelve a los límites generales. Cero significa bloquear nuevos procesos; no significa ilimitado. Los cambios no reinician contadores ni cancelan trabajos admitidos. Un límite inferior al consumo actual deja cero disponible hasta la renovación o un nuevo ajuste.
 
 Se conserva el criterio existente: admisión cuenta procesos, incluso si posteriormente fallan; un mismo identificador ya contado no vuelve a consumir cupo. Web y Telegram utilizan el mismo control de admisión. El máximo de diez trabajos simultáneos es independiente del cupo diario o mensual.
