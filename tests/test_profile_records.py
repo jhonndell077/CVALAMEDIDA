@@ -35,7 +35,7 @@ class ProfileRecordsTests(unittest.TestCase):
         self.assertEqual(len(base['projects']),2)
         self.assertEqual(consolidate(result),result)
 
-    def test_repeat_add_with_new_request_id_returns_existing_record_for_all_manual_sections(self):
+    def test_new_request_ids_preserve_manual_experiences_and_merge_other_sections(self):
         examples={
             'projects':{'title':'Proyecto','description':'Proyecto documentado','technologies':[],'url':''},
             'courses':{'title':'Curso','institution':'Instituto','date':'2025'},
@@ -47,10 +47,43 @@ class ProfileRecordsTests(unittest.TestCase):
                 profile=blank();record={**record,'id':'manual-'+'a'*32}
                 first=add_information(profile,section,record)
                 second=add_information(profile,section,{**record,'id':'manual-'+'b'*32})
-                self.assertEqual(first,second);self.assertEqual(len(profile[section]),1)
+                expected_count=2 if section=='experiences' else 1
+                if section=='experiences': self.assertNotEqual(first,second)
+                else: self.assertEqual(first,second)
+                self.assertEqual(len(profile[section]),expected_count)
                 add_information(profile,section,{**record,'id':'manual-'+'b'*32})
-                self.assertEqual(len(profile[section]),1)
+                self.assertEqual(len(profile[section]),expected_count)
                 with self.assertRaises(ValueError):add_information(profile,section,{**record,'title':'Dato distinto'})
+
+    def test_manual_experiences_without_dates_remain_distinct_after_consolidation(self):
+        profile=blank()
+        record={'title':'Camarero','employer':'Empresa','responsibilities':[]}
+        profile['experiences']=[{**record,'id':'manual-first'}, {**record,'id':'manual-second'}]
+        result=consolidate(profile)
+        self.assertEqual(len(result['experiences']),2)
+        self.assertEqual(result['experiences'],profile['experiences'])
+        self.assertEqual(consolidate(result),result)
+
+    def test_same_manual_experience_id_retry_is_idempotent_and_conflict_rejected(self):
+        profile=blank()
+        record={'id':'manual-operation','title':'Camarero','employer':'Empresa','responsibilities':[]}
+        add_information(profile,'experiences',record)
+        # Retry also works after bounded operation metadata has expired.
+        profile['_information_requests'].clear()
+        add_information(profile,'experiences',copy.deepcopy(record))
+        self.assertEqual(profile['experiences'],[record])
+        before=copy.deepcopy(profile)
+        with self.assertRaises(ValueError):
+            add_information(profile,'experiences',{**record,'employer':'Otra empresa'})
+        self.assertEqual(profile,before)
+
+    def test_document_experience_still_merges_when_one_record_is_manual(self):
+        profile=blank()
+        profile['experiences']=[{'id':'manual-first','title':'Camarero','employer':'Empresa','responsibilities':[]},
+                                {'id':'document-first','title':'CAMARERO','employer':'Empresa','responsibilities':[]}]
+        result=consolidate(profile)
+        self.assertEqual(len(result['experiences']),1)
+        self.assertEqual(result['experiences'][0]['id'],'manual-first')
 
     def test_skills_references_phones_and_pending_texts_also_consolidate(self):
         profile=blank();profile['skills']=[{'id':'a','label':'SQL'},{'id':'b','label':'sql'},{'id':'c','label':'C++'},{'id':'d','label':'C#'}]

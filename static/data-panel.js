@@ -33,9 +33,14 @@
   async function close() {
     if (!dialog.open || closing) return;
     closing = true;
-    await motion(false);
-    dialog.close();
-    closing = false;
+    try {
+      if (window.cvDataPanel && !await window.cvDataPanel.beforeClose()) return;
+      if (!dialog.open) return;
+      await motion(false);
+      dialog.close();
+    } finally {
+      closing = false;
+    }
   }
   button.addEventListener('click', () => {
     if (closing) return;

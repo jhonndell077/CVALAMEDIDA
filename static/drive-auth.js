@@ -29,17 +29,22 @@ async function prepareDriveAuth() {
     authorizeButton.textContent = "Continuar con mi cuenta";
     document.title = "Conectar Gmail y Drive";
   }
+  const reportFailure = code => {
+    if (!gmailMode) window.opener.postMessage({nonce: authNonce, diagnostic: {
+      code: ['access_denied', 'popup_closed', 'popup_failed_to_open'].includes(code) ? code : 'oauth_error',
+    }}, returnOrigin);
+  };
   const client = google.accounts.oauth2.initTokenClient({
     client_id: config.client_id,
     scope: combinedMode ? "openid email https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.send" : gmailMode ? "openid email https://www.googleapis.com/auth/gmail.send" : "openid email https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file",
     include_granted_scopes: true,
     login_hint: config.allowed_email,
     callback: (result) => {
-      if (result.error) { oauthStatus.textContent = `Google no autorizó ${gmailMode ? "Gmail" : "Drive"}. Inténtalo de nuevo.`; authorizeButton.disabled = false; return; }
+      if (result.error) { reportFailure(result.error); oauthStatus.textContent = `Google no autorizó ${gmailMode ? "Gmail" : "Drive"}. Inténtalo de nuevo.`; authorizeButton.disabled = false; return; }
       window.opener.postMessage({ nonce: authNonce, result }, returnOrigin);
       window.close();
     },
-    error_callback: () => { authorizeButton.disabled = false; oauthStatus.textContent = "La autorización se cerró. Vuelve a intentarlo."; },
+    error_callback: error => { reportFailure(error?.type); authorizeButton.disabled = false; oauthStatus.textContent = "La autorización se cerró. Vuelve a intentarlo."; },
   });
   authorizeButton.disabled = false;
   oauthStatus.textContent = gmailMode ? "El permiso permite enviar correos desde esta página. Al crear tu CV, se enviará automáticamente al correo detectado en la vacante." : "Google solicita permiso de lectura para todos los archivos de tu Drive (drive.readonly), aunque la aplicación procesa tu Banco de Datos. También solicita gestionar los archivos creados o abiertos con esta aplicación (drive.file)." + (combinedMode ? " Gmail solo quedará conectado si concedes además el permiso de envío (gmail.send)." : '');

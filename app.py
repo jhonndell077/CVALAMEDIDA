@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import cv_analysis
 import cv_documents
+from diagnostic_stages import observe, observe_drive
 from account_context import AccountState, install_compatibility
 
 account_state = AccountState()
@@ -429,6 +430,7 @@ def vertex_response_schema(schema: dict[str, Any]) -> dict[str, Any]:
     return simplify(schema)
 
 
+@observe('pdf', 'vertex', 'vertex-response')
 def vertex_json(
     model: str,
     prompt: str,
@@ -1231,9 +1233,10 @@ def verify_google_identity() -> None:
             "La autenticación de Firebase no está instalada en el servidor.", 503
         ) from exc
     try:
-        identity = auth.verify_id_token(
-            authorization.removeprefix("Bearer ").strip(), check_revoked=True
-        )
+        with architecture_diagnostics.stage(sys.modules[__name__], "google", "firebase-auth", "identity-verified"):
+            identity = auth.verify_id_token(
+                authorization.removeprefix("Bearer ").strip(), check_revoked=True
+            )
     except ValueError as exc:
         raise AppError("La sesión de Google no es válida o ha vencido.", 401) from exc
     except auth.InvalidIdTokenError as exc:
@@ -1304,12 +1307,19 @@ def load_drive_bank(process: bool = False, force: bool = False) -> dict:
 # sync_bank is registered in profile_routes.
 
 
+import architecture_diagnostics
+architecture_diagnostics.register_routes(sys.modules[__name__])
+
+
 @app.before_request
 def enforce_request_policy() -> tuple[Any, int] | None:
     if os.environ.get("CV_ALLOW_REMOTE") != "1":
         hostname = request.host.partition(":")[0].strip("[]").casefold()
         if hostname not in {"127.0.0.1", "localhost", "::1"}:
             return jsonify({"error": "La app solo acepta conexiones locales."}), 403
+    if request.path == '/api/diagnostics/client':
+        verify_google_identity()
+        return None
     if request.path == '/api/admin/connections/push/receipt' and request.method == 'POST':
         # Background SW cannot renew Firebase identity. The receipt route instead
         # verifies a short-lived, random, delivery-only capability server-side.
@@ -1370,6 +1380,12 @@ def restore_account_context(error=None):
 # save_onboarding is registered in profile_routes.
 
 
+@app.get("/admin/arquitectura")
+@app.get("/admin/arquitectura/")
+def admin_architecture_page():
+    return send_from_directory(app.static_folder, "admin-architecture.html")
+
+
 @app.get("/")
 def index() -> Any:
     return send_from_directory(app.static_folder or "static", "index.html")
@@ -1379,7 +1395,8 @@ def index() -> Any:
 def static_asset(asset_name: str) -> Any:
     if asset_name in {'admin-connections.html', 'admin-connections.css', 'admin-connections.js',
                       'admin-functionality.html', 'admin-functionality.css', 'admin-functionality.js',
-                      'functional-telemetry.js', 'functional-map.manifest.json'}:
+                      'functional-telemetry.js', 'functional-map.manifest.json',
+                      'admin-architecture.html', 'admin-architecture.css', 'admin-architecture.js'}:
         return send_from_directory(app.static_folder or 'static', asset_name)
     employment_assets={"employment.js","employment.css","vendor/leaflet/leaflet.js","vendor/leaflet/leaflet.css",
         "vendor/leaflet/LICENSE","vendor/leaflet/images/marker-icon.png","vendor/leaflet/images/marker-icon-2x.png","vendor/leaflet/images/marker-shadow.png"}
@@ -1550,10 +1567,12 @@ def make_docx(draft_data: dict[str, Any]) -> io.BytesIO:
     return cv_documents.make_docx(sys.modules[__name__], draft_data)
 
 
+@observe('pdf', 'pdf-generator', 'pdf-generated')
 def make_pdf(draft_data: dict[str, Any]) -> io.BytesIO:
     return cv_documents.make_pdf(sys.modules[__name__], draft_data)
 
 
+@observe_drive
 def drive_request(url: str, token: str, data: bytes | None = None, content_type: str = "application/json") -> dict[str, Any]:
     req = urllib.request.Request(url, data=data, headers={
         "Authorization": f"Bearer {token}", "Content-Type": content_type,
@@ -1611,6 +1630,7 @@ def save_application_record(record: dict, token: str, folder: dict) -> None:
         raise AppError("Drive no confirmó el guardado del historial. Revisa la carpeta antes de reintentar.", 502)
 
 
+@observe('pdf', 'gmail', 'gmail-request')
 def gmail_request(url: str, token: str, data: bytes | None = None) -> dict:
     req = urllib.request.Request(url, data=data, headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
     try:
@@ -1759,6 +1779,8 @@ def handle_internal_error(error: Any) -> Any:
 
 
 import admin_connections
+import client_diagnostics
+client_diagnostics.register_routes(sys.modules[__name__])
 admin_connections.register_routes(sys.modules[__name__])
 
 import profile_routes

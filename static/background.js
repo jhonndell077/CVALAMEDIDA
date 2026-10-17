@@ -197,7 +197,7 @@ window.cvBackground = (() => {
     }
     remember(record); render(record, {progress: 1, stage: 'Guardando la solicitud en el servidor'});
     try {
-      const submitted = await options.request('/api/background/jobs', {path, payload, request_id: record.id.slice(4)}, headers);
+      const submitted = await options.request('/api/background/jobs', {path, payload, request_id: record.id.slice(4)}, {...headers, 'X-CV-Operation-ID': record.id.slice(4)});
       record.id = submitted.job_id; persist();
     } catch (error) {
       if (error.terminal || startedOwner !== owner) throw error;

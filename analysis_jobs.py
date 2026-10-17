@@ -5,6 +5,7 @@ import uuid
 from flask import jsonify, request
 import job_runtime as bot
 import user_accounts
+import distributed_diagnostics as traces
 
 
 def valid_id(identifier):
@@ -12,6 +13,12 @@ def valid_id(identifier):
 
 
 def process_job(core, identifier, store):
+    job, _ = store.read(identifier)
+    with traces.restore(job or {}):
+        return _process_job(core, identifier, store)
+
+
+def _process_job(core, identifier, store):
     job, generation = store.read(identifier)
     if not job or job.get("state") in {"done", "failed"}:
         return
@@ -60,7 +67,7 @@ def register_routes(app, core):
         store = bot.JobStore()
         job, generation = store.read(identifier)
         if not job:
-            store.write(identifier, {"state": "queued", "created_at": time.time(), "payload": payload}, generation)
+            store.write(identifier, {"state": "queued", "created_at": time.time(), "payload": payload, **traces.capture()}, generation)
         if not job or job.get("state") == "queued":
             bot.enqueue(identifier, bot.configuration(), kind="web_analysis")
         return jsonify(job_id=identifier)

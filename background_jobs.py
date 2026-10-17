@@ -9,6 +9,7 @@ import io
 import job_runtime as bot
 import web_notifications as notifications
 import user_accounts
+import distributed_diagnostics as traces
 
 PATHS = {'/api/draft': 'draft', '/api/profile/information': 'information',
          '/api/export/pdf': 'export', '/api/export/docx': 'export',
@@ -64,10 +65,12 @@ def process_job(core, identifier, store):
             except Exception: core.app.logger.warning('No se pudo entregar la notificación del proceso.')
             return
         try:
-            return _process_job(core, identifier, store)
+            with traces.restore(job):
+                return _process_job(core, identifier, store)
         finally:
             account_scope.__exit__(None, None, None)
-    return _process_job(core, identifier, store)
+    with traces.restore(job or {}):
+        return _process_job(core, identifier, store)
 
 def _process_job(core, identifier, store):
     job, generation = store.read(identifier)
@@ -137,7 +140,7 @@ def _process_job(core, identifier, store):
             headers = notifications.unprotect(store, job.get('credentials'), identifier)
             if operation in {'export', 'gmail', 'application'}:
                 checkpoint(45, job['stage'], external_started=True)
-            with core.app.test_request_context(job['path'], method='POST', json=job['payload'], headers=headers):
+            with core.app.test_request_context(job['path'], method='POST', json=job['payload'], headers=headers), traces.restore(job):
                 endpoint, values = core.app.url_map.bind('localhost').match(job['path'], method='POST')
                 response = core.app.make_response(core.app.view_functions[endpoint](**values))
                 if response.status_code >= 400:
@@ -198,7 +201,7 @@ def register_routes(app, core):
             headers = {key: request.headers[key] for key in ('X-Drive-Access-Token', 'X-Gmail-Access-Token') if request.headers.get(key)}
             job = {'operation': PATHS[data['path']], 'path': data['path'], 'payload': data['payload'],
                    'state': 'queued', 'created_at': time.time(), 'progress': 1, 'stage': 'Solicitud guardada en la cola',
-                   'request_digest': digest,
+                   'request_digest': digest, **traces.capture(),
                    'credentials': notifications.protect(store, headers, identifier)}
             if user_accounts.owner():
                 identity = user_accounts.CURRENT.get()
@@ -213,6 +216,7 @@ def register_routes(app, core):
                 user_accounts.require_owner(core, job)
                 if job.get('request_digest') != digest:
                     raise core.AppError('Este identificador ya corresponde a otra solicitud.', 409) from None
+        traces.adopt(job)
         if job['state'] == 'queued':
             bot.enqueue(identifier, bot.configuration(), task_identifier=f"{identifier}-{job.get('step', 0)}", kind='web_analysis')
         return jsonify(job_id=identifier), 202

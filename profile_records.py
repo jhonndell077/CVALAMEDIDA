@@ -24,6 +24,14 @@ def url(value):
 
 def compatible(section, a, b):
     if not isinstance(a, dict) or not isinstance(b, dict): return normalized(a)==normalized(b)
+    # Separate explicit manual additions may describe legitimate repeat jobs.
+    # Content similarity is not an operation identity for these records.
+    if section == 'experiences':
+        a_id, b_id = a.get('id'), b.get('id')
+        if (isinstance(a_id, str) and a_id.startswith('manual-')
+                and isinstance(b_id, str) and b_id.startswith('manual-')
+                and a_id != b_id):
+            return False
     if section == 'references': return normalized(a.get('name'))==normalized(b.get('name')) and phone(a.get('phone'))==phone(b.get('phone'))
     if section in ('skills','not_documented'):
         key = 'label' if section=='skills' else 'text'
@@ -91,7 +99,7 @@ def add_information(profile, section, record):
     same_id=next((r for r in profile[section] if r.get('id')==record['id']),None)
     if same_id and not previous and any(same_id.get(k)!=v for k,v in record.items()):
         raise ValueError('Este registro ya fue guardado con otros datos.')
-    existing=find_record(profile[section],section,record)
+    existing=same_id if same_id is not None else find_record(profile[section],section,record)
     if existing is None:
         profile[section].append(copy.deepcopy(record));existing=profile[section][-1]
     else:

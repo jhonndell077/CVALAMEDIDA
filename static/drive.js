@@ -115,7 +115,17 @@ window.cvDrive = (() => {
         if (started !== generation) throw new Error('La cuenta cambió durante la autorización.');
         return connected(result);
       }).catch(error => {
-        if (started === generation) status().textContent = error.message || "No se pudo conectar tu cuenta de Google.";
+        if (started === generation) {
+          const known = {'auth/popup-closed-by-user': 'popup_closed', 'auth/popup-blocked': 'popup_failed_to_open', 'auth/cancelled-popup-request': 'popup_closed', 'auth/user-cancelled': 'access_denied'};
+          // Only SDK authorization failures qualify; backend/check errors have their own evidence.
+          if (typeof error.code === 'string' && error.code.startsWith('auth/')) {
+            window.dispatchEvent(new CustomEvent('cv-client-diagnostic', {detail: {
+              service: 'drive-api', stage: 'oauth-authorization', code: known[error.code] || 'oauth_error',
+              operationId: crypto.randomUUID(),
+            }}));
+          }
+          status().textContent = error.message || "No se pudo conectar tu cuenta de Google.";
+        }
         throw error;
       }).finally(() => {
         if (connection === operation) connection = null;
@@ -146,6 +156,15 @@ window.cvDrive = (() => {
       const receive = (event) => {
         if (started !== generation) return;
         if (event.origin !== authOrigin || event.source !== popup || event.data?.nonce !== nonce) return;
+        if (event.data.diagnostic) {
+          const code = event.data.diagnostic.code;
+          if (['access_denied', 'popup_closed', 'popup_failed_to_open', 'oauth_error'].includes(code)) {
+            window.dispatchEvent(new CustomEvent('cv-client-diagnostic', {detail: {
+              service: 'drive-api', stage: 'oauth-authorization', code, operationId: nonce,
+            }}));
+          }
+          return;
+        }
         cleanup();
         connected(event.data.result, started).then(resolve, reject);
       };

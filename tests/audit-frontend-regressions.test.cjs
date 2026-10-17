@@ -14,7 +14,7 @@ function setup(extra = {}) {
 test('H02 late profile save does not replace another account profile or render its result', async()=>{
   let release, renders=0;
   const qa=setup({fetch:()=>new Promise(resolve=>release=resolve),renderProfileTree(){renders++;}});
-  vm.runInContext(source.slice(source.indexOf('async function saveProfileChangesWork()'),source.indexOf('async function updateGoogleUser(')),qa.context);
+  vm.runInContext(source.slice(source.indexOf('let saveProfilePromise = null;'),source.indexOf('async function updateGoogleUser(')),qa.context);
   const pending=qa.context.saveProfileChangesWork();await tick();
   qa.state.user={uid:'bob'};qa.state.authEpoch++;qa.state.profile={name:'Bob'};
   release({ok:true,json:async()=>({profile:{name:'PRIVATE_ALICE'}})});await pending;
@@ -30,7 +30,7 @@ test('H02 sign out then return to the same UID still discards the earlier histor
 });
 test('H02 discarded edits are not restored by a late save response',async()=>{
   let release;const qa=setup({fetch:()=>new Promise(resolve=>release=resolve)});
-  vm.runInContext(source.slice(source.indexOf('async function saveProfileChangesWork()'),source.indexOf('async function updateGoogleUser(')),qa.context);
+  vm.runInContext(source.slice(source.indexOf('let saveProfilePromise = null;'),source.indexOf('async function updateGoogleUser(')),qa.context);
   const pending=qa.context.saveProfileChangesWork();await tick();
   qa.state.profileEditEpoch=(qa.state.profileEditEpoch||0)+1;qa.state.profileDraft={name:'Discarded'};
   release({ok:true,json:async()=>({profile:{name:'OLD_EDIT'}})});await pending;

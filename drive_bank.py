@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import copy
+from time import monotonic
+from diagnostic_stages import provider_response
 import hashlib
 import io
 import json
@@ -373,10 +375,12 @@ class DriveBank:
         return self._session
 
     def request(self, method: str, url: str, **kwargs):
+        started = monotonic()
         try:
             response = self.session.request(method, url, timeout=45, **kwargs)
         except Exception as error:
             raise BankError("No se pudo conectar con el banco de Drive. Revisa su acceso al servidor.") from error
+        provider_response(response, started, stage='drive-readback' if method.upper() == 'GET' else 'drive-upload')
         if response.status_code in {403, 404}:
             if not self.config.get('service_account'):
                 raise BankError('Autoriza el Drive de esta cuenta y comprueba que sus carpetas siguen disponibles.', 403)

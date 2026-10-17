@@ -20,6 +20,8 @@ from pathlib import PurePosixPath
 from urllib.parse import quote, urlencode
 
 import requests
+import distributed_diagnostics as traces
+from diagnostic_stages import provider_response
 from flask import jsonify, request
 from google.api_core.exceptions import NotFound, PreconditionFailed
 import user_accounts
@@ -41,11 +43,14 @@ ALLOWED_ORIGINS = {ORIGIN, "https://cvalamedida.firebaseapp.com", "https://cv-a-
 
 
 def telegram(config, method, data, files=None):
+    started = time.monotonic()
     try:
         response = requests.post(f"https://api.telegram.org/bot{config['bot_token']}/{method}",
             data=data if files else None, json=None if files else data, files=files,
             timeout=5 if method in {'editMessageText','answerCallbackQuery','sendChatAction'} else 8 if method=='sendMessage' else 40)
         result = response.json()
+        provider_response(response, started, component='telegram', service='telegram-api',
+                          stage='telegram-request', success=response.ok and result.get('ok') is True)
         if not response.ok or not result.get("ok"):
             raise runtime.JobError("Telegram no confirmó la operación.")
         return result["result"]
@@ -359,13 +364,15 @@ def process_job(core, config, identifier, store):
                 store.write(identifier,current,version)
                 return
             identity=linked
-    if not identity: return _process_job(core,config,identifier,store)
+    if not identity:
+        with traces.restore(job):
+            return _process_job(core,config,identifier,store)
     recipient_config=None
     try:
         recipient_config=accounts.runtime(core,config,identity,store)
         token=drive_token(recipient_config)
         recipient_config.update(_access_token=token,_access_until=time.time()+300)
-        with user_accounts.scope(core,identity,{'X-Drive-Access-Token':token},store):
+        with user_accounts.scope(core,identity,{'X-Drive-Access-Token':token},store), traces.restore(job):
             return _process_job(core,recipient_config,identifier,store)
     except (runtime.JobError,core.AppError) as error:
         current,version=store.read(identifier)
@@ -680,6 +687,7 @@ def register_routes(app, core):
         owner_fields={field:config[field] for field in ('owner_uid','owner_email','owner_name','binding_id') if config.get(field)}
         query = private_callback(update, config)
         if query:
+            traces.adopt(traces.telegram_trace(update["update_id"]))
             data = query.get("data", "")
             selection = re.fullmatch(r"position:([0-9]{1,20}):([0-9]{1,2})", data)
             if selection:
@@ -691,6 +699,7 @@ def register_routes(app, core):
                 if not job or job.get("owner_id", config["owner_id"]) != config["owner_id"] or (job.get('owner_uid') and job['owner_uid']!=config.get('owner_uid')) or (job.get('binding_id') and job['binding_id']!=config.get('binding_id')) or index >= len(positions):
                     telegram(config, "answerCallbackQuery", {"callback_query_id": query["id"], "text": "Esta selección ya no está disponible.", "show_alert": True})
                     return jsonify(ok=True)
+                traces.adopt(job)
                 if job.get("state") == "awaiting_selection":
                     job.update(state="queued", selected_position=positions[index], selection_update_id=callback_id, lease_until=0)
                     try:
@@ -715,6 +724,8 @@ def register_routes(app, core):
                 telegram(config,'answerCallbackQuery',{'callback_query_id':query['id'],'text':'Este CV pertenece a otra cuenta o vinculación.','show_alert':True})
                 return jsonify(ok=True)
             job, generation = store.read(identifier)
+            if job:
+                traces.adopt(job)
             if job and job.get('state')!='queued':
                 telegram(config,'answerCallbackQuery',{'callback_query_id':query['id'],'text':'Esta solicitud ya está registrada. Revisa su confirmación en el chat.'})
                 return jsonify(ok=True)
@@ -728,7 +739,7 @@ def register_routes(app, core):
                     acknowledge(config, query['id'], 'Tienes diez procesos pendientes. Espera a que termine uno para continuar.')
                     return jsonify(ok=True)
                 try:
-                    store.write(identifier, {"state": "queued", "owner_id": config["owner_id"], **owner_fields,
+                    store.write(identifier, {"state": "queued", "owner_id": config["owner_id"], **owner_fields, **traces.capture(),
                         "action": {"channel": "gmail", "source_job": match[1], "recipient_index": int(match[2])}, "created_at": time.time()}, 0)
                 except PreconditionFailed:
                     pass
@@ -741,8 +752,11 @@ def register_routes(app, core):
         if message is None:
             return jsonify(ok=True)
         identifier = str(update["update_id"])
+        traces.adopt(traces.telegram_trace(identifier))
         store = runtime.JobStore()
         job, generation = store.read(identifier)
+        if job:
+            traces.adopt(job)
         if not job:
             command = (message.get("text") or "").strip().split(" ")[0].lower()
             if command.split('@')[0]=='/estado':
@@ -763,7 +777,7 @@ def register_routes(app, core):
                 say(config, rejection, message.get("message_id"))
                 return jsonify(ok=True)
             try:
-                store.write(identifier, {"state": "queued", "message": message, "source_message_id": message.get("message_id"), "created_at": time.time(), 'owner_id':config['owner_id'], **owner_fields}, 0)
+                store.write(identifier, {"state": "queued", **traces.capture(), "message": message, "source_message_id": message.get("message_id"), "created_at": time.time(), 'owner_id':config['owner_id'], **owner_fields}, 0)
             except PreconditionFailed:
                 pass
         elif job.get("state") != "queued":

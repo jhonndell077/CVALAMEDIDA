@@ -41,6 +41,10 @@
       ],
       "rewrites": [
         {
+          "source": "/admin/arquitectura{,/**}",
+          "destination": "/admin-architecture.html"
+        },
+        {
           "source": "/admin/funcionamiento{,/**}",
           "destination": "/admin-functionality.html"
         },
@@ -111,6 +115,10 @@
         "**/node_modules/**"
       ],
       "rewrites": [
+        {
+          "source": "/admin/arquitectura{,/**}",
+          "destination": "/admin-architecture.html"
+        },
         {
           "source": "/admin/funcionamiento{,/**}",
           "destination": "/admin-functionality.html"

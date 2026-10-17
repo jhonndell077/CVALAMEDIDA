@@ -19,6 +19,8 @@ const state = {
   knowledgeMap: null,
   bankEnabled: false,
   bankSyncPromise: null,
+  bankPending: false,
+  dataCloseStatus: "unverified",
   multiAccount: false,
   accountReady: false,
   activeUserId: null,
@@ -175,6 +177,21 @@ function clearError() {
   errorBox.hidden = true;
 }
 
+function operationIdFor(payload = {}) {
+  const candidate = payload?.request_id;
+  return /^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i.test(candidate || '')
+    ? candidate : crypto.randomUUID();
+}
+
+window.addEventListener('cv-client-diagnostic', event => {
+  const detail = event.detail || {};
+  if (!state.user || !['access_denied', 'popup_closed', 'popup_failed_to_open', 'oauth_error'].includes(detail.code)) return;
+  if (detail.service !== 'drive-api' || detail.stage !== 'oauth-authorization') return;
+  directRequestJson('/api/diagnostics/client', {
+    service: detail.service, stage: detail.stage, result: 'error', code: detail.code,
+  }, {'X-CV-Operation-ID': operationIdFor({request_id: detail.operationId})}).catch(() => {});
+});
+
 async function requestJson(url, payload) {
   if (window.cvBackground.enabled() && window.cvBackground.handles(url)) return window.cvBackground.run(url, payload);
   return directRequestJson(url, payload);
@@ -191,7 +208,7 @@ async function directRequestJson(url, payload, headers = {}, requestOptions = {}
   const response = await fetch(url, {
     signal: requestOptions.signal,
     method: "POST",
-    headers: authenticatedHeaders({ "Content-Type": "application/json", ...headers }),
+    headers: authenticatedHeaders({ "Content-Type": "application/json", "X-CV-Operation-ID": operationIdFor(payload), ...headers }),
     body: JSON.stringify(payload),
   });
   const data = await response.json().catch(() => ({}));
@@ -223,6 +240,7 @@ async function processFetch(url, settings) {
 }
 
 function authenticatedHeaders(headers = {}) {
+  headers = {"X-CV-Operation-ID": crypto.randomUUID(), ...headers};
   if (state.idToken) headers.Authorization = `Bearer ${state.idToken}`;
   Object.assign(headers, {...(window.cvDrive?.headersIfConnected?.() || {}), ...headers});
   return headers;
@@ -324,6 +342,7 @@ function loadScript(source) {
 }
 
 function renderBankStatus(data) {
+  state.bankPending = Boolean(data.pending);
   const list = $("#bank-documents");
   list.replaceChildren();
   for (const doc of data.documents || []) {
@@ -349,7 +368,8 @@ function renderBankStatus(data) {
 async function synchronizeBank(onProgress) {
   if (!state.bankEnabled) return;
   if (state.bankSyncPromise) return state.bankSyncPromise;
-  const bankOwner = state.user?.uid;
+  const bankOwner = state.user?.uid, bankEpoch = state.authEpoch;
+  const bankIsCurrent = () => bankOwner === state.user?.uid && bankEpoch === state.authEpoch;
   const operation = state.bankSyncPromise = (async () => {
     const button = $("#sync-bank");
     setBusy(button, true, "Leyendo documentos de Drive…");
@@ -357,16 +377,21 @@ async function synchronizeBank(onProgress) {
     try {
       if (window.cvBackground.enabled()) {
         const data = await window.cvBackground.run('/api/bank/sync', {}, {}, onProgress);
-        if (bankOwner !== state.user?.uid) throw new Error('La cuenta cambió durante la sincronización.');
+        if (!bankIsCurrent()) throw new Error('La cuenta cambió durante la sincronización.');
         renderBankStatus(data);
         return data;
       }
       // One document per request keeps large banks within server time limits.
       for (;;) {
         if (state.authRequired && !state.user) throw new Error("Inicia sesión para sincronizar el banco.");
-        if (state.user) state.idToken = await state.user.getIdToken();
+        if (state.user) {
+          const token = await state.user.getIdToken();
+          if (!bankIsCurrent()) throw new Error('La cuenta cambió durante la sincronización.');
+          state.idToken = token;
+        }
+        if (!bankIsCurrent()) throw new Error('La cuenta cambió durante la sincronización.');
         const data = await requestJson("/api/bank/sync", {});
-        if (bankOwner !== state.user?.uid) throw new Error('La cuenta cambió durante la sincronización.');
+        if (!bankIsCurrent()) throw new Error('La cuenta cambió durante la sincronización.');
         renderBankStatus(data);
         if (!data.pending) return data;
         const signature = JSON.stringify(data.documents.map(d => [d.file_id, d.status, d.processed_at]));
@@ -374,10 +399,10 @@ async function synchronizeBank(onProgress) {
         previousSignature = signature;
       }
     } catch (error) {
-      if (bankOwner === state.user?.uid) $("#bank-status").textContent = error.message;
+      if (bankIsCurrent()) $("#bank-status").textContent = error.message;
       throw error;
     } finally {
-      if (bankOwner === state.user?.uid) {
+      if (bankIsCurrent()) {
         setBusy(button, false);
         button.disabled = false;
       }
@@ -948,7 +973,16 @@ async function saveProfileChanges() {
   return window.cvLoading.run("Guardando cambios", () => saveProfileChangesWork());
 }
 
-async function saveProfileChangesWork() {
+let saveProfilePromise = null;
+function saveProfileChangesWork() {
+  if (saveProfilePromise) return saveProfilePromise;
+  const operation = saveProfileChangesTransaction();
+  saveProfilePromise = operation;
+  operation.finally(() => { if (saveProfilePromise === operation) saveProfilePromise = null; });
+  return operation;
+}
+
+async function saveProfileChangesTransaction() {
   const owner = state.user?.uid, epoch = state.authEpoch, editEpoch = state.profileEditEpoch;
   const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch && editEpoch === state.profileEditEpoch;
   const payload = structuredClone(state.bankEnabled ? {profile:state.profileDraft,expected_profile:state.profile} : state.profileDraft);
@@ -960,7 +994,7 @@ async function saveProfileChangesWork() {
   try {
     if (state.user) {
       const token = await state.user.getIdToken();
-      if (!isCurrent()) return;
+      if (!isCurrent()) return false;
       state.idToken = token;
     }
     const response = await fetch("/api/profile", {
@@ -969,23 +1003,27 @@ async function saveProfileChangesWork() {
       body: JSON.stringify(payload),
     });
     const data = await response.json().catch(() => ({}));
-    if (!isCurrent()) return;
+    if (!isCurrent()) return false;
     if (!response.ok) {
-      throw new Error(data.error || `No se pudo guardar (${response.status}).`);
+      throw Object.assign(new Error(data.error || `No se pudo guardar (${response.status}).`), {conflict: response.status === 409});
     }
     state.profile = data.profile;
     state.profileDraft = structuredClone(data.profile);
+    state.bankPending = state.bankEnabled || state.bankPending;
     state.profileDirty = false;
     state.analysis = null; state.draft = null; state.pdf = null;
     state.vacancyRevision = (state.vacancyRevision || 0) + 1;
     analysisPanel.hidden = true; cvPanel.hidden = true; jobPanel.hidden = false;
     renderProfileTree();
     $("#profile-status").textContent = data.message || "Guardado en tu banco";
+    return true;
   } catch (error) {
-    if (!isCurrent()) return;
+    if (!isCurrent()) return false;
+    state.dataCloseStatus = error.conflict ? "conflict" : "recoverable-error";
     profileError.textContent = error.message || "No se pudieron guardar los cambios.";
     profileError.hidden = false;
     saveButton.disabled = false;
+    return false;
   } finally {
     if (isCurrent()) {
       saveButton.textContent = "Guardar cambios";
@@ -993,6 +1031,50 @@ async function saveProfileChangesWork() {
     }
   }
 }
+
+// A single close transaction joins persistence and pending bank work.
+let dataClosePromise = null;
+window.cvDataPanel = {
+  beforeClose() {
+    if (dataClosePromise) return dataClosePromise;
+    const owner = state.user?.uid, epoch = state.authEpoch;
+    const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch;
+    const hadPending = state.profileDirty || (state.bankEnabled && state.bankPending);
+    const operation = (async () => {
+      try {
+        if (state.profileDirty) {
+          state.dataCloseStatus = 'saving';
+          $('#profile-status').textContent = 'Guardando cambios pendientes…';
+          if (!await saveProfileChangesWork() || !isCurrent()) return false;
+        }
+        if (!isCurrent()) return false;
+        if (state.bankEnabled && state.bankPending) {
+          state.dataCloseStatus = 'synchronizing';
+          $('#profile-status').textContent = 'Persistencia confirmada. Sincronizando banco…';
+          await synchronizeBank();
+          if (!isCurrent()) return false;
+          if (state.bankPending) throw new Error('Quedan cambios pendientes de sincronización. Reintenta antes de cerrar.');
+        }
+        if (hadPending) {
+          state.dataCloseStatus = 'confirmed';
+          $('#profile-status').textContent = 'Cambios confirmados por el backend.';
+        }
+        return true;
+      } catch (error) {
+        if (isCurrent()) {
+          state.dataCloseStatus = 'recoverable-error';
+          const output = $('#profile-error');
+          output.textContent = error.message || 'No se pudo confirmar la sincronización. Tus cambios pendientes se conservan.';
+          output.hidden = false;
+        }
+        return false;
+      }
+    })();
+    dataClosePromise = operation;
+    operation.finally(() => { if (dataClosePromise === operation) dataClosePromise = null; });
+    return operation;
+  },
+};
 
 async function updateGoogleUser(user) {
   return updateGoogleUserWork(user);
@@ -1016,6 +1098,10 @@ async function updateGoogleUserWork(user) {
     state.employmentContact=null;
     state.applications = []; state.accountReady = false; state.gmailAttempt = null;
     state.bankSyncPromise = null;
+    state.bankPending = false;
+    state.dataCloseStatus = "unverified";
+    dataClosePromise = null;
+    saveProfilePromise = null;
     $('#select-account-folders').hidden = true;
     setBusy($('#sync-bank'), false);
     jobPanel.hidden = false; setActiveStep(1);
@@ -1122,11 +1208,11 @@ async function initializeGoogleAuth() {
   await loadScript("/__/firebase/10.12.5/firebase-auth-compat.js");
   await loadScript("/__/firebase/init.js");
   state.auth = window.firebase.auth();
-  const googleProvider = () => {
+  const googleProvider = (authorizeDrive = false) => {
     const provider = new window.firebase.auth.GoogleAuthProvider();
-    if (state.driveEnabled) provider.addScope("https://www.googleapis.com/auth/drive.file");
-    if (state.multiAccount) provider.addScope('https://www.googleapis.com/auth/drive.readonly');
-    provider.addScope("https://www.googleapis.com/auth/gmail.send");
+    if (authorizeDrive && state.driveEnabled) provider.addScope("https://www.googleapis.com/auth/drive.file");
+    if (authorizeDrive && state.multiAccount) provider.addScope('https://www.googleapis.com/auth/drive.readonly');
+    if (authorizeDrive) provider.addScope("https://www.googleapis.com/auth/gmail.send");
     provider.setCustomParameters(state.user ? {login_hint:state.user.email, include_granted_scopes:'true'} : {prompt:'select_account', include_granted_scopes:'true'});
     return provider;
   };
@@ -1134,8 +1220,8 @@ async function initializeGoogleAuth() {
     const owner = state.user?.uid, epoch = state.authEpoch;
     // Open Google authorization directly from the click, independently of Telegram.
     const result = state.user
-      ? await state.user.reauthenticateWithPopup(googleProvider())
-      : await state.auth.signInWithPopup(googleProvider());
+      ? await state.user.reauthenticateWithPopup(googleProvider(true))
+      : await state.auth.signInWithPopup(googleProvider(true));
     if (owner && (owner !== state.user?.uid || epoch !== state.authEpoch)) throw new Error('La cuenta cambió durante la autorización.');
     if (state.user && state.user.uid !== result.user.uid) throw new Error('La cuenta cambió durante la autorización.');
     if (!owner) await updateGoogleUser(result.user);
@@ -1149,7 +1235,7 @@ async function initializeGoogleAuth() {
     );
   });
   $("#google-sign-in").addEventListener("click", async () => {
-    const finish = window.cvLoading.start("Iniciando sesión y conectando Drive");
+    const finish = window.cvLoading.start("Iniciando sesión con Google");
     clearError();
     try {
       const provider = googleProvider();
@@ -1158,11 +1244,7 @@ async function initializeGoogleAuth() {
       await updateGoogleUser(result.user);
       const owner = state.user?.uid, epoch = state.authEpoch;
       if (owner !== result.user.uid) return;
-      if (state.driveEnabled) {
-        const credential = await verifiedGoogleCredential(result.credential?.accessToken);
-        if (owner !== state.user?.uid || epoch !== state.authEpoch) return;
-        await window.cvDrive.acceptCredential(credential.access_token, credential);
-      }
+
     } catch (error) {
       showError(error.message || "No se pudo iniciar sesión con Google.");
     } finally { finish(); }

@@ -11,6 +11,7 @@ from google.auth.transport.requests import AuthorizedSession
 from google.cloud import storage
 import google.auth
 import admission_policy
+from diagnostic_stages import observe
 
 PROJECT = "cv-a-la-medida-jhonn"
 
@@ -72,6 +73,7 @@ class JobStore:
     def __init__(self):
         self.bucket = storage.Client(project=PROJECT).bucket(BUCKET)
 
+    @observe(None, 'storage', 'storage-read')
     def read(self, identifier):
         for _ in range(3):
             blob = self.bucket.blob(f"jobs/{identifier}.json")
@@ -88,6 +90,7 @@ class JobStore:
                 continue
         raise JobError("El registro está cambiando. Vuelve a consultarlo en unos segundos.")
 
+    @observe(None, 'storage', 'storage-write')
     def write(self, identifier, data, generation):
         self.bucket.blob(f"jobs/{identifier}.json").upload_from_string(json.dumps(data),
             content_type="application/json", if_generation_match=generation)
@@ -160,6 +163,10 @@ def enqueue(identifier, config, task_identifier=None, kind=None):
         "httpRequest": {"httpMethod": "POST", "url": WORKER,
             "headers": {"Content-Type": "application/json", "X-CV-Telegram-Worker": task_secret(config)},
             "body": base64.b64encode(json.dumps({"update_id": identifier, **({"kind": kind} if kind else {})}).encode()).decode()}}}
+    started = time.monotonic()
     response = _session.post(f"https://cloudtasks.googleapis.com/v2/{QUEUE}/tasks", json=body, timeout=25)
+    from diagnostic_stages import provider_response
+    provider_response(response, started, component="telegram" if kind != "web_analysis" else "bank",
+                      service="tasks", stage="task-dispatched", success=response.ok or response.status_code == 409)
     if response.status_code != 409 and not response.ok:
         raise JobError("No se pudo poner la vacante en la cola de generación.")
