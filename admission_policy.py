@@ -40,11 +40,51 @@ def validate_limits(data):
     return dict(data)
 
 
-def read_policy(store, uid=''):
+PLAN_CATALOG = [
+    {'id': 'basic', 'label': 'Básico', 'daily': 10, 'monthly': 50, 'priceMinor': 0},
+    {'id': 'plus', 'label': 'Plus', 'daily': 20, 'monthly': 200, 'priceMinor': None},
+    {'id': 'pro', 'label': 'Pro', 'daily': 50, 'monthly': 500, 'priceMinor': None},
+]
+
+
+def validate_plan(plan):
+    required = {'name', 'priceMinor', 'currency', 'interval', 'collection', 'paymentStatus'}
+    if not isinstance(plan, dict) or set(plan) not in (required, required | {'customLimits'}):
+        raise ValueError('Plan inválido.')
+    if not isinstance(plan['name'], str) or plan['name'] not in {'basic', 'plus', 'pro', 'custom'}:
+        raise ValueError('Plan inválido.')
+    if type(plan['priceMinor']) is not int or not 0 <= plan['priceMinor'] <= 100000000:
+        raise ValueError('Precio inválido.')
+    if not isinstance(plan['currency'], str) or plan['currency'] != 'DOP':
+        raise ValueError('Moneda inválida.')
+    if plan['name'] == 'basic' and plan['priceMinor'] != 0:
+        raise ValueError('El plan básico es gratuito.')
+    if plan['name'] != 'basic' and plan['priceMinor'] == 0:
+        raise ValueError('Los planes de pago requieren un precio positivo.')
+    if plan['interval'] != 'month' or plan['collection'] != 'manual' or plan['paymentStatus'] != 'unverified':
+        raise ValueError('La configuración no habilita cobros ni verifica pagos.')
+    if 'customLimits' in plan and plan['customLimits'] is not True:
+        raise ValueError('Plan inválido.')
+    return dict(plan)
+
+
+def read_policy_document(store, uid=''):
     document, generation = store.read(policy_key(uid))
     if document is None or document == {'inherit': True}:
         return None, generation
-    return validate_limits(document), generation
+    if not isinstance(document, dict) or set(document) not in ({'daily', 'monthly'}, {'daily', 'monthly', 'plan'}):
+        raise ValueError('Política inválida.')
+    policy = validate_limits({key: document[key] for key in ('daily', 'monthly')})
+    if 'plan' in document:
+        if not uid:
+            raise ValueError('Los planes pertenecen a una cuenta.')
+        policy['plan'] = validate_plan(document['plan'])
+    return policy, generation
+
+
+def read_policy(store, uid=''):
+    document, generation = read_policy_document(store, uid)
+    return (validate_limits({key: document[key] for key in ('daily', 'monthly')}) if document is not None else None), generation
 
 
 def effective_limits(store, uid=''):

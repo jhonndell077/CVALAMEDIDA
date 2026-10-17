@@ -44,11 +44,12 @@ def register_routes(core):
             accounts = []
             for user in page.users:
                 uid = user.uid
-                override, version = admission_policy.read_policy(store, uid)
+                document, version = admission_policy.read_policy_document(store, uid)
+                override = ({key: document[key] for key in ('daily', 'monthly')} if document else None)
                 policy = override or global_policy
                 queue, _ = store.read(admission_policy.queue_key(uid))
                 accounts.append(dict(uid=uid, email=_text(user.email, 320), displayName=_text(user.display_name, 200),
-                    disabled=user.disabled is True, limits=policy,
+                    disabled=user.disabled is True, limits=policy, plan=(document or {}).get('plan'),
                     override=({**override, 'generation': str(version)} if override is not None else None),
                     overrideGeneration=str(version), usage=admission_policy.usage_summary(queue, timestamp, policy)))
             now = datetime.fromtimestamp(timestamp, timezone.utc)
@@ -57,6 +58,7 @@ def register_routes(core):
                                      day=1, hour=0, minute=0, second=0, microsecond=0)
             return reply(at=now.isoformat(), timeZone='UTC', defaults=defaults,
                 **{'global': {**global_policy, 'generation': str(generation)}}, accounts=accounts,
+                planCatalog=admission_policy.PLAN_CATALOG,
                 resets={'daily': tomorrow.isoformat(), 'monthly': next_month.isoformat()},
                 nextPageToken=page.next_page_token or None)
         except Exception as error:
@@ -90,6 +92,12 @@ def register_routes(core):
             # Verify existence without modifying the account; reject arbitrary orphan config.
             if account:
                 auth.get_user(uid)
+            if account and not inheriting:
+                previous, current_generation = admission_policy.read_policy_document(store, uid)
+                if str(current_generation) != version:
+                    raise PreconditionFailed('configuration changed')
+                if previous and previous.get('plan'):
+                    policy['plan'] = {**previous['plan'], 'customLimits': True}
             store.write(admission_policy.policy_key(uid), policy, int(version))
             _, new_generation = store.read(admission_policy.policy_key(uid))
             return reply(ok=True, scope=data['scope'], uid=uid if account else None, generation=str(new_generation),
