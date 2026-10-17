@@ -8,7 +8,20 @@ Módulo `/admin/arquitectura`, enlazado desde Conexiones y el mapa funcional exi
 
 Se completaron los pendientes de la primera entrega: historial compartido en el bucket privado existente; IDs de operación propagados a trabajos y reintentos; señales OAuth del navegador; autenticación básica independiente de conceder Drive/Gmail; observación de etapas de Firebase Auth, PDF, Drive, Vertex, Storage, Tasks, Telegram y Gmail. Los servicios sin evidencia permanecen sin verificar. No se importan retrospectivamente logs de Google Cloud.
 
-DESPLIEGUE_PENDIENTE
+## Despliegue confirmado
+
+Firebase completó `functions,hosting` en `cv-a-la-medida-jhonn`: funciones `api` y `telegram_worker`, Python 3.13, región us-central1, y ambos sitios de Hosting. Código de salida CLI: 0.
+
+- Principal: https://cvalamedida.web.app/admin/arquitectura
+- Segundo sitio: https://cv-a-la-medida-jhonn.web.app/admin/arquitectura
+- Build publicado en ambos: `20261017T022857Z-9ea98529`.
+- Comprobaciones posteriores en ambos sitios: módulo HTTP 200, recurso JavaScript actual HTTP 200, salud API HTTP 200, autenticación requerida y endpoint administrativo sin sesión HTTP 401.
+- Navegador de la sesión existente: “Administrador autorizado”, diagramas seleccionables y alcance de historial compartido confirmado por la lectura del bucket. No se extrajeron tokens ni se inició una nueva sesión.
+- El historial inicial no tenía eventos y los componentes se mostraron “No verificado”; no se generaron errores ni operaciones de usuario artificiales para colorearlos.
+- Evidencia HTTP: `tmp/architecture-deployment-smoke.json`. Captura: `tmp/arquitectura-publicada.png`.
+
+No se alteraron usuarios, credenciales, reglas ni documentos del banco. No se enviaron mensajes Telegram ni se ejecutaron CV/Drive sobre usuarios reales durante las comprobaciones. La escritura del historial durante futuros flujos normales queda instrumentada; no se forzó un flujo productivo para probarla.
+
 
 ## Arquitectura auditada y reutilización
 

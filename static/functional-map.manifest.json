@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-10-16T22:58:11.755Z",
+  "generatedAt": "2026-10-17T02:29:02.578Z",
   "baseline": {
     "buildId": "20261016T223144Z-bb10ff7c",
     "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
@@ -1128,16 +1128,16 @@
     ]
   },
   "previous": {
-    "analysisVersion": 1,
-    "buildId": "20261016T223144Z-bb10ff7c",
-    "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
+    "analysisVersion": 2,
+    "buildId": "20261016T225808Z-df7a72e2",
+    "sourceHash": "875576ab7ec4f18ba2002aa1e5b7ba6f8c4b873f5bb458174560be12cc4d5016",
     "controls": [
       {
         "key": "/drive-auth.html::#authorize",
         "label": "Autorizar Google Drive",
         "page": "/drive-auth.html",
         "group": "section",
-        "fingerprint": "7de72d432ba4d57363c6da8359c82fff517c44908af9a239b07e1a6779ba31f0"
+        "fingerprint": "6d8ffe12ffbd7e76bada71a5987e7fbfcb02a89e5c9ac4f5ee3cc88cd01a923f"
       },
       {
         "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(1)",
@@ -1151,7 +1151,7 @@
         "label": "EMPLEO INTELIGENTE",
         "page": "/",
         "group": "header",
-        "fingerprint": "49d34611cf0407df475d13cf8c647b8a42b0bec628fb8ee518e27345a165192c"
+        "fingerprint": "4d2426dec0da3013245e29417c3761a511b4d1c05400fd36a4a17b9e89f63b67"
       },
       {
         "key": "/::#employment-query",
@@ -1165,35 +1165,35 @@
         "label": "Buscar vacantes",
         "page": "/",
         "group": "employment-search-form",
-        "fingerprint": "efff8092952bbdc5276a438849c762543e88a532147af2416d6f232e99c82cf4"
+        "fingerprint": "08510ea3969f04a6740f78b61adb5bd024d1508c04b527d92a16519626cb821c"
       },
       {
         "key": "/::#employment-latest",
         "label": "Ver últimas publicadas",
         "page": "/",
         "group": "employment-search-form",
-        "fingerprint": "726000d3066e1e4fd627ca9945aeb48bcf64077d91a2ec1d27f13f5b414eb95a"
+        "fingerprint": "00205302d92813846a2e82a7b04ef018dd34d26e580b17f2b8b52f52752a5106"
       },
       {
         "key": "/::#employment-panel>a:nth-of-type(1)",
         "label": "Iniciar sesión con Google para buscar empleos",
         "page": "/",
         "group": "employment-panel",
-        "fingerprint": "d125d72910644240920a2d406542b3c562ccc1ee021036e542bb0a1e8be6d0cf"
+        "fingerprint": "1be78c851b2f6c7922a209e2c810dd23c361d139f5636a4193727ace33f70c1a"
       },
       {
         "key": "/::#employment-results-open",
         "label": "Volver a ver las ofertas",
         "page": "/",
         "group": "employment-panel",
-        "fingerprint": "40038974d2c787939d3ce5bebb1670a5ca6637cb5324e8e22db821fdd0577201"
+        "fingerprint": "5526b36d81c54485b8c9565a6e5d90d5806a7d78055f6af9626b493ea5fbf3d0"
       },
       {
         "key": "/::#employment-results-close",
         "label": "Cerrar ofertas de empleo",
         "page": "/",
         "group": "employment-results-dialog",
-        "fingerprint": "3c951b529e31575f1a77d3c1246640fa7a9407dddde65b0107bd54ad98482a0a"
+        "fingerprint": "90f7a08609ad4799a287acc841e1d99874b3aa6b159a4fabee20a18d8c9ab244"
       },
       {
         "key": "/::#employment-sources-summary>summary:nth-of-type(1)",
@@ -1207,42 +1207,42 @@
         "label": "Todas las fuentes con resultados",
         "page": "/",
         "group": "employment-results-dialog",
-        "fingerprint": "bb8fce9bfaa5ab190e681196f68562d69b45d48ec97f62cc9932b83a3fe38237"
+        "fingerprint": "81fe15a6487c7bae89d4eb36556f5548c3eb3ac4c06bbb164c6c5e4f5d788f54"
       },
       {
         "key": "/::#employment-calendar-prev",
         "label": "Mes anterior",
         "page": "/",
         "group": "employment-calendar",
-        "fingerprint": "71d951d7ec5cfac37d60107bb479fbed3f03d6b6d54677067a0c80a2c6966e97"
+        "fingerprint": "b54a57ac731a2109f2aac63a36c7d57b3d78a9bd9caefd089d1b91834ce45585"
       },
       {
         "key": "/::#employment-calendar-next",
         "label": "Mes siguiente",
         "page": "/",
         "group": "employment-calendar",
-        "fingerprint": "c294624c5bd4cfd192895412387f09140cfba0c17b6e1a2b1d015a68635e520c"
+        "fingerprint": "31dabac00c1df130b166611ad9dd031368e199862f8ca374e0cfc798afdcfc51"
       },
       {
         "key": "/::#employment-calendar-all",
         "label": "Ver todas las últimas",
         "page": "/",
         "group": "employment-calendar",
-        "fingerprint": "55a933daf97d159d0faa03b8849fb7eeb9f79d04e98a633660bd83387ef03570"
+        "fingerprint": "4601d5f69136f06bc87d809c2958f6b6371e588587c1a527264b5b0fa3b71cfd"
       },
       {
         "key": "/::#employment-calendar-undated",
         "label": "Ver ofertas sin fecha",
         "page": "/",
         "group": "employment-calendar",
-        "fingerprint": "ddbbba8e893a346a64279fc54eb6753e12b25eae225af9a8465c07b9d274796d"
+        "fingerprint": "bd7cf76d8d5d6232a3e66b2bd3d1e6b6a5a991e96b7d8f90d1a5a00c2e4b928a"
       },
       {
         "key": "/::#employment-contact-close",
         "label": "Cerrar ×",
         "page": "/",
         "group": "employment-contact-dialog",
-        "fingerprint": "d22de325da903ed20ce1762938871c6242667739abc9988d29226dcaf942e620"
+        "fingerprint": "04e470013ff5c57a7e8474194bb6e697a12317c44152967ff55218211e9208ac"
       },
       {
         "key": "/::#employment-contact-original",
@@ -1270,14 +1270,14 @@
         "label": "Guardar contacto",
         "page": "/",
         "group": "employment-contact-form",
-        "fingerprint": "12196b5aa7f6e19f0f0d2fc60a4de78a882d79ef23d29dfac75b1422cb38aadd"
+        "fingerprint": "4eb5eea11a5aa6b32b154e6feacfca4690125f3dc2c9ce09e5217db622a08b4e"
       },
       {
         "key": "/::#employment-contact-adapt",
         "label": "Adaptar mi CV",
         "page": "/",
         "group": "employment-contact-form",
-        "fingerprint": "4dcd52d9b9d84890fb8193e62d77ce379c1e23eaf1d882ac3d8325729d509dec"
+        "fingerprint": "69fca095a0fd076c4d22a4b38b2e5557a8aaa5eed789a33ea6ff5cad5006c1ea"
       },
       {
         "key": "/::#employment-location-options>summary:nth-of-type(1)",
@@ -1291,7 +1291,7 @@
         "label": "Usar mi ubicación",
         "page": "/",
         "group": "employment-panel",
-        "fingerprint": "13ca9cd01555271583db4b4aad8625263cf47baa3a1e6902202856fd4ce4dfd6"
+        "fingerprint": "6400acadcac29cfbd26dcbc1e24c4ebc8c7fd2e4fe7e8b68fdf61677200b823a"
       },
       {
         "key": "/::#employment-location-form>div:nth-of-type(1)>input:nth-of-type(1)",
@@ -1431,7 +1431,7 @@
         "label": "Localizar dirección",
         "page": "/",
         "group": "employment-location-form",
-        "fingerprint": "e07d4dafb0e3e9aee571ccd1b943e63b73ad635d05e656f01cd6486038ef0d07"
+        "fingerprint": "19826fec98ee860bf361994a151ecdbb49058c595764481da90b15707776ae48"
       },
       {
         "key": "/::#employment-location-form>div:nth-of-type(4)>button:nth-of-type(2)",
@@ -1445,7 +1445,7 @@
         "label": "Eliminar ubicación guardada",
         "page": "/",
         "group": "employment-location-form",
-        "fingerprint": "fa3f30bed6d93fba46004ff5262e15fe78faaca24e1b311fadbd04fb24ca6a61"
+        "fingerprint": "71a68a02d95fcd4caba14af08c85d515c69c2160448416ffbb8a1e68f5890aa4"
       },
       {
         "key": "/::#employment-panel>details:nth-of-type(2)>summary:nth-of-type(1)",
@@ -1557,42 +1557,42 @@
         "label": "Activar simulación autorizada",
         "page": "/",
         "group": "employment-authorization-form",
-        "fingerprint": "f4811c1df5fb6b476dd24b5c56230597e3f8c59db6a413ad7c0ad038121d8f1f"
+        "fingerprint": "36ff22040c93fc4f33682a65fb55c9624ce3e96d22dd62b9a69a4e1389f98130"
       },
       {
         "key": "/::#employment-revoke",
         "label": "Desactiva la autorización para simulaciones automáticas de postulaciones. No desconecta Go",
         "page": "/",
         "group": "employment-panel",
-        "fingerprint": "9f855dfb9a55a44173bb3a8ad2c3725da2f1fb1a5cbf1908ecb8b28eb5e9a87d"
+        "fingerprint": "b9d22f624553da1afebefb50f0b5d8996783ed72769bdf4d2e16b8b98828472c"
       },
       {
         "key": "/::#sync-bank",
         "label": "Sincronizar todo",
         "page": "/",
         "group": "main",
-        "fingerprint": "c44e7d3f59ce9d7838c86a0272bcb94473cab16ea2a586eaeb4b0fc7d7234e0f"
+        "fingerprint": "d783830421f3852c0fae04b5297b674d61d3226e9fedebb2109ee37723077041"
       },
       {
         "key": "/::#google-sign-in",
         "label": "Continuar con Google",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "b976b422a91992d882aa2b851462f53a85deefe562e9c7ff979fec3eacb5522d"
+        "fingerprint": "d47538722e1423ce4b96790445f04e116f2f107eac9121b355629cc77973238a"
       },
       {
         "key": "/::#google-sign-out",
         "label": "Cerrar sesión",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "86af1fb825d7ec7e22b1f6f106eeddd0a32feb5ed761f7cddfe4da2a05de2c12"
+        "fingerprint": "918b4bcf6885add47a520d878cef07111cd28dfbfbb97cfff6f893489ce57272"
       },
       {
         "key": "/::#enable-notifications",
         "label": "Activar notificaciones",
         "page": "/",
         "group": "background-panel",
-        "fingerprint": "96db68be6c020912c2b924f0bc0318eac810851451bd25da0fe9af993e0ca3b6"
+        "fingerprint": "7ca53d51b870ac3dedae2ae7c6702be98dc6f0e52bd01fc646b7f7cbe3dd609b"
       },
       {
         "key": "/::#telegram-authorize-drive",
@@ -1620,7 +1620,7 @@
         "label": "Ya pulsé Iniciar: revisar vinculación",
         "page": "/",
         "group": "telegram-panel",
-        "fingerprint": "ba87438200f9cbb5cbd78d487fe0d7fa3f6fa99392a4593fea98b22a8a4431fc"
+        "fingerprint": "b34fa03b3c1f4ebc5e3931e1d7a926b551629bbbf448a2cf92449ce255959b96"
       },
       {
         "key": "/::#telegram-confirm-link",
@@ -1648,14 +1648,14 @@
         "label": "Seleccionar mis carpetas manualmente",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "bcd2ac4b9a83c05c28e10384f56ee68715f9c671ed8d6ef316a43e7704976d46"
+        "fingerprint": "56947404e53e0822e2375c4b7fd646f8e201020ebbed0e6cd3b812bb875697ac"
       },
       {
         "key": "/::#open-onboarding",
         "label": "Completar mis datos para el CV",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "f34732127ba8ef025881f91cf5d3324fcd512d9ab913e09f71bd3bc93697174e"
+        "fingerprint": "10e99e921f7fc0fab279c1209307af87f2eb2776a0b8022f85343204e246ad7f"
       },
       {
         "key": "/::#bank-panel>details:nth-of-type(1)>summary:nth-of-type(1)",
@@ -1690,7 +1690,7 @@
         "label": "＋ Nueva información",
         "page": "/",
         "group": "profile-panel",
-        "fingerprint": "828556c4815bb6ec6c6488bc6cc0b3076a800b26d973b747d6aabb741ba89c0c"
+        "fingerprint": "f0798ee52cc2475ff40c0d49d8aa6a0d72b6b4795d701169ef1f4f7c96b6f744"
       },
       {
         "key": "/::#new-information-form>label:nth-of-type(1)>select:nth-of-type(1)",
@@ -1788,28 +1788,28 @@
         "label": "Guardar en mi banco",
         "page": "/",
         "group": "new-information-form",
-        "fingerprint": "3bae505e63b5e7232ce073c4d61cf81b129fcfcf357e20608aa05c05bf28c696"
+        "fingerprint": "5b5d342868bafcc3e39f96e9fc5b8977218a617630bc6d5fd854de39040495dc"
       },
       {
         "key": "/::#cancel-information",
         "label": "Cerrar",
         "page": "/",
         "group": "new-information-form",
-        "fingerprint": "40fca6d6ec8c58b3803fa6e2f0f0dcac6d4a016520459ac5a6d2c3a87832a317"
+        "fingerprint": "3a9c6dfba3968b4716f5fac6de0843a19fa7276f8ffe906389bc851c79b954de"
       },
       {
         "key": "/::#save-profile",
         "label": "Guardar cambios",
         "page": "/",
         "group": "profile-panel",
-        "fingerprint": "a618c11136b6e590788e15b3b598201c326ba102a1badc1ee56be472ea3afe57"
+        "fingerprint": "cb8d8c22784cb8f2c7f177992b13c909f03e141eae0f88882475db976667dce9"
       },
       {
         "key": "/::#discard-profile",
         "label": "Descartar cambios",
         "page": "/",
         "group": "profile-panel",
-        "fingerprint": "7c1235194606e4e56ce309e2f1cc0048c13e9ba47f7f396119ca9b8020919fa9"
+        "fingerprint": "02f8682369c2cc1827b57379923e89f098d17880e38730712fc6969a709cde2d"
       },
       {
         "key": "/::#knowledge-files",
@@ -1823,49 +1823,49 @@
         "label": "Actualizar mapa",
         "page": "/",
         "group": "section",
-        "fingerprint": "e1d4fd84e7f56fb3e6a82fc837a864dffb42dc8e2eabf8428adece58390b0107"
+        "fingerprint": "c667dc7871281cf0e3a7f9d9aa3d05fd384c6096d4a463ef8fb911977b124ce8"
       },
       {
         "key": "/::#job-text",
         "label": "job-text",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "240a66d87a9ae481febc1502011f50a6b107ef3cc1a1ab2fc9f4480aff3b7b2d"
+        "fingerprint": "8129ffeb385b413f1b4b015c3e8b3f07d8b32bdeef8a8aba058414bebed991ca"
       },
       {
         "key": "/::#remove-job-text",
         "label": "× Quitar texto",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "471f435a3fd14235ca36d8c8ae528c725f68bd69afe502307949998cbe343928"
+        "fingerprint": "9829afc3acc94648ded495a393f71ae03d8923da0e3b35c8543a692cf9b3383e"
       },
       {
         "key": "/::#job-file",
         "label": "file",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "13f6ed5ff86a756e01167874de600ccb63825cd56c0e5fb718039fdfd62997f2"
+        "fingerprint": "a32cbb62ab20edf66654a3fb8977c8edcaf40732d9a76ed6c3773f40eba4b699"
       },
       {
         "key": "/::#remove-job-file",
         "label": "× Quitar archivo",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "5968ddb7addd009ed26270ae79d6aa247e18a41bb576e5e3cc96fd9bcecef140"
+        "fingerprint": "4eb7c619622fd8c0c35ca0042f06fd0b99a7a7326569067b44b56827ce3d1577"
       },
       {
         "key": "/::#model-select",
         "label": "Buscando modelos Ollama…",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "47b888ea3262a2314672a3f03e5005856528edce5291b8c883e962bf5b48690f"
+        "fingerprint": "45c15c9223e22f6131d53f9c366736a7c9d5fd196bb827d9ecd48155b05407d7"
       },
       {
         "key": "/::#analyze-button",
         "label": "Analizar vacante →",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "f219286697e9eb8dfe3615ec076aa5ebe274b3cace1e9620b2d3807fc1d0dacf"
+        "fingerprint": "29d0fd1c488b47cd93f79da28cd1ab7cc8bee708aed5fe69321b19af7bd1b9f7"
       },
       {
         "key": "/::#how-to-use",
@@ -1879,42 +1879,42 @@
         "label": "Reintentar inicio",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "a071264096fcb5d9ed5dc71c169fad14d59ece3967a492b23778b1376cc263f0"
+        "fingerprint": "c05478f7c8608ff1e77cb4a8f17211b44e3ba8dbfe2a4de657edfd6cb1695178"
       },
       {
         "key": "/::#back-to-job",
         "label": "← Cambiar vacante",
         "page": "/",
         "group": "analysis-panel",
-        "fingerprint": "77c8940f14479ab0e3f98c58c37a7d6b88a750c24b2fbbcfa80f45bb6f9a43cb"
+        "fingerprint": "2454f092a11eaa4c43b096e1bcd1dcbf553eaa039d10f3f15cfc03b475407cdb"
       },
       {
         "key": "/::#create-button",
         "label": "Crear y enviar mi CV →",
         "page": "/",
         "group": "analysis-panel",
-        "fingerprint": "f2c0f831da9181fe85c0f59498299ebcecb74fe2bfe4676e975fc3634c6fccaf"
+        "fingerprint": "a85b42adcb3e59ad92a58edbab30cdbc1712495c4588b59fab012ba5fcb495ed"
       },
       {
         "key": "/::#back-to-analysis",
         "label": "← Volver al análisis",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "e8d193132533bfebdf7a500d67053cf495cee23c335996d097c2655b40e7a00b"
+        "fingerprint": "1160aa441315cb98bce4aae2432cbd25e248da9dac187f44989f03d7095e2f1e"
       },
       {
         "key": "/::#download-pdf",
         "label": "Descargar PDF",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "9a4811ac0f32c74e8769337a59b03245c1927ad681024e78bb37ba78e69602ce"
+        "fingerprint": "c52db29659d9b0d8e3f7c79c7e1d4838f571ab7bc4a96e726ddc230b86ea7d79"
       },
       {
         "key": "/::#download-docx",
         "label": "Descargar Word",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "49e1f3584287846ee751f0336b52276c55e3bb85b62692ad2f121f013108ea04"
+        "fingerprint": "b0c42fd3acb86a49a1efee08c0508f5c21728ee4908b5e476b3769a47b466ae2"
       },
       {
         "key": "/::#application-email",
@@ -1949,7 +1949,7 @@
         "label": "◉ Abrir WhatsApp",
         "page": "/",
         "group": "section",
-        "fingerprint": "b6b8d07e273d117c7cd0a5e31044e6b2315e4dcdcf5deefb0e155a91e0e8e73a"
+        "fingerprint": "fbadf7f205f9184eba058efb8d339baaab5e012ae7b4b1a6bb3b2ea1bb899c5b"
       },
       {
         "key": "/::#application-history-details>summary:nth-of-type(1)",
@@ -1963,21 +1963,21 @@
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "d55a796922c997f8cfea46495227f369220f08042f14931d84d79b14ec785497"
+        "fingerprint": "40baf2bbe12e0e1f8d919df287c03870e1e75ad272671037ca076be041f82df8"
       },
       {
         "key": "/::#load-more-applications",
         "label": "Cargar más postulaciones",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "132bf33b21b0d348ae1271f0dcd0926e5afa0c03c0027de617b6a4b696e755ac"
+        "fingerprint": "c46fcee511a47d9a0a2227ca3fee4d3835ae15d87321012a8d819ed1441702b4"
       },
       {
         "key": "/::#onboarding-close",
         "label": "Cerrar ventana",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "c36ec5435e42871d6fc56c382eeab6c3e60eabc070736d0eca90baf958902471"
+        "fingerprint": "c11c0db3e43c68241dde691638df143fa1a1607529a6c2452301c4c5a782cc47"
       },
       {
         "key": "/::#onboarding-form>fieldset:nth-of-type(1)>div:nth-of-type(1)>label:nth-of-type(1)>input:nth-of-type(1)",
@@ -2012,98 +2012,98 @@
         "label": "file",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "59afe7dd56668b920b3840d888368259fa2a0554fb304f7fbef36ca34ecf2110"
+        "fingerprint": "61da316c96136e576b2873d4b18af1f69d077f77452a72be4924c9ce55d4969b"
       },
       {
         "key": "/::#onboarding-reference-cv",
         "label": "file",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "3cf2380007c414619b353f2eee55ceb52ce87a374cc2c6eeab689a44c30ad339"
+        "fingerprint": "b359777e648e714c4caa56306ddd274e2803ba1c641e63c8996807cf58f2e428"
       },
       {
         "key": "/::#onboarding-reference-remove",
         "label": "Quitar CV de referencia y continuar con mis datos",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "56338f069e17968b6b7482f47287ae02d407af076729df97cebde84d17e94bf9"
+        "fingerprint": "4cf5d03222dcd48480f7791ec0dd74ea4d6fae0ae882d84d5b0cbcf36441337d"
       },
       {
         "key": "/::#onboarding-save",
         "label": "Guardar y consolidar mi banco",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "b507989f5833fb1db6eefd6b15c587ec645a20a55ab845125e751864ef4450c5"
+        "fingerprint": "cb866ae587f0e52ba03c1bece9f46c798c8da46f0eaf3f8b3750a16aa3e9c855"
       },
       {
         "key": "/::#onboarding-preview-open",
         "label": "Ver mi hoja de vida",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "3c901a9402e5706211726c9cdd541ac7a56125286379a9ceb186fd4e84353eb1"
+        "fingerprint": "d6e8dced53ff0b7c7df0894c7c82156f5e9a3b58eb760e2cea3261470cf8f7e7"
       },
       {
         "key": "/::#onboarding-preview-close",
         "label": "Cerrar vista previa",
         "page": "/",
         "group": "onboarding-cv-dialog",
-        "fingerprint": "721d345118e2de51aaa15b55f29258ab4b23a29c76e7ced51fa3f99ef4e9a3cc"
+        "fingerprint": "d401b07bee079279b509bdb4b0c494ac0eadad88915eb125fe229e1d7b3ccefa"
       },
       {
         "key": "/::#onboarding-preview-back",
         "label": "Seguir editando",
         "page": "/",
         "group": "onboarding-cv-dialog",
-        "fingerprint": "e9e11541ce2df5eec88351a4144e043e5822a8663ef1798f5bce8edd79959476"
+        "fingerprint": "1934c54aab397700b6934b6ae05e912e79a43d27371031fa7a2003ee5a09df92"
       },
       {
         "key": "/::#loading-background",
         "label": "Continuar en segundo plano",
         "page": "/",
         "group": "loading-overlay",
-        "fingerprint": "fe1010353a7b5f020116f5d2140ece3539a79d8c0d81cf36dfd6a870f8cead52"
+        "fingerprint": "e2d5966daa70ad8cde29c45be2806ce9adf657b9e19ab595414be7b6fcefccf0"
       },
       {
         "key": "/::#data-toggle",
         "label": "Datos",
         "page": "/",
         "group": "data-actions",
-        "fingerprint": "7c73af7e0e79d3a8142e12bc65eaf9392ff34b173c5015d4ca35e41e8a1513bc"
+        "fingerprint": "6a9eea6b8a514c8a134a3ba0b4249137ce0064ea0df5135b310bc76a6d71c124"
       },
       {
         "key": "/::#data-sync",
         "label": "Sincronizar todo",
         "page": "/",
         "group": "data-actions",
-        "fingerprint": "74704cd12481e7b62362c19ba329298a7ef6fe30ffbc14e72428cadee080def0"
+        "fingerprint": "d9fc307eef3967b143ea1eeedabc84ced2f69a074aaba43bc13f5b1f5a9f222b"
       },
       {
         "key": "/::#data-close",
         "label": "Cerrar Mis datos",
         "page": "/",
         "group": "header",
-        "fingerprint": "ac68fbc855a0e4c57aef53a8b34613aabb1d89d51689999bd61ce45ce82f5f44"
+        "fingerprint": "1f35613ffd4371f0433847ebdce17e07aad6365bdd2778db3584c4f05ef64dca"
       },
       {
         "key": "/::#profile-category-close",
         "label": "Cerrar categoría",
         "page": "/",
         "group": "header",
-        "fingerprint": "cb2f3a5223b8a3712ba509bf7a6ff2d50bbe1baf7ed297fc2459cbca7cf181cd"
+        "fingerprint": "c08c5b5b05e554f839e034f378a55c84340f9ed3594a7fa7891ba107786c24be"
       },
       {
         "key": "/::#profile-category-search",
         "label": "search",
         "page": "/",
         "group": "profile-category-dialog",
-        "fingerprint": "0bec55cd6ff1216e338820a57448484d108b79abdf7dbc7bafabc71ad0b28532"
+        "fingerprint": "c6353234347c627d195919f7d3ded5ba36629428cbe438b67778fc778cb7891a"
       },
       {
         "key": "/::#employment-window-close",
         "label": "Cerrar",
         "page": "/",
         "group": "header",
-        "fingerprint": "c6661e338cd495dc09b0f750a7787d0b8b50afa5a22893dd37d91b08a5d79f7e"
+        "fingerprint": "3e304afde1891cc5a3ce857bd17c8280eac83827d24a9732879392c011ecf503"
       },
       {
         "key": "/manual.html::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(1)",
@@ -2256,7 +2256,7 @@
   },
   "current": {
     "analysisVersion": 2,
-    "sourceHash": "875576ab7ec4f18ba2002aa1e5b7ba6f8c4b873f5bb458174560be12cc4d5016",
+    "sourceHash": "3781739310f4a924694e94cb2ffe0875528c8441ea433da025a4e178965319c7",
     "pages": [
       {
         "path": "/drive-auth.html",
@@ -2320,7 +2320,7 @@
           {
             "event": "click",
             "source": "static/drive-auth.js",
-            "line": 46,
+            "line": 51,
             "confidence": "selector estático",
             "fingerprint": "c7a9bee39c75350bc1eaac7a8d3ec8d2ac252882ffb70fd422d80400f7e00d4d",
             "endpoints": [],
@@ -2334,19 +2334,7 @@
           {
             "selector": "#authorize",
             "property": "disabled",
-            "line": 38,
-            "source": "static/drive-auth.js"
-          },
-          {
-            "selector": "#authorize",
-            "property": "disabled",
-            "line": 42,
-            "source": "static/drive-auth.js"
-          },
-          {
-            "selector": "#authorize",
-            "property": "disabled",
-            "line": 44,
+            "line": 43,
             "source": "static/drive-auth.js"
           },
           {
@@ -2354,10 +2342,22 @@
             "property": "disabled",
             "line": 47,
             "source": "static/drive-auth.js"
+          },
+          {
+            "selector": "#authorize",
+            "property": "disabled",
+            "line": 49,
+            "source": "static/drive-auth.js"
+          },
+          {
+            "selector": "#authorize",
+            "property": "disabled",
+            "line": 52,
+            "source": "static/drive-auth.js"
           }
         ],
-        "relatedTestCount": 11,
-        "fingerprint": "6d8ffe12ffbd7e76bada71a5987e7fbfcb02a89e5c9ac4f5ee3cc88cd01a923f"
+        "relatedTestCount": 12,
+        "fingerprint": "83b6a8f1641b0bf0736ae0cd2192c96bd85c8828c666c7d3864ebd8fc7b1a2d5"
       },
       {
         "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(1)",
@@ -3737,9 +3737,9 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 391,
+            "line": 416,
             "confidence": "selector estático",
-            "fingerprint": "25b967656c9420883864de1fd5075115d7ccd31cfb260d4ca7bdd8e3f6e50f40",
+            "fingerprint": "272b5bf5e6c4000d9ed3d29b7a9536d8b1603ef692d0eb4115dbe20a1311a541",
             "endpoints": [
               "/api/account/onboarding",
               "/api/background/jobs",
@@ -3769,36 +3769,36 @@
           {
             "selector": "#sync-bank",
             "property": "disabled",
-            "line": 395,
+            "line": 420,
             "source": "static/app.js"
           },
           {
             "selector": "#sync-bank",
             "property": "disabled",
-            "line": 409,
+            "line": 434,
             "source": "static/app.js"
           },
           {
             "selector": "#sync-bank",
             "property": "disabled",
-            "line": 1066,
+            "line": 1152,
             "source": "static/app.js"
           },
           {
             "selector": "#sync-bank",
             "property": "disabled",
-            "line": 1099,
+            "line": 1185,
             "source": "static/app.js"
           },
           {
             "selector": "#sync-bank",
             "property": "disabled",
-            "line": 1195,
+            "line": 1277,
             "source": "static/app.js"
           }
         ],
         "relatedTestCount": 4,
-        "fingerprint": "d783830421f3852c0fae04b5297b674d61d3226e9fedebb2109ee37723077041"
+        "fingerprint": "61ab9b8cda874a3794cd9fee64fb174c885cd485fc54ee4d080a80ff3a048f12"
       },
       {
         "key": "/::#google-sign-in",
@@ -3815,9 +3815,9 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1151,
+            "line": 1237,
             "confidence": "selector estático",
-            "fingerprint": "8b0c93bf7e106c7088b738378008f2e8dc7d736c94f8454838ae78cad21906ad",
+            "fingerprint": "ed7423129d379bd911e589148d62b91721a2511a9880ce883c05880ba33d5153",
             "endpoints": [
               "/api/account",
               "/api/account/onboarding",
@@ -3826,7 +3826,6 @@
               "/api/background/jobs/:param",
               "/api/bank/status",
               "/api/bank/sync",
-              "/api/google/grant",
               "/api/knowledge-map",
               "/api/notifications/config",
               "/api/notifications/subscribe",
@@ -3851,12 +3850,12 @@
           {
             "selector": "#google-sign-in",
             "property": "hidden",
-            "line": 1055,
+            "line": 1141,
             "source": "static/app.js"
           }
         ],
-        "relatedTestCount": 1,
-        "fingerprint": "d47538722e1423ce4b96790445f04e116f2f107eac9121b355629cc77973238a"
+        "relatedTestCount": 2,
+        "fingerprint": "307e569fcfff27a3a421b816e6e9afc41dd77e5808cb61a38978261afeb96ae7"
       },
       {
         "key": "/::#google-sign-out",
@@ -3873,7 +3872,7 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1170,
+            "line": 1252,
             "confidence": "selector estático",
             "fingerprint": "fceff1c265aadaca3e0005dcb14c645986655ed360bacb2e16eada2cd3ac52ce",
             "endpoints": [],
@@ -3889,12 +3888,12 @@
           {
             "selector": "#google-sign-out",
             "property": "hidden",
-            "line": 1056,
+            "line": 1142,
             "source": "static/app.js"
           }
         ],
-        "relatedTestCount": 0,
-        "fingerprint": "918b4bcf6885add47a520d878cef07111cd28dfbfbb97cfff6f893489ce57272"
+        "relatedTestCount": 1,
+        "fingerprint": "17010d7f1d08ed358349799669fe7c1cc8af859981fc46219b0f07634e6c315b"
       },
       {
         "key": "/::#enable-notifications",
@@ -4122,7 +4121,7 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1999,
+            "line": 2081,
             "confidence": "selector estático",
             "fingerprint": "59ad7b42787644e388e9a2f84e9cb8a9b00479b5835d6db4d80a9cfcab11cb83",
             "endpoints": [],
@@ -4136,13 +4135,13 @@
           {
             "selector": "#select-account-folders",
             "property": "hidden",
-            "line": 1019,
+            "line": 1105,
             "source": "static/app.js"
           },
           {
             "selector": "#select-account-folders",
             "property": "hidden",
-            "line": 1077,
+            "line": 1163,
             "source": "static/app.js"
           }
         ],
@@ -4270,7 +4269,7 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 47,
+            "line": 49,
             "confidence": "selector estático",
             "fingerprint": "30274cad8f6579f82cecacde53fd65ecfd6856359e464c1df22e069ed7e5b269",
             "endpoints": [],
@@ -4507,9 +4506,9 @@
           {
             "event": "submit",
             "source": "static/app.js",
-            "line": 60,
+            "line": 62,
             "confidence": "selector estático",
-            "fingerprint": "efad8c653431e277392528083c90eb1f147df2637e0ffce22bc3d4436e683be9",
+            "fingerprint": "cc8028c30df97b0c8d3e97d1afa8e731187530c21139f5220b4458f2b5706195",
             "endpoints": [
               "/api/background/jobs",
               "/api/background/jobs/:param",
@@ -4534,7 +4533,7 @@
         ],
         "guards": [],
         "relatedTestCount": 0,
-        "fingerprint": "5b5d342868bafcc3e39f96e9fc5b8977218a617630bc6d5fd854de39040495dc"
+        "fingerprint": "b2ca1da06715118fe93a48b6ae77cada4484245aced893b850ae4ca0dc53f7b2"
       },
       {
         "key": "/::#cancel-information",
@@ -4551,7 +4550,7 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 52,
+            "line": 54,
             "confidence": "selector estático",
             "fingerprint": "74e0b681a7a6291fc91ebbd1e2a707f67ad2cb6df3bdb4415e2028e1fe493cbc",
             "endpoints": [],
@@ -4580,9 +4579,9 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1209,
+            "line": 1291,
             "confidence": "selector estático",
-            "fingerprint": "c214fa0b41b1c14acb762a3d2d355505d20843d03e69bf6ca33cfbebc7a410d6",
+            "fingerprint": "7a2a73e370de24c790eaefe4ce89a9da0736cf6ada98484825dda7b380d622d3",
             "endpoints": [
               "/api/profile",
               "/api/profile/delete"
@@ -4599,31 +4598,19 @@
           {
             "selector": "#save-profile",
             "property": "disabled",
-            "line": 675,
+            "line": 700,
             "source": "static/app.js"
           },
           {
             "selector": "#save-profile",
             "property": "hidden",
-            "line": 932,
+            "line": 957,
             "source": "static/app.js"
           },
           {
             "selector": "#save-profile",
             "property": "disabled",
-            "line": 934,
-            "source": "static/app.js"
-          },
-          {
-            "selector": "#save-profile",
-            "property": "disabled",
-            "line": 958,
-            "source": "static/app.js"
-          },
-          {
-            "selector": "#save-profile",
-            "property": "disabled",
-            "line": 988,
+            "line": 959,
             "source": "static/app.js"
           },
           {
@@ -4631,10 +4618,22 @@
             "property": "disabled",
             "line": 992,
             "source": "static/app.js"
+          },
+          {
+            "selector": "#save-profile",
+            "property": "disabled",
+            "line": 1025,
+            "source": "static/app.js"
+          },
+          {
+            "selector": "#save-profile",
+            "property": "disabled",
+            "line": 1030,
+            "source": "static/app.js"
           }
         ],
         "relatedTestCount": 1,
-        "fingerprint": "cb8d8c22784cb8f2c7f177992b13c909f03e141eae0f88882475db976667dce9"
+        "fingerprint": "c855193aac342582531094214eea3116715d6a0417d287a67617b75e040f30d9"
       },
       {
         "key": "/::#discard-profile",
@@ -4651,9 +4650,9 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1211,
+            "line": 1293,
             "confidence": "selector estático",
-            "fingerprint": "aedbcb8fba0d7d0a89f323b316b941253b5d0995ff6206ab8fef0c2517776ac9",
+            "fingerprint": "947cad28a63667990cf98f2123add8097e9e8ef026e2f9ada751d0e6c2306db0",
             "endpoints": [
               "/api/profile/delete"
             ],
@@ -4669,24 +4668,24 @@
           {
             "selector": "#discard-profile",
             "property": "disabled",
-            "line": 676,
+            "line": 701,
             "source": "static/app.js"
           },
           {
             "selector": "#discard-profile",
             "property": "hidden",
-            "line": 933,
+            "line": 958,
             "source": "static/app.js"
           },
           {
             "selector": "#discard-profile",
             "property": "disabled",
-            "line": 935,
+            "line": 960,
             "source": "static/app.js"
           }
         ],
         "relatedTestCount": 1,
-        "fingerprint": "02f8682369c2cc1827b57379923e89f098d17880e38730712fc6969a709cde2d"
+        "fingerprint": "e114970eccf1610476df521783c2622b0694c31d0838c6eff340d311802e6122"
       },
       {
         "key": "/::#knowledge-files",
@@ -4719,7 +4718,7 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1210,
+            "line": 1292,
             "confidence": "selector estático",
             "fingerprint": "37198d748d9b41bb6ea3b508737b04ccc48c422637c72fcdcdfffd7955533b0f",
             "endpoints": [],
@@ -4750,7 +4749,7 @@
           {
             "event": "input",
             "source": "static/app.js",
-            "line": 1263,
+            "line": 1345,
             "confidence": "selector estático",
             "fingerprint": "9c0ed19962188656b3c9a6f54f5b711d5ab511dc465f907733b177cfecadd781",
             "endpoints": [],
@@ -4779,7 +4778,7 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1282,
+            "line": 1364,
             "confidence": "selector estático",
             "fingerprint": "72353e768e784f62801360bc5401919f00eabaff709d403688bf51ac4511ae9c",
             "endpoints": [],
@@ -4793,7 +4792,7 @@
           {
             "selector": "#remove-job-text",
             "property": "disabled",
-            "line": 1243,
+            "line": 1325,
             "source": "static/app.js"
           }
         ],
@@ -4815,7 +4814,7 @@
           {
             "event": "change",
             "source": "static/app.js",
-            "line": 1290,
+            "line": 1372,
             "confidence": "selector estático",
             "fingerprint": "da8673a9ceda154c09567494801a5968c2af7dd118e87ada58225907b9d41905",
             "endpoints": [],
@@ -4844,7 +4843,7 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1308,
+            "line": 1390,
             "confidence": "selector estático",
             "fingerprint": "63d0b6c1c05f18de45fc71e90ce4af53a4395f16b95c829ab1a9695a5f0a8709",
             "endpoints": [],
@@ -4858,19 +4857,19 @@
           {
             "selector": "#remove-job-file",
             "property": "hidden",
-            "line": 1274,
+            "line": 1356,
             "source": "static/app.js"
           },
           {
             "selector": "#remove-job-file",
             "property": "hidden",
-            "line": 1294,
+            "line": 1376,
             "source": "static/app.js"
           },
           {
             "selector": "#remove-job-file",
             "property": "hidden",
-            "line": 1311,
+            "line": 1393,
             "source": "static/app.js"
           }
         ],
@@ -4892,7 +4891,7 @@
           {
             "event": "change",
             "source": "static/app.js",
-            "line": 1316,
+            "line": 1398,
             "confidence": "selector estático",
             "fingerprint": "02e1c6c529c724cc043391d68b7535a32f356888f479b8d69b3e424d532d8b59",
             "endpoints": [],
@@ -4921,9 +4920,9 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1321,
+            "line": 1403,
             "confidence": "selector estático",
-            "fingerprint": "c990292c42db5b7ebebe0b9c7e8b20e05bdfc3046af7475464b5652649c78aed",
+            "fingerprint": "de5c9c51c85e4e396c496fd8269942baddee2330ca0b5322f73c1ba5ca096db8",
             "endpoints": [
               "/api/analyze",
               "/api/analyze/jobs",
@@ -4951,12 +4950,12 @@
           {
             "selector": "#analyze-button",
             "property": "disabled",
-            "line": 232,
+            "line": 250,
             "source": "static/app.js"
           }
         ],
         "relatedTestCount": 1,
-        "fingerprint": "29d0fd1c488b47cd93f79da28cd1ab7cc8bee708aed5fe69321b19af7bd1b9f7"
+        "fingerprint": "be0e8ec94dc6af8ec4839fe8a8ffa6ed5d25fe13cbc0bf9ea56aa537632e3041"
       },
       {
         "key": "/::#how-to-use",
@@ -4989,7 +4988,7 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1226,
+            "line": 1308,
             "confidence": "selector estático",
             "fingerprint": "96172457f4696cd5b85ac295e8597b25221204ad82b5d9beb8dce45ead30e8a6",
             "endpoints": [],
@@ -5003,7 +5002,7 @@
           {
             "selector": "#retry-bootstrap",
             "property": "hidden",
-            "line": 1221,
+            "line": 1303,
             "source": "static/app.js"
           }
         ],
@@ -5025,7 +5024,7 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 2004,
+            "line": 2086,
             "confidence": "selector estático",
             "fingerprint": "5994dc352d0fc8cbec200d227e48f3ff5d30273a9f5d42728ea7242cc69f3544",
             "endpoints": [],
@@ -5054,9 +5053,9 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1563,
+            "line": 1645,
             "confidence": "selector estático",
-            "fingerprint": "2d8f86a7e984f47913c3f14c7b155ee295d77d21a74d31466948052d99106dd6",
+            "fingerprint": "b275f6d9196d9d30eeb024eb8d534f19ce04c0868e183b7587890a1b864aab04",
             "endpoints": [
               "/api/applications",
               "/api/background/jobs",
@@ -5083,7 +5082,7 @@
         ],
         "guards": [],
         "relatedTestCount": 1,
-        "fingerprint": "a85b42adcb3e59ad92a58edbab30cdbc1712495c4588b59fab012ba5fcb495ed"
+        "fingerprint": "4072a73f03511645e7f04d0ffc9998ac5176684621ec4f7ca793815db8031cbe"
       },
       {
         "key": "/::#back-to-analysis",
@@ -5100,7 +5099,7 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 2011,
+            "line": 2093,
             "confidence": "selector estático",
             "fingerprint": "fe8b8b4684b9a255904b7fe6903726e08099eaab407b446f052ab1560d6a1275",
             "endpoints": [],
@@ -5129,9 +5128,9 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1767,
+            "line": 1849,
             "confidence": "selector estático",
-            "fingerprint": "1f0b055d6283cac0263760d1b7aeb6a413a62f6f15511198972b438f603737f4",
+            "fingerprint": "995dd0e4a6cb59fbefb1e343e744f3aea5ee1a62dc9296bff21689a45a0a7441",
             "endpoints": [
               "/api/background/jobs",
               "/api/background/jobs/:param",
@@ -5152,7 +5151,7 @@
         ],
         "guards": [],
         "relatedTestCount": 1,
-        "fingerprint": "c52db29659d9b0d8e3f7c79c7e1d4838f571ab7bc4a96e726ddc230b86ea7d79"
+        "fingerprint": "2912f06f40a25eb6bb73c1983cb083fcdf7dce991999f5d4bce6cc5482237989"
       },
       {
         "key": "/::#download-docx",
@@ -5169,9 +5168,9 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1768,
+            "line": 1850,
             "confidence": "selector estático",
-            "fingerprint": "8cd75c1a0cdc11520e242953ae2cd3dc0391a7c9ad4b6f75e85046fbe32993f2",
+            "fingerprint": "ab81c4212d99d21b99f2f77b0d5c914a4794eb84caf344437b14223d882e55f0",
             "endpoints": [
               "/api/background/jobs",
               "/api/background/jobs/:param",
@@ -5192,7 +5191,7 @@
         ],
         "guards": [],
         "relatedTestCount": 0,
-        "fingerprint": "b0c42fd3acb86a49a1efee08c0508f5c21728ee4908b5e476b3769a47b466ae2"
+        "fingerprint": "c2bccd4b2be6196afdcfefd74d0e62ba0d048623c722aaa86644b77e0b97c211"
       },
       {
         "key": "/::#application-email",
@@ -5273,9 +5272,9 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1980,
+            "line": 2062,
             "confidence": "selector estático",
-            "fingerprint": "37f62db41eba44037159c40b3663874319b6bfa0334c7c2cf7045553b6a03a42",
+            "fingerprint": "bff1d146394538ad3ac9231154b4fec159f10a86cbf2c7cd53fe19a4cfc9d524",
             "endpoints": [
               "/api/applications",
               "/api/background/jobs",
@@ -5301,7 +5300,7 @@
         ],
         "guards": [],
         "relatedTestCount": 1,
-        "fingerprint": "fbadf7f205f9184eba058efb8d339baaab5e012ae7b4b1a6bb3b2ea1bb899c5b"
+        "fingerprint": "c31e53a7d22ec2af9e40b4738a88775ea61335c29965d29c74ba33cc8bbd87f2"
       },
       {
         "key": "/::#application-history-details>summary:nth-of-type(1)",
@@ -5334,9 +5333,9 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1981,
+            "line": 2063,
             "confidence": "selector estático",
-            "fingerprint": "3fe208c8061b2c8bae6f993662399c56c77db36becafbdbe4dd23bd4e0e3bf5b",
+            "fingerprint": "0f7c8f40da7f553469fa57854204fa7578d91315a9f8c8d476cb7b8c8cd2d0fa",
             "endpoints": [
               "/api/applications",
               "/api/background/jobs",
@@ -5359,7 +5358,7 @@
         ],
         "guards": [],
         "relatedTestCount": 4,
-        "fingerprint": "40baf2bbe12e0e1f8d919df287c03870e1e75ad272671037ca076be041f82df8"
+        "fingerprint": "7c57132d6a670d0781048384af1f77fe0a73a7206ae420689dce42377529a036"
       },
       {
         "key": "/::#load-more-applications",
@@ -5376,9 +5375,9 @@
           {
             "event": "click",
             "source": "static/app.js",
-            "line": 1982,
+            "line": 2064,
             "confidence": "selector estático",
-            "fingerprint": "8778542526d407e3f5566c9fd918e0fc9b962a1915f07f419544f1141bf8962e",
+            "fingerprint": "dee2a519ae610a5ae2482e028b51291159464fe22bd906297698c45c690d3aad",
             "endpoints": [
               "/api/applications",
               "/api/background/jobs",
@@ -5403,18 +5402,18 @@
           {
             "selector": "#load-more-applications",
             "property": "hidden",
-            "line": 1030,
+            "line": 1116,
             "source": "static/app.js"
           },
           {
             "selector": "#load-more-applications",
             "property": "hidden",
-            "line": 1848,
+            "line": 1930,
             "source": "static/app.js"
           }
         ],
         "relatedTestCount": 0,
-        "fingerprint": "c46fcee511a47d9a0a2227ca3fee4d3835ae15d87321012a8d819ed1441702b4"
+        "fingerprint": "05bfbc168e5d080c768f9cec4df3fbf39fc9648cce8dc02f2663af183a65bb8c"
       },
       {
         "key": "/::#onboarding-close",
@@ -5615,7 +5614,7 @@
             "source": "static/onboarding.js",
             "line": 105,
             "confidence": "selector estático",
-            "fingerprint": "8469cb4f4048c08902f9b2e2ef82f9842075af591079f3fbaeda7784f47108b8",
+            "fingerprint": "7115bd18303dac53e278f638dafbc78ebb1f00d747dabb134789902dd08bc61d",
             "endpoints": [
               "/api/account/onboarding"
             ],
@@ -5631,7 +5630,7 @@
         ],
         "guards": [],
         "relatedTestCount": 0,
-        "fingerprint": "cb866ae587f0e52ba03c1bece9f46c798c8da46f0eaf3f8b3750a16aa3e9c855"
+        "fingerprint": "f967593e02d040bae7a335f3ac951bd62acfbbabd6299f771994cdc722854977"
       },
       {
         "key": "/::#onboarding-preview-open",
@@ -5771,9 +5770,9 @@
           {
             "event": "click",
             "source": "static/data-panel.js",
-            "line": 40,
+            "line": 45,
             "confidence": "selector estático",
-            "fingerprint": "2631058d767f496bf561f34f72bd35e2ad69a87081119a35c1d793e865cb3e15",
+            "fingerprint": "2107594f527c3881ef6aa542b113edc35ce1cac5c5752557c98aded4ad70584e",
             "endpoints": [],
             "destinations": [],
             "loading": [],
@@ -5783,7 +5782,7 @@
         ],
         "guards": [],
         "relatedTestCount": 1,
-        "fingerprint": "6a9eea6b8a514c8a134a3ba0b4249137ce0064ea0df5135b310bc76a6d71c124"
+        "fingerprint": "b7d96388e7915c4706bc6e78c2151346505c3e8f0e500084fd26fa48069a8526"
       },
       {
         "key": "/::#data-sync",
@@ -5800,7 +5799,7 @@
           {
             "event": "click",
             "source": "static/data-panel.js",
-            "line": 84,
+            "line": 89,
             "confidence": "selector estático",
             "fingerprint": "145b56d033085dbd45759505875f41b32020729bca8631b7a60915d552e86f8c",
             "endpoints": [],
@@ -5814,7 +5813,7 @@
           {
             "selector": "#data-sync",
             "property": "disabled",
-            "line": 85,
+            "line": 90,
             "source": "static/data-panel.js"
           }
         ],
@@ -5836,9 +5835,9 @@
           {
             "event": "click",
             "source": "static/data-panel.js",
-            "line": 54,
+            "line": 59,
             "confidence": "selector estático",
-            "fingerprint": "c1bb1359d8ecd3dbc19d9c4d17ae8bb8b38b9cc73d77a3ea5b1a26d25184384c",
+            "fingerprint": "00eb4fe39a8a0754f53b536e0454cf8f9c6c6846495c1a770f1e96d23508f002",
             "endpoints": [],
             "destinations": [],
             "loading": [],
@@ -5848,7 +5847,7 @@
         ],
         "guards": [],
         "relatedTestCount": 0,
-        "fingerprint": "1f35613ffd4371f0433847ebdce17e07aad6365bdd2778db3584c4f05ef64dca"
+        "fingerprint": "63f05fd88654dbed5e9397fb425f06ee4a9dc319c50c8ed75a88df872eb5eda0"
       },
       {
         "key": "/::#profile-category-close",
@@ -6429,7 +6428,7 @@
       {
         "event": "message",
         "target": null,
-        "line": 152,
+        "line": 171,
         "source": "static/drive.js",
         "confidence": "destino dinámico/global"
       },
@@ -6464,84 +6463,91 @@
       {
         "event": "resize",
         "target": null,
-        "line": 102,
+        "line": 107,
         "source": "static/data-panel.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "change",
         "target": null,
-        "line": 53,
+        "line": 55,
+        "source": "static/app.js",
+        "confidence": "destino dinámico/global"
+      },
+      {
+        "event": "cv-client-diagnostic",
+        "target": null,
+        "line": 186,
         "source": "static/app.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "click",
         "target": null,
-        "line": 745,
+        "line": 770,
         "source": "static/app.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "input",
         "target": null,
-        "line": 816,
+        "line": 841,
         "source": "static/app.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "click",
         "target": null,
-        "line": 872,
+        "line": 897,
         "source": "static/app.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "cv-employment-vacancy",
         "target": null,
-        "line": 1264,
+        "line": 1346,
         "source": "static/app.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "pageshow",
         "target": null,
-        "line": 1281,
+        "line": 1363,
         "source": "static/app.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "click",
         "target": null,
-        "line": 1367,
+        "line": 1449,
         "source": "static/app.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "cv-background-result",
         "target": null,
-        "line": 1404,
+        "line": 1486,
         "source": "static/app.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "click",
         "target": null,
-        "line": 1811,
+        "line": 1893,
         "source": "static/app.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "cv-account-ready",
         "target": null,
-        "line": 1983,
+        "line": 2065,
         "source": "static/app.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "cv-drive-connected",
         "target": null,
-        "line": 1984,
+        "line": 2066,
         "source": "static/app.js",
         "confidence": "destino dinámico/global"
       },
@@ -6751,7 +6757,7 @@
     ],
     "warnings": [],
     "parser": "acorn 8.16.0",
-    "buildId": "20261016T225808Z-df7a72e2"
+    "buildId": "20261017T022857Z-9ea98529"
   },
   "changesSincePrevious": {
     "added": [],
@@ -6762,441 +6768,119 @@
         "label": "Autorizar Google Drive",
         "page": "/drive-auth.html",
         "group": "section",
-        "fingerprint": "6d8ffe12ffbd7e76bada71a5987e7fbfcb02a89e5c9ac4f5ee3cc88cd01a923f"
-      },
-      {
-        "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(2)",
-        "label": "EMPLEO INTELIGENTE",
-        "page": "/",
-        "group": "header",
-        "fingerprint": "4d2426dec0da3013245e29417c3761a511b4d1c05400fd36a4a17b9e89f63b67"
-      },
-      {
-        "key": "/::#employment-search-button",
-        "label": "Buscar vacantes",
-        "page": "/",
-        "group": "employment-search-form",
-        "fingerprint": "08510ea3969f04a6740f78b61adb5bd024d1508c04b527d92a16519626cb821c"
-      },
-      {
-        "key": "/::#employment-latest",
-        "label": "Ver últimas publicadas",
-        "page": "/",
-        "group": "employment-search-form",
-        "fingerprint": "00205302d92813846a2e82a7b04ef018dd34d26e580b17f2b8b52f52752a5106"
-      },
-      {
-        "key": "/::#employment-panel>a:nth-of-type(1)",
-        "label": "Iniciar sesión con Google para buscar empleos",
-        "page": "/",
-        "group": "employment-panel",
-        "fingerprint": "1be78c851b2f6c7922a209e2c810dd23c361d139f5636a4193727ace33f70c1a"
-      },
-      {
-        "key": "/::#employment-results-open",
-        "label": "Volver a ver las ofertas",
-        "page": "/",
-        "group": "employment-panel",
-        "fingerprint": "5526b36d81c54485b8c9565a6e5d90d5806a7d78055f6af9626b493ea5fbf3d0"
-      },
-      {
-        "key": "/::#employment-results-close",
-        "label": "Cerrar ofertas de empleo",
-        "page": "/",
-        "group": "employment-results-dialog",
-        "fingerprint": "90f7a08609ad4799a287acc841e1d99874b3aa6b159a4fabee20a18d8c9ab244"
-      },
-      {
-        "key": "/::#employment-source-filter",
-        "label": "Todas las fuentes con resultados",
-        "page": "/",
-        "group": "employment-results-dialog",
-        "fingerprint": "81fe15a6487c7bae89d4eb36556f5548c3eb3ac4c06bbb164c6c5e4f5d788f54"
-      },
-      {
-        "key": "/::#employment-calendar-prev",
-        "label": "Mes anterior",
-        "page": "/",
-        "group": "employment-calendar",
-        "fingerprint": "b54a57ac731a2109f2aac63a36c7d57b3d78a9bd9caefd089d1b91834ce45585"
-      },
-      {
-        "key": "/::#employment-calendar-next",
-        "label": "Mes siguiente",
-        "page": "/",
-        "group": "employment-calendar",
-        "fingerprint": "31dabac00c1df130b166611ad9dd031368e199862f8ca374e0cfc798afdcfc51"
-      },
-      {
-        "key": "/::#employment-calendar-all",
-        "label": "Ver todas las últimas",
-        "page": "/",
-        "group": "employment-calendar",
-        "fingerprint": "4601d5f69136f06bc87d809c2958f6b6371e588587c1a527264b5b0fa3b71cfd"
-      },
-      {
-        "key": "/::#employment-calendar-undated",
-        "label": "Ver ofertas sin fecha",
-        "page": "/",
-        "group": "employment-calendar",
-        "fingerprint": "bd7cf76d8d5d6232a3e66b2bd3d1e6b6a5a991e96b7d8f90d1a5a00c2e4b928a"
-      },
-      {
-        "key": "/::#employment-contact-close",
-        "label": "Cerrar ×",
-        "page": "/",
-        "group": "employment-contact-dialog",
-        "fingerprint": "04e470013ff5c57a7e8474194bb6e697a12317c44152967ff55218211e9208ac"
-      },
-      {
-        "key": "/::#employment-contact-save",
-        "label": "Guardar contacto",
-        "page": "/",
-        "group": "employment-contact-form",
-        "fingerprint": "4eb5eea11a5aa6b32b154e6feacfca4690125f3dc2c9ce09e5217db622a08b4e"
-      },
-      {
-        "key": "/::#employment-contact-adapt",
-        "label": "Adaptar mi CV",
-        "page": "/",
-        "group": "employment-contact-form",
-        "fingerprint": "69fca095a0fd076c4d22a4b38b2e5557a8aaa5eed789a33ea6ff5cad5006c1ea"
-      },
-      {
-        "key": "/::#employment-location-button",
-        "label": "Usar mi ubicación",
-        "page": "/",
-        "group": "employment-panel",
-        "fingerprint": "6400acadcac29cfbd26dcbc1e24c4ebc8c7fd2e4fe7e8b68fdf61677200b823a"
-      },
-      {
-        "key": "/::#employment-geocode",
-        "label": "Localizar dirección",
-        "page": "/",
-        "group": "employment-location-form",
-        "fingerprint": "19826fec98ee860bf361994a151ecdbb49058c595764481da90b15707776ae48"
-      },
-      {
-        "key": "/::#employment-delete",
-        "label": "Eliminar ubicación guardada",
-        "page": "/",
-        "group": "employment-location-form",
-        "fingerprint": "71a68a02d95fcd4caba14af08c85d515c69c2160448416ffbb8a1e68f5890aa4"
-      },
-      {
-        "key": "/::#employment-authorization-form>button:nth-of-type(1)",
-        "label": "Activar simulación autorizada",
-        "page": "/",
-        "group": "employment-authorization-form",
-        "fingerprint": "36ff22040c93fc4f33682a65fb55c9624ce3e96d22dd62b9a69a4e1389f98130"
-      },
-      {
-        "key": "/::#employment-revoke",
-        "label": "Desactiva la autorización para simulaciones automáticas de postulaciones. No desconecta Go",
-        "page": "/",
-        "group": "employment-panel",
-        "fingerprint": "b9d22f624553da1afebefb50f0b5d8996783ed72769bdf4d2e16b8b98828472c"
+        "fingerprint": "83b6a8f1641b0bf0736ae0cd2192c96bd85c8828c666c7d3864ebd8fc7b1a2d5"
       },
       {
         "key": "/::#sync-bank",
         "label": "Sincronizar todo",
         "page": "/",
         "group": "main",
-        "fingerprint": "d783830421f3852c0fae04b5297b674d61d3226e9fedebb2109ee37723077041"
+        "fingerprint": "61ab9b8cda874a3794cd9fee64fb174c885cd485fc54ee4d080a80ff3a048f12"
       },
       {
         "key": "/::#google-sign-in",
         "label": "Continuar con Google",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "d47538722e1423ce4b96790445f04e116f2f107eac9121b355629cc77973238a"
+        "fingerprint": "307e569fcfff27a3a421b816e6e9afc41dd77e5808cb61a38978261afeb96ae7"
       },
       {
         "key": "/::#google-sign-out",
         "label": "Cerrar sesión",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "918b4bcf6885add47a520d878cef07111cd28dfbfbb97cfff6f893489ce57272"
-      },
-      {
-        "key": "/::#enable-notifications",
-        "label": "Activar notificaciones",
-        "page": "/",
-        "group": "background-panel",
-        "fingerprint": "7ca53d51b870ac3dedae2ae7c6702be98dc6f0e52bd01fc646b7f7cbe3dd609b"
-      },
-      {
-        "key": "/::#telegram-check-link",
-        "label": "Ya pulsé Iniciar: revisar vinculación",
-        "page": "/",
-        "group": "telegram-panel",
-        "fingerprint": "b34fa03b3c1f4ebc5e3931e1d7a926b551629bbbf448a2cf92449ce255959b96"
-      },
-      {
-        "key": "/::#select-account-folders",
-        "label": "Seleccionar mis carpetas manualmente",
-        "page": "/",
-        "group": "bank-panel",
-        "fingerprint": "56947404e53e0822e2375c4b7fd646f8e201020ebbed0e6cd3b812bb875697ac"
-      },
-      {
-        "key": "/::#open-onboarding",
-        "label": "Completar mis datos para el CV",
-        "page": "/",
-        "group": "bank-panel",
-        "fingerprint": "10e99e921f7fc0fab279c1209307af87f2eb2776a0b8022f85343204e246ad7f"
-      },
-      {
-        "key": "/::#new-information",
-        "label": "＋ Nueva información",
-        "page": "/",
-        "group": "profile-panel",
-        "fingerprint": "f0798ee52cc2475ff40c0d49d8aa6a0d72b6b4795d701169ef1f4f7c96b6f744"
+        "fingerprint": "17010d7f1d08ed358349799669fe7c1cc8af859981fc46219b0f07634e6c315b"
       },
       {
         "key": "/::#save-information",
         "label": "Guardar en mi banco",
         "page": "/",
         "group": "new-information-form",
-        "fingerprint": "5b5d342868bafcc3e39f96e9fc5b8977218a617630bc6d5fd854de39040495dc"
-      },
-      {
-        "key": "/::#cancel-information",
-        "label": "Cerrar",
-        "page": "/",
-        "group": "new-information-form",
-        "fingerprint": "3a9c6dfba3968b4716f5fac6de0843a19fa7276f8ffe906389bc851c79b954de"
+        "fingerprint": "b2ca1da06715118fe93a48b6ae77cada4484245aced893b850ae4ca0dc53f7b2"
       },
       {
         "key": "/::#save-profile",
         "label": "Guardar cambios",
         "page": "/",
         "group": "profile-panel",
-        "fingerprint": "cb8d8c22784cb8f2c7f177992b13c909f03e141eae0f88882475db976667dce9"
+        "fingerprint": "c855193aac342582531094214eea3116715d6a0417d287a67617b75e040f30d9"
       },
       {
         "key": "/::#discard-profile",
         "label": "Descartar cambios",
         "page": "/",
         "group": "profile-panel",
-        "fingerprint": "02f8682369c2cc1827b57379923e89f098d17880e38730712fc6969a709cde2d"
-      },
-      {
-        "key": "/::#update-knowledge-map",
-        "label": "Actualizar mapa",
-        "page": "/",
-        "group": "section",
-        "fingerprint": "c667dc7871281cf0e3a7f9d9aa3d05fd384c6096d4a463ef8fb911977b124ce8"
-      },
-      {
-        "key": "/::#job-text",
-        "label": "job-text",
-        "page": "/",
-        "group": "job-panel",
-        "fingerprint": "8129ffeb385b413f1b4b015c3e8b3f07d8b32bdeef8a8aba058414bebed991ca"
-      },
-      {
-        "key": "/::#remove-job-text",
-        "label": "× Quitar texto",
-        "page": "/",
-        "group": "job-panel",
-        "fingerprint": "9829afc3acc94648ded495a393f71ae03d8923da0e3b35c8543a692cf9b3383e"
-      },
-      {
-        "key": "/::#job-file",
-        "label": "file",
-        "page": "/",
-        "group": "job-panel",
-        "fingerprint": "a32cbb62ab20edf66654a3fb8977c8edcaf40732d9a76ed6c3773f40eba4b699"
-      },
-      {
-        "key": "/::#remove-job-file",
-        "label": "× Quitar archivo",
-        "page": "/",
-        "group": "job-panel",
-        "fingerprint": "4eb7c619622fd8c0c35ca0042f06fd0b99a7a7326569067b44b56827ce3d1577"
-      },
-      {
-        "key": "/::#model-select",
-        "label": "Buscando modelos Ollama…",
-        "page": "/",
-        "group": "job-panel",
-        "fingerprint": "45c15c9223e22f6131d53f9c366736a7c9d5fd196bb827d9ecd48155b05407d7"
+        "fingerprint": "e114970eccf1610476df521783c2622b0694c31d0838c6eff340d311802e6122"
       },
       {
         "key": "/::#analyze-button",
         "label": "Analizar vacante →",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "29d0fd1c488b47cd93f79da28cd1ab7cc8bee708aed5fe69321b19af7bd1b9f7"
-      },
-      {
-        "key": "/::#retry-bootstrap",
-        "label": "Reintentar inicio",
-        "page": "/",
-        "group": "job-panel",
-        "fingerprint": "c05478f7c8608ff1e77cb4a8f17211b44e3ba8dbfe2a4de657edfd6cb1695178"
-      },
-      {
-        "key": "/::#back-to-job",
-        "label": "← Cambiar vacante",
-        "page": "/",
-        "group": "analysis-panel",
-        "fingerprint": "2454f092a11eaa4c43b096e1bcd1dcbf553eaa039d10f3f15cfc03b475407cdb"
+        "fingerprint": "be0e8ec94dc6af8ec4839fe8a8ffa6ed5d25fe13cbc0bf9ea56aa537632e3041"
       },
       {
         "key": "/::#create-button",
         "label": "Crear y enviar mi CV →",
         "page": "/",
         "group": "analysis-panel",
-        "fingerprint": "a85b42adcb3e59ad92a58edbab30cdbc1712495c4588b59fab012ba5fcb495ed"
-      },
-      {
-        "key": "/::#back-to-analysis",
-        "label": "← Volver al análisis",
-        "page": "/",
-        "group": "cv-panel",
-        "fingerprint": "1160aa441315cb98bce4aae2432cbd25e248da9dac187f44989f03d7095e2f1e"
+        "fingerprint": "4072a73f03511645e7f04d0ffc9998ac5176684621ec4f7ca793815db8031cbe"
       },
       {
         "key": "/::#download-pdf",
         "label": "Descargar PDF",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "c52db29659d9b0d8e3f7c79c7e1d4838f571ab7bc4a96e726ddc230b86ea7d79"
+        "fingerprint": "2912f06f40a25eb6bb73c1983cb083fcdf7dce991999f5d4bce6cc5482237989"
       },
       {
         "key": "/::#download-docx",
         "label": "Descargar Word",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "b0c42fd3acb86a49a1efee08c0508f5c21728ee4908b5e476b3769a47b466ae2"
+        "fingerprint": "c2bccd4b2be6196afdcfefd74d0e62ba0d048623c722aaa86644b77e0b97c211"
       },
       {
         "key": "/::#send-whatsapp",
         "label": "◉ Abrir WhatsApp",
         "page": "/",
         "group": "section",
-        "fingerprint": "fbadf7f205f9184eba058efb8d339baaab5e012ae7b4b1a6bb3b2ea1bb899c5b"
+        "fingerprint": "c31e53a7d22ec2af9e40b4738a88775ea61335c29965d29c74ba33cc8bbd87f2"
       },
       {
         "key": "/::#refresh-application-history",
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "40baf2bbe12e0e1f8d919df287c03870e1e75ad272671037ca076be041f82df8"
+        "fingerprint": "7c57132d6a670d0781048384af1f77fe0a73a7206ae420689dce42377529a036"
       },
       {
         "key": "/::#load-more-applications",
         "label": "Cargar más postulaciones",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "c46fcee511a47d9a0a2227ca3fee4d3835ae15d87321012a8d819ed1441702b4"
-      },
-      {
-        "key": "/::#onboarding-close",
-        "label": "Cerrar ventana",
-        "page": "/",
-        "group": "onboarding-form",
-        "fingerprint": "c11c0db3e43c68241dde691638df143fa1a1607529a6c2452301c4c5a782cc47"
-      },
-      {
-        "key": "/::#onboarding-photo",
-        "label": "file",
-        "page": "/",
-        "group": "onboarding-form",
-        "fingerprint": "61da316c96136e576b2873d4b18af1f69d077f77452a72be4924c9ce55d4969b"
-      },
-      {
-        "key": "/::#onboarding-reference-cv",
-        "label": "file",
-        "page": "/",
-        "group": "onboarding-form",
-        "fingerprint": "b359777e648e714c4caa56306ddd274e2803ba1c641e63c8996807cf58f2e428"
-      },
-      {
-        "key": "/::#onboarding-reference-remove",
-        "label": "Quitar CV de referencia y continuar con mis datos",
-        "page": "/",
-        "group": "onboarding-form",
-        "fingerprint": "4cf5d03222dcd48480f7791ec0dd74ea4d6fae0ae882d84d5b0cbcf36441337d"
+        "fingerprint": "05bfbc168e5d080c768f9cec4df3fbf39fc9648cce8dc02f2663af183a65bb8c"
       },
       {
         "key": "/::#onboarding-save",
         "label": "Guardar y consolidar mi banco",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "cb866ae587f0e52ba03c1bece9f46c798c8da46f0eaf3f8b3750a16aa3e9c855"
-      },
-      {
-        "key": "/::#onboarding-preview-open",
-        "label": "Ver mi hoja de vida",
-        "page": "/",
-        "group": "onboarding-form",
-        "fingerprint": "d6e8dced53ff0b7c7df0894c7c82156f5e9a3b58eb760e2cea3261470cf8f7e7"
-      },
-      {
-        "key": "/::#onboarding-preview-close",
-        "label": "Cerrar vista previa",
-        "page": "/",
-        "group": "onboarding-cv-dialog",
-        "fingerprint": "d401b07bee079279b509bdb4b0c494ac0eadad88915eb125fe229e1d7b3ccefa"
-      },
-      {
-        "key": "/::#onboarding-preview-back",
-        "label": "Seguir editando",
-        "page": "/",
-        "group": "onboarding-cv-dialog",
-        "fingerprint": "1934c54aab397700b6934b6ae05e912e79a43d27371031fa7a2003ee5a09df92"
-      },
-      {
-        "key": "/::#loading-background",
-        "label": "Continuar en segundo plano",
-        "page": "/",
-        "group": "loading-overlay",
-        "fingerprint": "e2d5966daa70ad8cde29c45be2806ce9adf657b9e19ab595414be7b6fcefccf0"
+        "fingerprint": "f967593e02d040bae7a335f3ac951bd62acfbbabd6299f771994cdc722854977"
       },
       {
         "key": "/::#data-toggle",
         "label": "Datos",
         "page": "/",
         "group": "data-actions",
-        "fingerprint": "6a9eea6b8a514c8a134a3ba0b4249137ce0064ea0df5135b310bc76a6d71c124"
-      },
-      {
-        "key": "/::#data-sync",
-        "label": "Sincronizar todo",
-        "page": "/",
-        "group": "data-actions",
-        "fingerprint": "d9fc307eef3967b143ea1eeedabc84ced2f69a074aaba43bc13f5b1f5a9f222b"
+        "fingerprint": "b7d96388e7915c4706bc6e78c2151346505c3e8f0e500084fd26fa48069a8526"
       },
       {
         "key": "/::#data-close",
         "label": "Cerrar Mis datos",
         "page": "/",
         "group": "header",
-        "fingerprint": "1f35613ffd4371f0433847ebdce17e07aad6365bdd2778db3584c4f05ef64dca"
-      },
-      {
-        "key": "/::#profile-category-close",
-        "label": "Cerrar categoría",
-        "page": "/",
-        "group": "header",
-        "fingerprint": "c08c5b5b05e554f839e034f378a55c84340f9ed3594a7fa7891ba107786c24be"
-      },
-      {
-        "key": "/::#profile-category-search",
-        "label": "search",
-        "page": "/",
-        "group": "profile-category-dialog",
-        "fingerprint": "c6353234347c627d195919f7d3ded5ba36629428cbe438b67778fc778cb7891a"
-      },
-      {
-        "key": "/::#employment-window-close",
-        "label": "Cerrar",
-        "page": "/",
-        "group": "header",
-        "fingerprint": "3e304afde1891cc5a3ce857bd17c8280eac83827d24a9732879392c011ecf503"
+        "fingerprint": "63f05fd88654dbed5e9397fb425f06ee4a9dc319c50c8ed75a88df872eb5eda0"
       }
     ]
   },
@@ -7209,7 +6893,7 @@
         "label": "Autorizar Google Drive",
         "page": "/drive-auth.html",
         "group": "section",
-        "fingerprint": "6d8ffe12ffbd7e76bada71a5987e7fbfcb02a89e5c9ac4f5ee3cc88cd01a923f"
+        "fingerprint": "83b6a8f1641b0bf0736ae0cd2192c96bd85c8828c666c7d3864ebd8fc7b1a2d5"
       },
       {
         "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(2)",
@@ -7349,21 +7033,21 @@
         "label": "Sincronizar todo",
         "page": "/",
         "group": "main",
-        "fingerprint": "d783830421f3852c0fae04b5297b674d61d3226e9fedebb2109ee37723077041"
+        "fingerprint": "61ab9b8cda874a3794cd9fee64fb174c885cd485fc54ee4d080a80ff3a048f12"
       },
       {
         "key": "/::#google-sign-in",
         "label": "Continuar con Google",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "d47538722e1423ce4b96790445f04e116f2f107eac9121b355629cc77973238a"
+        "fingerprint": "307e569fcfff27a3a421b816e6e9afc41dd77e5808cb61a38978261afeb96ae7"
       },
       {
         "key": "/::#google-sign-out",
         "label": "Cerrar sesión",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "918b4bcf6885add47a520d878cef07111cd28dfbfbb97cfff6f893489ce57272"
+        "fingerprint": "17010d7f1d08ed358349799669fe7c1cc8af859981fc46219b0f07634e6c315b"
       },
       {
         "key": "/::#enable-notifications",
@@ -7405,7 +7089,7 @@
         "label": "Guardar en mi banco",
         "page": "/",
         "group": "new-information-form",
-        "fingerprint": "5b5d342868bafcc3e39f96e9fc5b8977218a617630bc6d5fd854de39040495dc"
+        "fingerprint": "b2ca1da06715118fe93a48b6ae77cada4484245aced893b850ae4ca0dc53f7b2"
       },
       {
         "key": "/::#cancel-information",
@@ -7419,14 +7103,14 @@
         "label": "Guardar cambios",
         "page": "/",
         "group": "profile-panel",
-        "fingerprint": "cb8d8c22784cb8f2c7f177992b13c909f03e141eae0f88882475db976667dce9"
+        "fingerprint": "c855193aac342582531094214eea3116715d6a0417d287a67617b75e040f30d9"
       },
       {
         "key": "/::#discard-profile",
         "label": "Descartar cambios",
         "page": "/",
         "group": "profile-panel",
-        "fingerprint": "02f8682369c2cc1827b57379923e89f098d17880e38730712fc6969a709cde2d"
+        "fingerprint": "e114970eccf1610476df521783c2622b0694c31d0838c6eff340d311802e6122"
       },
       {
         "key": "/::#update-knowledge-map",
@@ -7475,7 +7159,7 @@
         "label": "Analizar vacante →",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "29d0fd1c488b47cd93f79da28cd1ab7cc8bee708aed5fe69321b19af7bd1b9f7"
+        "fingerprint": "be0e8ec94dc6af8ec4839fe8a8ffa6ed5d25fe13cbc0bf9ea56aa537632e3041"
       },
       {
         "key": "/::#retry-bootstrap",
@@ -7496,7 +7180,7 @@
         "label": "Crear y enviar mi CV →",
         "page": "/",
         "group": "analysis-panel",
-        "fingerprint": "a85b42adcb3e59ad92a58edbab30cdbc1712495c4588b59fab012ba5fcb495ed"
+        "fingerprint": "4072a73f03511645e7f04d0ffc9998ac5176684621ec4f7ca793815db8031cbe"
       },
       {
         "key": "/::#back-to-analysis",
@@ -7510,35 +7194,35 @@
         "label": "Descargar PDF",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "c52db29659d9b0d8e3f7c79c7e1d4838f571ab7bc4a96e726ddc230b86ea7d79"
+        "fingerprint": "2912f06f40a25eb6bb73c1983cb083fcdf7dce991999f5d4bce6cc5482237989"
       },
       {
         "key": "/::#download-docx",
         "label": "Descargar Word",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "b0c42fd3acb86a49a1efee08c0508f5c21728ee4908b5e476b3769a47b466ae2"
+        "fingerprint": "c2bccd4b2be6196afdcfefd74d0e62ba0d048623c722aaa86644b77e0b97c211"
       },
       {
         "key": "/::#send-whatsapp",
         "label": "◉ Abrir WhatsApp",
         "page": "/",
         "group": "section",
-        "fingerprint": "fbadf7f205f9184eba058efb8d339baaab5e012ae7b4b1a6bb3b2ea1bb899c5b"
+        "fingerprint": "c31e53a7d22ec2af9e40b4738a88775ea61335c29965d29c74ba33cc8bbd87f2"
       },
       {
         "key": "/::#refresh-application-history",
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "40baf2bbe12e0e1f8d919df287c03870e1e75ad272671037ca076be041f82df8"
+        "fingerprint": "7c57132d6a670d0781048384af1f77fe0a73a7206ae420689dce42377529a036"
       },
       {
         "key": "/::#load-more-applications",
         "label": "Cargar más postulaciones",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "c46fcee511a47d9a0a2227ca3fee4d3835ae15d87321012a8d819ed1441702b4"
+        "fingerprint": "05bfbc168e5d080c768f9cec4df3fbf39fc9648cce8dc02f2663af183a65bb8c"
       },
       {
         "key": "/::#onboarding-close",
@@ -7573,7 +7257,7 @@
         "label": "Guardar y consolidar mi banco",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "cb866ae587f0e52ba03c1bece9f46c798c8da46f0eaf3f8b3750a16aa3e9c855"
+        "fingerprint": "f967593e02d040bae7a335f3ac951bd62acfbbabd6299f771994cdc722854977"
       },
       {
         "key": "/::#onboarding-preview-open",
@@ -7608,7 +7292,7 @@
         "label": "Datos",
         "page": "/",
         "group": "data-actions",
-        "fingerprint": "6a9eea6b8a514c8a134a3ba0b4249137ce0064ea0df5135b310bc76a6d71c124"
+        "fingerprint": "b7d96388e7915c4706bc6e78c2151346505c3e8f0e500084fd26fa48069a8526"
       },
       {
         "key": "/::#data-sync",
@@ -7622,7 +7306,7 @@
         "label": "Cerrar Mis datos",
         "page": "/",
         "group": "header",
-        "fingerprint": "1f35613ffd4371f0433847ebdce17e07aad6365bdd2778db3584c4f05ef64dca"
+        "fingerprint": "63f05fd88654dbed5e9397fb425f06ee4a9dc319c50c8ed75a88df872eb5eda0"
       },
       {
         "key": "/::#profile-category-close",
@@ -7648,12 +7332,12 @@
     ]
   },
   "tests": {
-    "sourceHash": "875576ab7ec4f18ba2002aa1e5b7ba6f8c4b873f5bb458174560be12cc4d5016",
+    "sourceHash": "3781739310f4a924694e94cb2ffe0875528c8441ea433da025a4e178965319c7",
     "passed": true,
-    "checkedAt": "2026-10-16T22:57:20.494726+00:00",
-    "pythonTests": 392,
-    "javascriptTests": 179,
-    "coveragePercent": 81.46,
+    "checkedAt": "2026-10-17T02:27:43.969381+00:00",
+    "pythonTests": 429,
+    "javascriptTests": 203,
+    "coveragePercent": 81.6,
     "network": "blocked",
     "scope": "Suite local; no acredita cada acción ni servicios desplegados."
   }
