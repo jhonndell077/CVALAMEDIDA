@@ -31,4 +31,11 @@ Verificador existente: `venv/Scripts/python.exe scripts/verify_release.py --outp
 
 Agregar únicamente `https://cvalamedida.web.app` al cliente web existente es la corrección de configuración propuesta. No requiere crear otro cliente, rotar secretos ni ampliar scopes. Al modificar la lista de orígenes autorizados, se solicitará confirmación específica antes de guardar en Google Cloud. Esta corrección del diagnóstico por sí sola no reconfigura OAuth ni prueba la sincronización real del usuario.
 
-DESPLIEGUE_PENDIENTE
+## Despliegue confirmado
+
+Corrección publicada en ambas funciones y ambos sitios de Hosting. Firebase CLI confirmó `Deploy complete`, código 0. Build `20261017T044052Z-82ece164`.
+
+Comprobación posterior en ambos sitios: telegram.js y admin-architecture.js coinciden byte a byte con la versión probada; salud HTTP 200; API administrativa sin sesión HTTP 401. Evidencia en `tmp/telegram-diagnostics-smoke.json`.
+
+La corrección de código no habilita por sí sola el dominio faltante en Google Cloud. El formulario del cliente OAuth quedó preparado con `https://cvalamedida.web.app` como único origen adicional, sin pulsar Guardar; se requiere confirmación específica antes de aplicar ese cambio de seguridad.
+
