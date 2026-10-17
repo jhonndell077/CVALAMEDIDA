@@ -176,7 +176,8 @@ def register_routes(core):
                 endpoint = context['endpoint']
                 response.headers['X-Correlation-ID'] = context['id']
                 record_stage(core, component=ROUTES[endpoint], service='worker' if endpoint == '/telegram/work' else 'api', endpoint=endpoint,
-                             stage='http-backend', result='error' if response.status_code >= 400 else 'success',
+                             stage='http-backend', result=('warning' if response.status_code == 429 else
+                                                          'error' if response.status_code >= 400 else 'success'),
                              code=response.status_code, duration_ms=(time.monotonic()-context['start'])*1000)
                 shared = core.app.extensions.get('architecture_shared_diagnostics')
                 if shared is not None:

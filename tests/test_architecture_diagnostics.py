@@ -25,7 +25,7 @@ class DiagnosticsTests(unittest.TestCase):
                 flask.g.google_identity = {'uid': 'fixture', 'email': 'owner@example.test'}
         @app.post('/api/export/<format_name>')
         def export(format_name):
-            return flask.jsonify(ok=True), 403 if format_name == 'fail' else 200
+            return flask.jsonify(ok=True), 429 if format_name == 'limited' else 403 if format_name == 'fail' else 200
         diagnostics.register_routes(self.core)
         self.client = app.test_client()
 
@@ -56,6 +56,15 @@ class DiagnosticsTests(unittest.TestCase):
         self.client.post('/api/export/fail')
         event = self.snapshot().json['events'][0]
         self.assertEqual((event['result'], event['code'], event['service']), ('error', 403, 'api'))
+
+    def test_throttled_request_is_confirmed_warning_not_service_failure(self):
+        response = self.client.post('/api/export/limited')
+        self.assertEqual(response.status_code, 429)
+        event = self.snapshot().json['events'][0]
+        self.assertEqual((event['result'], event['code'], event['service']), ('warning', 429, 'api'))
+        self.assertTrue(event['confirmed'])
+        self.assertEqual(event['component'], 'pdf')
+        self.assertEqual(event['endpoint'], '/api/export/<format_name>')
 
     def test_retention_and_bounded_concurrent_writes(self):
         now = [1000]

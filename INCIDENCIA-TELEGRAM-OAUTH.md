@@ -27,9 +27,9 @@ Verificador existente: `venv/Scripts/python.exe scripts/verify_release.py --outp
 - Mocks y red bloqueada en backend; sin mensajes Telegram ni cambios de usuarios/datos de producción.
 - Revisión especializada: sin bloqueantes tras corregir callbacks tardíos y distinguir pendiente de fallo.
 
-## Configuración OAuth pendiente
+## Configuración OAuth aplicada con autorización
 
-Agregar únicamente `https://cvalamedida.web.app` al cliente web existente es la corrección de configuración propuesta. No requiere crear otro cliente, rotar secretos ni ampliar scopes. Al modificar la lista de orígenes autorizados, se solicitará confirmación específica antes de guardar en Google Cloud. Esta corrección del diagnóstico por sí sola no reconfigura OAuth ni prueba la sincronización real del usuario.
+Tras la instrucción explícita del usuario, se guardó únicamente `https://cvalamedida.web.app` como origen adicional del cliente web existente. Google confirmó el guardado y el formulario reabierto conserva ese origen. No se creó otro cliente ni se cambiaron secretos, scopes o redirecciones. La sincronización real del usuario sigue pendiente de un nuevo intento.
 
 ## Despliegue confirmado
 
@@ -37,5 +37,5 @@ Corrección publicada en ambas funciones y ambos sitios de Hosting. Firebase CLI
 
 Comprobación posterior en ambos sitios: telegram.js y admin-architecture.js coinciden byte a byte con la versión probada; salud HTTP 200; API administrativa sin sesión HTTP 401. Evidencia en `tmp/telegram-diagnostics-smoke.json`.
 
-La corrección de código no habilita por sí sola el dominio faltante en Google Cloud. El formulario del cliente OAuth quedó preparado con `https://cvalamedida.web.app` como único origen adicional, sin pulsar Guardar; se requiere confirmación específica antes de aplicar ese cambio de seguridad.
+La configuración OAuth se guardó después de este despliegue, con la autorización posterior del usuario. Evidencia local: `tmp/origen-oauth-guardado.png`.
 
