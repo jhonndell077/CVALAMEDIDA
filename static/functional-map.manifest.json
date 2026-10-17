@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-10-17T04:40:56.384Z",
+  "generatedAt": "2026-10-17T12:44:05.339Z",
   "baseline": {
     "buildId": "20261016T223144Z-bb10ff7c",
     "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
@@ -1129,8 +1129,8 @@
   },
   "previous": {
     "analysisVersion": 2,
-    "buildId": "20261017T022857Z-9ea98529",
-    "sourceHash": "3781739310f4a924694e94cb2ffe0875528c8441ea433da025a4e178965319c7",
+    "buildId": "20261017T044052Z-82ece164",
+    "sourceHash": "89318cd1f33e35f8fa988664fd4b32c5ed774edbf512ce8897ec30cad0100617",
     "controls": [
       {
         "key": "/drive-auth.html::#authorize",
@@ -1578,7 +1578,7 @@
         "label": "Continuar con Google",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "307e569fcfff27a3a421b816e6e9afc41dd77e5808cb61a38978261afeb96ae7"
+        "fingerprint": "c27d7fba8bb74dd71192d1c57dc3a0b41ae16aa713593716271420efc31c5216"
       },
       {
         "key": "/::#google-sign-out",
@@ -1620,7 +1620,7 @@
         "label": "Ya pulsé Iniciar: revisar vinculación",
         "page": "/",
         "group": "telegram-panel",
-        "fingerprint": "b34fa03b3c1f4ebc5e3931e1d7a926b551629bbbf448a2cf92449ce255959b96"
+        "fingerprint": "35e095fa5f4faa33a11102bd165bbebfcf755c1262190be6a61138a231da7529"
       },
       {
         "key": "/::#telegram-confirm-link",
@@ -2256,7 +2256,7 @@
   },
   "current": {
     "analysisVersion": 2,
-    "sourceHash": "89318cd1f33e35f8fa988664fd4b32c5ed774edbf512ce8897ec30cad0100617",
+    "sourceHash": "a70d33ac6e27ec0c423d9b952c764312af82f6584f16e09b6ec69e50bef42fec",
     "pages": [
       {
         "path": "/drive-auth.html",
@@ -6759,27 +6759,12 @@
     ],
     "warnings": [],
     "parser": "acorn 8.16.0",
-    "buildId": "20261017T044052Z-82ece164"
+    "buildId": "20261017T124359Z-156c6cbf"
   },
   "changesSincePrevious": {
     "added": [],
     "removed": [],
-    "changed": [
-      {
-        "key": "/::#google-sign-in",
-        "label": "Continuar con Google",
-        "page": "/",
-        "group": "auth-panel",
-        "fingerprint": "c27d7fba8bb74dd71192d1c57dc3a0b41ae16aa713593716271420efc31c5216"
-      },
-      {
-        "key": "/::#telegram-check-link",
-        "label": "Ya pulsé Iniciar: revisar vinculación",
-        "page": "/",
-        "group": "telegram-panel",
-        "fingerprint": "35e095fa5f4faa33a11102bd165bbebfcf755c1262190be6a61138a231da7529"
-      }
-    ]
+    "changed": []
   },
   "changesSinceBaseline": {
     "added": [],
@@ -7229,11 +7214,11 @@
     ]
   },
   "tests": {
-    "sourceHash": "89318cd1f33e35f8fa988664fd4b32c5ed774edbf512ce8897ec30cad0100617",
+    "sourceHash": "a70d33ac6e27ec0c423d9b952c764312af82f6584f16e09b6ec69e50bef42fec",
     "passed": true,
-    "checkedAt": "2026-10-17T04:39:34.646156+00:00",
-    "pythonTests": 430,
-    "javascriptTests": 215,
+    "checkedAt": "2026-10-17T12:43:45.583617+00:00",
+    "pythonTests": 431,
+    "javascriptTests": 219,
     "coveragePercent": 81.56,
     "network": "blocked",
     "scope": "Suite local; no acredita cada acción ni servicios desplegados."
