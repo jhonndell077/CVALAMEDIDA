@@ -97,7 +97,7 @@ class JobStore:
 
     def admit(self, identifier, owner_uid=''):
         # Storage generation preconditions keep the ten-slot limit atomic across instances.
-        queue_key='vacancy-queue' + ('-' + hashlib.sha256(owner_uid.encode()).hexdigest() if owner_uid else '')
+        queue_key = admission_policy.queue_key(owner_uid)
         for _ in range(5):
             queue, generation = self.read(queue_key)
             pending = []
@@ -117,7 +117,8 @@ class JobStore:
             if len(pending) >= 10:
                 return False
             try:
-                usage = admission_policy.reserve(queue or {}, identifier, time.time())
+                policy = admission_policy.effective_limits(self, owner_uid)
+                usage = admission_policy.reserve(queue or {}, identifier, time.time(), policy)
             except admission_policy.QuotaExceeded as error:
                 raise AdmissionLimit(error.period, error.retry_after) from None
             except ValueError:

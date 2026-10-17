@@ -139,6 +139,42 @@ class PeriodAdmissionTests(unittest.TestCase):
         self.assertEqual(error.exception.retry_after, 60)
 
 
+    def test_persistent_global_and_account_limits_enforced(self):
+        import admission_policy
+        store = Store()
+        store.write(admission_policy.policy_key(), {'daily': 1, 'monthly': 20}, 0)
+        store.write(admission_policy.policy_key('alice'), {'daily': 2, 'monthly': 4}, 0)
+        for key in ('one', 'two'):
+            self.assertTrue(store.admit(key, 'alice'))
+            store.done(key)
+        with self.assertRaises(job_runtime.AdmissionLimit):
+            store.admit('three', 'alice')
+        self.assertTrue(store.admit('bob-one', 'bob'))
+        store.done('bob-one')
+        with self.assertRaises(job_runtime.AdmissionLimit):
+            store.admit('bob-two', 'bob')
+        store.write(admission_policy.policy_key('alice'), {'inherit': True}, 1)
+        with self.assertRaises(job_runtime.AdmissionLimit):
+            store.admit('alice-three', 'alice')
+
+    def test_policy_corruption_or_storage_failure_does_not_admit(self):
+        import admission_policy
+        store = Store()
+        store.write(admission_policy.policy_key(), {'daily': True, 'monthly': 10}, 0)
+        with self.assertRaises(job_runtime.JobError):
+            store.admit('new', 'alice')
+        self.assertIsNone(store.read(admission_policy.queue_key('alice'))[0])
+        with patch.object(store, 'read', side_effect=RuntimeError('storage unavailable')):
+            with self.assertRaises(RuntimeError):
+                store.admit('new', 'alice')
+
+    def test_usage_summary_resets_and_zero_remaining(self):
+        import admission_policy
+        queue = {'usage': {'month': '2026-10', 'day': '2026-10-15', 'daily': 3, 'monthly': 5}}
+        summary = admission_policy.usage_summary(queue, self.now, {'daily': 2, 'monthly': 4})
+        self.assertEqual((summary['daily'], summary['monthly'], summary['dailyRemaining'], summary['monthlyRemaining']), (0, 5, 2, 0))
+
+
 class TelegramAdmissionTests(unittest.TestCase):
     def test_gmail_callback_cannot_bypass_full_queue(self):
         app = Flask('telegram-admission')
