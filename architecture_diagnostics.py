@@ -24,7 +24,7 @@ NODES = [
     _node('google', 'Google Authentication', 'functional', 'app.py:verify_google_identity', ('firebase-auth', 'api')),
     _node('bank', 'Banco de datos central', 'functional', 'profile_routes.py:register_routes', ('drive-api', 'api'), ('/api/bank/status', '/api/bank/sync', '/api/profile/information', '/api/profile', '/api/profile-summary')),
     _node('drive', 'Google Drive', 'functional', 'app.py:archive_generated_resume', ('drive-api', 'api'), ('/api/drive/check',)),
-    _node('telegram', 'Telegram', 'functional', 'telegram_bot.py:register_routes', ('telegram-api', 'worker', 'tasks', 'storage', 'secrets', 'drive-api', 'pdf-generator', 'firebase-auth'), ('/telegram/webhook', '/telegram/work', '/api/telegram/status')),
+    _node('telegram', 'Telegram', 'functional', 'telegram_bot.py:register_routes', ('telegram-api', 'worker', 'tasks', 'storage', 'secrets', 'drive-api', 'pdf-generator', 'firebase-auth'), ('/telegram/webhook', '/telegram/work', '/api/telegram/status', '/api/telegram/link', '/api/telegram/link/confirm', '/api/telegram/disconnect', '/api/telegram/drive/authorize', '/api/telegram/drive/session', '/api/telegram/drive/confirm')),
     _node('pdf', 'PDF / CV', 'functional', 'resume_routes.py:export_resume', ('api', 'pdf-generator', 'drive-api', 'storage'), ('/api/export/<format_name>', '/api/draft')),
     _node('diagnostics', 'Diagnóstico Firebase', 'functional', 'admin_connections.py:register_routes', ('api',), ('/api/admin/architecture',)),
     _node('hosting', 'Firebase Hosting', 'technical', 'firebase.json', dependencies=('api',)),

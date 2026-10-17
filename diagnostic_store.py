@@ -18,7 +18,7 @@ OBJECT_NAME = 'diagnostics/architecture-v1.json'
 TIMEOUT = 0.7
 MAX_BYTES = 512000
 STAGES = frozenset({'http-backend', 'pdf-generated', 'drive-upload', 'drive-readback', 'drive-request', 'telegram-request', 'bank-sync', 'identity-verified', 'oauth-authorization', 'browser-signin', 'task-dispatched', 'vertex-response', 'gmail-request', 'storage-read', 'storage-write'})
-CLIENT_CODES = frozenset({'access_denied', 'popup_closed', 'popup_failed_to_open', 'oauth_error'})
+CLIENT_CODES = frozenset({'access_denied', 'popup_closed', 'popup_failed_to_open', 'oauth_error', 'origin_mismatch', 'redirect_uri_mismatch', 'authorization_pending', 'authorization_timeout'})
 IDENTIFIER = re.compile(r'^[a-f0-9]{32}$')
 OPERATION = re.compile(r'^(?:[a-f0-9]{32}|[a-f0-9]{64}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$')
 

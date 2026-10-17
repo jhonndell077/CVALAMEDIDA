@@ -35,6 +35,20 @@ class BrowserDiagnosticsTests(unittest.TestCase):
         self.assertNotIn('fixture-only', str(event))
         self.assertEqual(self.client.post('/api/diagnostics/client', json={**self.payload, 'token': 'private'}, headers=self.headers).status_code, 400)
 
+    def test_telegram_pending_and_error_remain_unconfirmed_with_safe_component(self):
+        response = self.client.post('/api/diagnostics/client', json={**self.payload,
+            'component':'telegram', 'result':'pending', 'code':'authorization_pending'}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post('/api/diagnostics/client', json={**self.payload,
+            'component':'telegram', 'code':'origin_mismatch'}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        signals = [e for e in self.core.app.extensions['architecture_diagnostics'].snapshot() if e['stage']=='oauth-authorization']
+        self.assertEqual([e['component'] for e in signals], ['telegram','telegram'])
+        self.assertTrue(all(e['result']=='warning' and e['confirmed'] is False for e in signals))
+        self.assertEqual(signals[-1]['code'], 'origin_mismatch')
+        self.assertEqual(self.client.post('/api/diagnostics/client', json={**self.payload,
+            'component':'not-allowed'}, headers=self.headers).status_code, 400)
+
     def test_requires_session_origin_and_bounded_codes(self):
         self.authenticated = False
         self.assertEqual(self.client.post('/api/diagnostics/client', json=self.payload, headers=self.headers).status_code, 401)

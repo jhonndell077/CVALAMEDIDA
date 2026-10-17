@@ -1,18 +1,40 @@
 window.cvTelegram = (() => {
   let user = null, authHeaders, client, loading = false, generation = 0;
-  let pairLink = '', pairExpires = 0, driveConnected = false, authorization = null;
+  let pairLink = '', pairExpires = 0, driveConnected = false, authorization = null, authorizationOperation = '';
   const panel = () => document.querySelector("#telegram-panel");
   const button = () => document.querySelector("#telegram-authorize-drive");
   const status = () => document.querySelector("#telegram-status");
   const error = () => document.querySelector("#telegram-error");
   function fail(message) { error().textContent = message; error().hidden = false; }
+  function operationId() {
+    return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Array.from({length:32},()=>Math.floor(Math.random()*16).toString(16)).join('');
+  }
+  function reportAuthorization(code, pending = authorization) {
+    if (!pending || pending.generation !== generation || !user) return;
+    const allowed = ['access_denied','popup_closed','popup_failed_to_open','origin_mismatch','redirect_uri_mismatch','authorization_pending','authorization_timeout'];
+    const safe = allowed.includes(code) ? code : 'oauth_error';
+    if (pending.reported === safe) return;
+    pending.reported = safe;
+    const identity = user, started = generation;
+    identity.getIdToken().then(token => {
+      if (started !== generation || identity.uid !== user?.uid) return;
+      return fetch('/api/diagnostics/client', {method:'POST',cache:'no-store',
+        headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','X-CV-Operation-ID':pending.operationId},
+        body:JSON.stringify({component:'telegram',service:'drive-api',stage:'oauth-authorization',
+          result:safe === 'authorization_pending' ? 'pending' : 'error',code:safe})});
+    }).catch(()=>{});
+  }
+  function settleAuthorization(pending) {
+    if (pending?.timer && typeof clearTimeout === 'function') clearTimeout(pending.timer);
+    if (authorization === pending) authorization = null;
+  }
   async function json(path, payload) {
     const started=generation, currentUser=user;
     if (!currentUser) throw new Error('Inicia sesión para configurar Telegram.');
     const token = await currentUser.getIdToken();
     if (started!==generation) throw new Error('La cuenta cambió.');
     const response = await fetch(path, { method: payload ? "POST" : "GET", cache: "no-store",
-      headers: { ...authHeaders(), Authorization: `Bearer ${token}`, "Content-Type": "application/json", "X-Requested-With": "XmlHttpRequest" },
+      headers: { ...authHeaders(), Authorization: `Bearer ${token}`, "Content-Type": "application/json", "X-Requested-With": "XmlHttpRequest", ...(authorization ? {"X-CV-Operation-ID":authorization.operationId} : {}) },
       body: payload ? JSON.stringify(payload) : undefined });
     const data = await response.json();
     if (started!==generation) throw new Error('La cuenta cambió.');
@@ -21,7 +43,7 @@ window.cvTelegram = (() => {
   }
   async function authorized(response, sessionGeneration) {
     if (sessionGeneration !== generation || !user) return;
-    if (!response.code) throw new Error('Google no concedi\u00f3 el permiso de Drive.');
+    if (!response.code) { reportAuthorization(response.error || 'oauth_error'); throw new Error('Google no concedi\u00f3 el permiso de Drive.'); }
     loading = true; button().disabled = true;
     const finish = window.cvLoading.start("Conectando Drive con tu bot privado");
     error().hidden = true;
@@ -32,6 +54,7 @@ window.cvTelegram = (() => {
       await json("/api/telegram/drive/confirm", {});
       status().textContent = "Drive autorizado para el guardado automático. Envía una vacante a tu bot privado.";
       await refresh(sessionGeneration);
+      if (sessionGeneration === generation) authorizationOperation = '';
     } catch (problem) { if (sessionGeneration===generation) fail(problem.message); throw problem; }
     finally { if (sessionGeneration===generation) { loading = false; button().disabled = !client || !user; } finish(); }
   }
@@ -59,25 +82,29 @@ window.cvTelegram = (() => {
       });
     }
     if (sessionGeneration !== generation || !user) return;
-    client = google.accounts.oauth2.initCodeClient({client_id: data.client_id,
+    client = pending => google.accounts.oauth2.initCodeClient({client_id: data.client_id,
       scope: "openid email https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/gmail.send", ux_mode: "popup", hint: user.email,
       callback: response => {
-        const pending = authorization;
+        if (sessionGeneration !== generation || authorization !== pending || pending?.generation !== generation) return;
+        if (pending.timer && typeof clearTimeout === 'function') clearTimeout(pending.timer);
+        pending.waitingForGoogle = false;
         authorized(response, sessionGeneration).then(() => pending?.resolve(), problem => pending?.reject(problem))
-          .finally(() => { if (authorization === pending) authorization = null; });
+          .finally(() => settleAuthorization(pending));
       },
-      error_callback: () => {
+      error_callback: response => {
+        if (sessionGeneration !== generation || authorization !== pending || pending?.generation !== generation) return;
         const problem = new Error('La autorizaci\u00f3n se cerr\u00f3. Pulsa Autorizar Drive para Telegram para intentarlo de nuevo.');
         if (sessionGeneration===generation) fail(problem.message);
-        authorization?.reject(problem); authorization = null;
+        reportAuthorization(response?.type || 'popup_closed', pending);
+        pending?.reject(problem); settleAuthorization(pending);
       }});
     button().disabled = false;
   }
   async function initialize(currentUser, headers) {
     if (user?.uid && user.uid === currentUser?.uid) { user = currentUser; authHeaders = headers; return; }
     const sessionGeneration = ++generation;
-    authorization?.reject(new Error('La cuenta cambió.')); authorization = null;
-    pairLink=''; pairExpires=0; loading=false; driveConnected=false;
+    authorization?.reject(new Error('La cuenta cambió.')); settleAuthorization(authorization);
+    pairLink=''; pairExpires=0; loading=false; driveConnected=false; authorizationOperation='';
     document.querySelector('#telegram-open-bot').hidden=true;
     document.querySelector('#telegram-open-bot').removeAttribute('href');
     for (const id of ['telegram-link','telegram-check-link','telegram-confirm-link','telegram-disconnect']) {
@@ -137,12 +164,23 @@ window.cvTelegram = (() => {
       await refresh(generation);
     });
     if (!client) return Promise.reject(new Error('La conexión de Telegram aún no está lista. Espera unos segundos y pulsa Autorizar Drive para Telegram.'));
-    const pending = {};
+    const pending = {operationId:authorizationOperation || operationId(),generation,waitingForGoogle:true};
+    authorizationOperation = pending.operationId;
     pending.promise = new Promise((resolve, reject) => { pending.resolve = resolve; pending.reject = reject; });
     authorization = pending;
     error().hidden = true;
-    try { client.requestCode(); }
-    catch (problem) { authorization = null; pending.reject(problem); }
+    reportAuthorization('authorization_pending', pending);
+    if (typeof setTimeout === 'function') {
+      pending.timer=setTimeout(()=>{
+        if (authorization !== pending || pending.generation !== generation || !pending.waitingForGoogle) return;
+        reportAuthorization('authorization_timeout', pending);
+        const problem=new Error('Google no confirmó la autorización. Si la ventana muestra origin_mismatch, su origen no coincide con el cliente OAuth configurado.');
+        fail(problem.message); pending.reject(problem); settleAuthorization(pending);
+      },120000);
+      pending.timer?.unref?.();
+    }
+    try { client(pending).requestCode(); }
+    catch (problem) { reportAuthorization('popup_failed_to_open', pending); settleAuthorization(pending); pending.reject(problem); }
     return pending.promise;
   }
   button().addEventListener('click', () => synchronize().catch(problem => fail(problem.message)));

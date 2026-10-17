@@ -626,6 +626,9 @@ def register_routes(app, core):
         else:
             config["drive_connected"] = True
             runtime.save_configuration(config)
+        import architecture_diagnostics
+        architecture_diagnostics.record_stage(core, component='telegram', service='drive-api',
+            endpoint='/api/telegram/drive/confirm', stage='oauth-authorization', result='success')
         return jsonify(message="Guardado automático en Drive autorizado para tu bot privado.")
 
     @app.post("/telegram/webhook")

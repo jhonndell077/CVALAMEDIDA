@@ -6,7 +6,7 @@ from time import monotonic
 
 _windows = OrderedDict()
 _lock = Lock()
-_codes = {'access_denied', 'popup_closed', 'popup_failed_to_open', 'oauth_error'}
+_codes = {'access_denied', 'popup_closed', 'popup_failed_to_open', 'oauth_error', 'origin_mismatch', 'redirect_uri_mismatch', 'authorization_pending', 'authorization_timeout'}
 _origins = {'https://cvalamedida.web.app', 'https://cvalamedida.firebaseapp.com',
             'https://cv-a-la-medida-jhonn.web.app', 'https://cv-a-la-medida-jhonn.firebaseapp.com'}
 
@@ -42,16 +42,18 @@ def register_routes(core):
         if (core.request.content_length or 0) > 1024:
             raise core.AppError('Señal de diagnóstico demasiado grande.', 413)
         data = core.request.get_json(silent=True)
-        if not isinstance(data, dict) or set(data) != {'service', 'stage', 'result', 'code'}:
+        if not isinstance(data, dict) or set(data) - {'component'} != {'service', 'stage', 'result', 'code'}:
             raise core.AppError('Señal de diagnóstico inválida.', 400)
         if (data.get('service') != 'drive-api' or data.get('stage') != 'oauth-authorization'
-                or data.get('result') != 'error' or not isinstance(data.get('code'), str)
+                or data.get('result') not in ('error', 'pending') or data.get('component', 'google') not in ('google', 'telegram') or not isinstance(data.get('code'), str)
                 or data['code'] not in _codes):
+            raise core.AppError('Señal de diagnóstico inválida.', 400)
+        if (data['code'] == 'authorization_pending') != (data['result'] == 'pending'):
             raise core.AppError('Señal de diagnóstico inválida.', 400)
         if not _admit(str(identity['uid'])):
             raise core.AppError('Demasiadas señales; espera un minuto.', 429)
         import architecture_diagnostics
-        architecture_diagnostics.record_stage(core, component='google', service='drive-api',
+        architecture_diagnostics.record_stage(core, component=data.get('component', 'google'), service='drive-api',
             endpoint='/api/diagnostics/client', stage='oauth-authorization',
             result='warning', code=data['code'], confirmed=False)
         response = core.jsonify(accepted=True, confirmed=False)

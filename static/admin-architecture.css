@@ -2,3 +2,5 @@
 #simulation-flow{list-style:none;margin:20px 0;padding:0;max-width:620px}#simulation-flow li{padding:18px 22px;border:1px solid #40516e;border-radius:12px;margin:0 0 22px;background:#142035;position:relative}#simulation-flow li:not(:last-child)::after{content:'↓';position:absolute;bottom:-23px;left:50%;color:#8ab5e4}#simulation-flow [data-state=success]{border-color:#44cfa7;color:#65e2b9}#simulation-flow [data-state=error]{border-color:#f66d7c;color:#ff929c}#simulation-flow [data-state=warning]{border-color:#e6bb62;color:#f8cf70}
 
 .connections path.arrow-head{fill:#8ab5e4;stroke:none;stroke-dasharray:none;animation:none}
+
+.alert.warning{border-left-color:#e6bb62;background:#382d1755}.alert.warning h3{color:#f8cf70}
