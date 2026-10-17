@@ -21,3 +21,5 @@ La eliminación entre Storage y Authentication no es una transacción: un error 
 Pruebas únicamente con identidades, colas y proveedores simulados. No se reinician ni eliminan cuentas o datos reales durante la verificación.
 
 Verificador `scripts/verify_release.py --output tmp/admin-actions-final`: 455 pruebas Python y 234 JavaScript aprobadas; cobertura Python 81,83 %. Revisión especializada final sin bloqueantes dentro del alcance descrito. El borrado integral de datos permanece expresamente pendiente.
+
+Publicación confirmada por Firebase en ambas funciones y ambos sitios: build `20261017T132744Z-4782d36d`. Archivos publicados idénticos a los probados (`tmp/admin-actions-smoke.json`); consulta administrativa de cinco cuentas y sus tres botones, sin activar vistas previas ni ejecutar acciones reales. Diseño comprobado a 390 px sin controles desbordados. Captura `tmp/acciones-usuario-publicadas.png`. No se verificó la eliminación real ni se cambiaron permisos IAM de producción.

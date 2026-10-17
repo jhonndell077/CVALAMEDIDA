@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-10-17T13:11:33.961Z",
+  "generatedAt": "2026-10-17T13:27:48.242Z",
   "baseline": {
     "buildId": "20261016T223144Z-bb10ff7c",
     "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
@@ -1129,8 +1129,8 @@
   },
   "previous": {
     "analysisVersion": 2,
-    "buildId": "20261017T130644Z-1194dd97",
-    "sourceHash": "b1f871a7b79583109b301d2092a25c204e23981826d6c67d33539991fad63873",
+    "buildId": "20261017T131130Z-c8e161c3",
+    "sourceHash": "79081676d9986c0f0ff8a9f7c6073d0f3ab9b7e587e0ac53f48df8a135d1cbc0",
     "controls": [
       {
         "key": "/drive-auth.html::#authorize",
@@ -2256,7 +2256,7 @@
   },
   "current": {
     "analysisVersion": 2,
-    "sourceHash": "79081676d9986c0f0ff8a9f7c6073d0f3ab9b7e587e0ac53f48df8a135d1cbc0",
+    "sourceHash": "9b2ac671199cc80b7f0a692b68e9d176ade52de7b064cece6e62eed5c6a8d9ec",
     "pages": [
       {
         "path": "/drive-auth.html",
@@ -2356,8 +2356,8 @@
             "source": "static/drive-auth.js"
           }
         ],
-        "relatedTestCount": 12,
-        "fingerprint": "83b6a8f1641b0bf0736ae0cd2192c96bd85c8828c666c7d3864ebd8fc7b1a2d5"
+        "relatedTestCount": 13,
+        "fingerprint": "63144b266e79781894922a69d41527fab62aa9367c72a823147710655ef94bed"
       },
       {
         "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(1)",
@@ -6759,12 +6759,20 @@
     ],
     "warnings": [],
     "parser": "acorn 8.16.0",
-    "buildId": "20261017T131130Z-c8e161c3"
+    "buildId": "20261017T132744Z-4782d36d"
   },
   "changesSincePrevious": {
     "added": [],
     "removed": [],
-    "changed": []
+    "changed": [
+      {
+        "key": "/drive-auth.html::#authorize",
+        "label": "Autorizar Google Drive",
+        "page": "/drive-auth.html",
+        "group": "section",
+        "fingerprint": "63144b266e79781894922a69d41527fab62aa9367c72a823147710655ef94bed"
+      }
+    ]
   },
   "changesSinceBaseline": {
     "added": [],
@@ -6775,7 +6783,7 @@
         "label": "Autorizar Google Drive",
         "page": "/drive-auth.html",
         "group": "section",
-        "fingerprint": "83b6a8f1641b0bf0736ae0cd2192c96bd85c8828c666c7d3864ebd8fc7b1a2d5"
+        "fingerprint": "63144b266e79781894922a69d41527fab62aa9367c72a823147710655ef94bed"
       },
       {
         "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(2)",
@@ -7214,12 +7222,12 @@
     ]
   },
   "tests": {
-    "sourceHash": "79081676d9986c0f0ff8a9f7c6073d0f3ab9b7e587e0ac53f48df8a135d1cbc0",
+    "sourceHash": "9b2ac671199cc80b7f0a692b68e9d176ade52de7b064cece6e62eed5c6a8d9ec",
     "passed": true,
-    "checkedAt": "2026-10-17T13:10:58.282943+00:00",
-    "pythonTests": 444,
-    "javascriptTests": 227,
-    "coveragePercent": 81.72,
+    "checkedAt": "2026-10-17T13:26:52.454558+00:00",
+    "pythonTests": 455,
+    "javascriptTests": 234,
+    "coveragePercent": 81.83,
     "network": "blocked",
     "scope": "Suite local; no acredita cada acción ni servicios desplegados."
   }
