@@ -23,3 +23,7 @@ Los cupos siguen renovándose por períodos UTC de calendario. La tarifa mensual
 Verificador existente `scripts/verify_release.py --output tmp/manual-plans-final`: 465 pruebas Python y 239 JavaScript aprobadas; cobertura Python 81,95 %. Pruebas con fixtures y red bloqueada. Incluyen importe exacto de 0,29 DOP, rechazo de más de dos decimales y precios inválidos, pago no verificado, CAS y protección de acceso/sesión/simulación. Sin asignar planes, modificar cupos ni cobrar a cuentas reales durante la verificación.
 
 No se añadieron dependencias ni servicios de pago. Plan y cupos comparten el objeto que ya se consulta para admisión; el guardado administrativo añade una escritura explícita de configuración. No hay sondeos de facturación.
+
+## Publicación
+
+Firebase confirmó api, telegram_worker y ambos sitios Hosting, build `20261017T175306Z-38eeedae`. Los archivos JS/CSS publicados coinciden con los probados (`tmp/manual-plans-smoke.json`). Con sesión administrativa se verificaron los botones Plan en las cuentas cargadas y el formulario con plantilla Plus, cupos 20/200, precio vacío y moneda DOP. Se comprobó a 390 px sin controles desbordados. No se pulsó Guardar plan ni se cambiaron asignaciones reales. Captura: `tmp/plan-dop-publicado.png`.
