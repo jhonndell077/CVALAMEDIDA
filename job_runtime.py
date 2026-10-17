@@ -100,6 +100,8 @@ class JobStore:
         queue_key = admission_policy.queue_key(owner_uid)
         for _ in range(5):
             queue, generation = self.read(queue_key)
+            if (queue or {}).get('maintenance'):
+                raise JobError('La cuenta está bloqueada para una acción administrativa. Contacta al administrador.')
             pending = []
             for item in (queue or {}).get("pending", []):
                 job, _ = self.read(item["id"])

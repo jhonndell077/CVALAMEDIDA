@@ -157,6 +157,14 @@ class PeriodAdmissionTests(unittest.TestCase):
         with self.assertRaises(job_runtime.AdmissionLimit):
             store.admit('alice-three', 'alice')
 
+    def test_account_maintenance_prevents_new_admissions(self):
+        import admission_policy
+        store = Store()
+        store.write(admission_policy.queue_key('alice'), {'pending': [], 'maintenance': {'action': 'delete_user'}}, 0)
+        with self.assertRaises(job_runtime.JobError):
+            store.admit('new', 'alice')
+        self.assertTrue(store.admit('other-account', 'bob'))
+
     def test_policy_corruption_or_storage_failure_does_not_admit(self):
         import admission_policy
         store = Store()

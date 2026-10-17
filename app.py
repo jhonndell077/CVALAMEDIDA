@@ -1784,6 +1784,8 @@ client_diagnostics.register_routes(sys.modules[__name__])
 admin_connections.register_routes(sys.modules[__name__])
 import admin_usage
 admin_usage.register_routes(sys.modules[__name__])
+import admin_user_actions
+admin_user_actions.register_routes(sys.modules[__name__])
 
 import profile_routes
 import resume_routes

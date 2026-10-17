@@ -10,7 +10,9 @@ class UsagePolicyTests(unittest.TestCase):
         client = core.app.test_client()
         def other():
             core.g.google_identity = {'uid': 'other', 'email': 'other@example.test'}
-        for method, path in [('get', '/api/admin/usage'), ('put', '/api/admin/usage/limits')]:
+        for method, path in [('get', '/api/admin/usage'), ('put', '/api/admin/usage/limits'),
+                             ('post', '/api/admin/users/action/preview'),
+                             ('post', '/api/admin/users/action/execute')]:
             with self.subTest(method=method), patch('job_runtime.JobStore') as store, patch.object(core.user_accounts, 'scope') as scope:
                 with patch.object(core, 'verify_google_identity', side_effect=core.AppError('session', 401)):
                     self.assertEqual(getattr(client, method)(path).status_code, 401)
