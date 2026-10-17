@@ -25,3 +25,9 @@ No se añaden dependencias ni servicios. La consulta administrativa realiza lect
 ## Validación
 
 Verificador existente `scripts/verify_release.py --output tmp/admin-usage-final`: 444 pruebas Python y 227 JavaScript aprobadas, cobertura Python 81,72 %. Pruebas con fixtures y red bloqueada; no se cambian cuotas reales ni cuentas reales para probar. La revisión especializada cerró los hallazgos de contrato de encabezados y cambio a simulación durante espera de token; sin bloqueantes restantes.
+
+## Comprobación publicada
+
+Firebase confirmó funciones api y telegram_worker y ambos sitios Hosting. Consulta administrativa con sesión existente: cinco cuentas registradas cargadas con consumos reales; no se guardaron límites ni se alteraron cuentas para verificar. Los archivos HTML/JS/CSS publicados coincidieron con los probados; API sin sesión HTTP 401 y salud HTTP 200. Evidencia local en `tmp/admin-usage-smoke.json` y `tmp/configuracion-consumo-publicado.png`.
+
+Se comprobó también el diseño a 390 píxeles y se corrigió el desbordamiento de la representación accesible del medidor. Los cambios de cuotas se probaron únicamente con almacenes simulados; no se afirma una escritura de prueba sobre producción.

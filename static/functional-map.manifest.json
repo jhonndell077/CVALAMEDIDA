@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-10-17T12:44:05.339Z",
+  "generatedAt": "2026-10-17T13:06:49.263Z",
   "baseline": {
     "buildId": "20261016T223144Z-bb10ff7c",
     "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
@@ -1129,8 +1129,8 @@
   },
   "previous": {
     "analysisVersion": 2,
-    "buildId": "20261017T044052Z-82ece164",
-    "sourceHash": "89318cd1f33e35f8fa988664fd4b32c5ed774edbf512ce8897ec30cad0100617",
+    "buildId": "20261017T124359Z-156c6cbf",
+    "sourceHash": "a70d33ac6e27ec0c423d9b952c764312af82f6584f16e09b6ec69e50bef42fec",
     "controls": [
       {
         "key": "/drive-auth.html::#authorize",
@@ -2256,7 +2256,7 @@
   },
   "current": {
     "analysisVersion": 2,
-    "sourceHash": "a70d33ac6e27ec0c423d9b952c764312af82f6584f16e09b6ec69e50bef42fec",
+    "sourceHash": "b1f871a7b79583109b301d2092a25c204e23981826d6c67d33539991fad63873",
     "pages": [
       {
         "path": "/drive-auth.html",
@@ -6759,7 +6759,7 @@
     ],
     "warnings": [],
     "parser": "acorn 8.16.0",
-    "buildId": "20261017T124359Z-156c6cbf"
+    "buildId": "20261017T130644Z-1194dd97"
   },
   "changesSincePrevious": {
     "added": [],
@@ -7214,12 +7214,12 @@
     ]
   },
   "tests": {
-    "sourceHash": "a70d33ac6e27ec0c423d9b952c764312af82f6584f16e09b6ec69e50bef42fec",
+    "sourceHash": "b1f871a7b79583109b301d2092a25c204e23981826d6c67d33539991fad63873",
     "passed": true,
-    "checkedAt": "2026-10-17T12:43:45.583617+00:00",
-    "pythonTests": 431,
-    "javascriptTests": 219,
-    "coveragePercent": 81.56,
+    "checkedAt": "2026-10-17T13:05:49.519263+00:00",
+    "pythonTests": 444,
+    "javascriptTests": 227,
+    "coveragePercent": 81.72,
     "network": "blocked",
     "scope": "Suite local; no acredita cada acción ni servicios desplegados."
   }
