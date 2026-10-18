@@ -40,3 +40,20 @@ test('popup reports only a fixed code with nonce and never sends the OAuth error
  assert.deepEqual(JSON.parse(JSON.stringify(messages[0])),[{nonce:'12345678-1234-1234-1234-123456789abc',diagnostic:{code:'access_denied'}},'https://cvalamedida.web.app']);
  callbacks.error_callback({type:'unknown private description'});assert.equal(messages[1][0].diagnostic.code,'oauth_error');
 });
+
+
+test('global error and clear reach the data dialog through real functions',()=>{
+ const events=[];const context={errorBox:{},window:{dispatchEvent:e=>events.push(e)},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail}}};
+ vm.runInNewContext(part('function showError(message)','function operationIdFor'),context);
+ context.showError('No se pudo conectar Drive');context.clearError();
+ assert.deepEqual(events.map(e=>e.detail.message),['No se pudo conectar Drive','']);
+});
+
+
+test('failed network request keeps the effective explicit operation identifier',async()=>{
+ let reported,sent;
+ const id='b'.repeat(32),context={state:{user:null},operationIdFor:payload=>payload.request_id||'a'.repeat(32),authenticatedHeaders:h=>h,window:{cvClientSupervisor:{network:(...args)=>reported=args}},fetch:async(_,options)=>{sent=options.headers['X-CV-Operation-ID'];throw Error('offline')}};
+ vm.runInNewContext(part('async function directRequestJson','async function processFetch'),context);
+ await assert.rejects(context.directRequestJson('/api/google/grant',{}, {'X-CV-Operation-ID':id}),/offline/);
+ assert.equal(sent,id);assert.equal(reported[2],id);
+});

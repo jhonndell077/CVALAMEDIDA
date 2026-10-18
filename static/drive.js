@@ -5,12 +5,14 @@ window.cvDrive = (() => {
   let generation = 0, connectedReady = false;
   let authorizationHandler = null;
   let cancelPopup = null;
+  let activeOperationId = null;
   function setAuthorizationHandler(handler) { authorizationHandler = handler; }
   const status = () => document.querySelector("#drive-status");
   const button = () => document.querySelector("#connect-drive");
   function reset() {
     generation++; connectedReady = false; connection = null;
     cancelPopup?.(); cancelPopup = null;
+    activeOperationId = null;
     token = ""; expiresAt = 0;
     if (status()) status().textContent = "Conecta Drive para guardar los CV en CV GENERADOS.";
   }
@@ -54,10 +56,15 @@ window.cvDrive = (() => {
   }
   async function check(selection = {}) {
     const started = generation;
-    const response = await fetch(config.multi_account ? '/api/account/setup' : "/api/drive/check", {
-      method: "POST", headers: { 'Content-Type':'application/json', ...authHeaders(), "X-Drive-Access-Token": token },
+    const path = config.multi_account ? '/api/account/setup' : '/api/drive/check';
+    let response;
+    try { response = await fetch(path, {
+      method: "POST", headers: { 'Content-Type':'application/json', ...authHeaders(), "X-Drive-Access-Token": token, ...(activeOperationId ? {'X-CV-Operation-ID':activeOperationId}: {}) },
       ...(config.multi_account ? {body: JSON.stringify(selection)} : {}),
-    });
+    }); } catch (error) {
+      if (started === generation) window.cvClientSupervisor?.network(path, error, activeOperationId);
+      throw error;
+    }
     const data = await response.json().catch(() => ({}));
     if (started !== generation) throw new Error('La sesión cambió. Conecta el Drive de la cuenta actual.');
     if (!response.ok) throw Object.assign(new Error(data.error || "No se pudo comprobar la carpeta de Drive."), { status: response.status });
@@ -109,10 +116,15 @@ window.cvDrive = (() => {
     if (connection) return connection;
     if (authorizationHandler) {
       const started = generation;
+      const operationId = typeof crypto !== 'undefined' ? crypto.randomUUID() : undefined;
+      activeOperationId = operationId;
+      const report = code => { if (started === generation && typeof CustomEvent !== 'undefined') window.dispatchEvent(new CustomEvent('cv-client-diagnostic', {detail:{service:'drive-api',stage:'oauth-authorization',code,operationId}})); };
+      report('authorization_pending');
+      const timer = window.setTimeout?.(() => report('authorization_timeout'), 90000);
       // Open Google before showing a modal can change the active top layer.
       let authorization;
-      try { authorization = authorizationHandler(); }
-      catch (error) { return Promise.reject(error); }
+      try { authorization = authorizationHandler({operationId}); }
+      catch (error) { window.clearTimeout?.(timer); report('oauth_error'); return Promise.reject(error); }
       const finish = window.cvLoading.start("Conectando Gmail y Drive con tu cuenta");
       button().disabled = true;
       const operation = connection = Promise.resolve(authorization).then(result => {
@@ -125,13 +137,14 @@ window.cvDrive = (() => {
           if (typeof error.code === 'string' && error.code.startsWith('auth/')) {
             window.dispatchEvent(new CustomEvent('cv-client-diagnostic', {detail: {
               service: 'drive-api', stage: 'oauth-authorization', code: known[error.code] || 'oauth_error',
-              operationId: crypto.randomUUID(),
+              operationId,
             }}));
           }
           status().textContent = error.message || "No se pudo conectar tu cuenta de Google.";
         }
         throw error;
       }).finally(() => {
+        window.clearTimeout?.(timer);
         if (connection === operation) connection = null;
         if (started === generation) button().disabled = false; finish();
       });

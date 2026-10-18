@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from threading import RLock
 import time
 import re
+import hashlib
 import diagnostic_store
 from uuid import uuid4
 
@@ -71,7 +72,7 @@ IDS = frozenset(n['id'] for n in NODES)
 EDGES = [{'from': n['id'], 'to': target} for n in NODES for target in n['services'] + n['dependencies']]
 EDGES += [{'from': a, 'to': b} for a, b in [('user', 'google'), ('google', 'bank'), ('bank', 'drive'), ('bank', 'telegram'), ('bank', 'pdf'), ('drive', 'diagnostics'), ('telegram', 'diagnostics'), ('pdf', 'diagnostics'), ('api', 'vertex'), ('api', 'tasks'), ('api', 'storage'), ('api', 'gmail'), ('api', 'push')]]
 ROUTES = {endpoint: n['id'] for n in NODES if n['kind'] == 'functional' for endpoint in n['endpoints']}
-ROUTES.update({'/api/analyze': 'pdf', '/api/analyze/jobs': 'pdf', '/api/background/jobs': 'pdf', '/api/google/grant': 'google', '/api/profile': 'bank', '/api/diagnostics/client': 'google', '/api/account': 'google'})
+ROUTES.update({'/api/analyze': 'pdf', '/api/analyze/jobs': 'pdf', '/api/background/jobs': 'pdf', '/api/google/grant': 'google', '/api/profile': 'bank', '/api/diagnostics/client': 'google', '/api/account': 'google', '/api/account/setup': 'bank', '/api/account/onboarding': 'bank', '/api/account/onboarding/import': 'bank', '/api/account/onboarding/dismiss': 'bank'})
 
 
 class EventStore:
@@ -92,26 +93,48 @@ class EventStore:
             return [dict(event) for _, event in self.events]
 
 
-def record_stage(core, *, component, service, endpoint, stage, result, code=None, duration_ms=None, confirmed=True):
+def verified_account_key(core):
+    # Only trusted backend identity/context is consulted, never request fields.
+    try:
+        identity = getattr(core.g, 'google_identity', None) or {}
+        uid = identity.get('uid')
+        if not uid:
+            import user_accounts
+            uid = user_accounts.owner()
+        if isinstance(uid, str) and 1 <= len(uid) <= 128:
+            return hashlib.sha256(uid.encode()).hexdigest()
+    except Exception:
+        pass
+    return None
+
+
+def record_stage(core, *, component, service, endpoint, stage, result, code=None, reason=None, duration_ms=None, confirmed=True):
     """Record only fixed identifiers; callers must observe the stage themselves."""
     try:
         if component not in IDS or service not in IDS or endpoint not in ROUTES:
             return
-        if stage not in {'http-backend', 'pdf-generated', 'drive-upload', 'drive-readback', 'drive-request', 'telegram-request', 'bank-sync', 'identity-verified', 'oauth-authorization', 'browser-signin', 'task-dispatched', 'vertex-response', 'gmail-request', 'storage-read', 'storage-write'}:
+        if stage not in {'http-backend', 'pdf-generated', 'drive-upload', 'drive-readback', 'drive-request', 'telegram-request', 'bank-sync', 'identity-verified', 'oauth-authorization', 'browser-signin', 'task-dispatched', 'vertex-response', 'gmail-request', 'storage-read', 'storage-write', 'browser-request'}:
             return
         if result not in {'success', 'error', 'warning'}:
             return
         context = getattr(core.g, 'architecture_observation', None)
         if not context:
             return
+        if stage == 'browser-request':
+            confirmed = False
         event = dict(id=uuid4().hex, correlationId=context['id'], operationId=context.get('operationId', context['id']),
                      component=component, service=service, endpoint=endpoint,
                      at=datetime.now(timezone.utc).isoformat(), durationMs=None,
-                     result=result, code=None, stage=stage, confirmed=confirmed is True, dependencies=[])
+                     result=result, code=None, reason=None, accountKey=verified_account_key(core), stage=stage, confirmed=confirmed is True and stage != 'browser-request', dependencies=[])
         if isinstance(code, int) and not isinstance(code, bool) and 100 <= code <= 599:
             event['code'] = code
-        elif stage in {'oauth-authorization', 'browser-signin'} and confirmed is False and isinstance(code, str) and code in diagnostic_store.CLIENT_CODES:
+        elif stage in {'oauth-authorization', 'browser-signin', 'browser-request'} and confirmed is False and isinstance(code, str) and code in diagnostic_store.CLIENT_CODES:
             event['code'] = code
+        elif isinstance(code, str) and code in diagnostic_store.GOOGLE_REASON_CODES and service in {'drive-api', 'gmail'}:
+            event['code'] = code
+        safe_reason = reason if isinstance(reason, str) and reason in diagnostic_store.GOOGLE_REASON_CODES else code
+        if service in {'drive-api', 'gmail'} and isinstance(safe_reason, str) and safe_reason in diagnostic_store.GOOGLE_REASON_CODES:
+            event['reason'] = safe_reason
         if isinstance(duration_ms, (int, float)) and not isinstance(duration_ms, bool) and 0 <= duration_ms <= 86400000:
             event['durationMs'] = round(duration_ms, 2)
         core.app.extensions['architecture_diagnostics'].append(event)
@@ -131,10 +154,10 @@ def stage(core, component, service, stage):
             context = getattr(core.g, 'architecture_observation', None)
             if context:
                 code = getattr(error, 'code', None)
-                if not isinstance(code, int):
+                if not isinstance(code, int) and not (isinstance(code, str) and code in diagnostic_store.GOOGLE_REASON_CODES):
                     code = getattr(error, 'status_code', None)
                 record_stage(core, component=component, service=service, endpoint=context['endpoint'],
-                             stage=stage, result='error', code=code,
+                             stage=stage, result='error', code=code, reason=getattr(error, 'reason', None),
                              duration_ms=(time.monotonic()-started)*1000)
         except Exception:
             pass
@@ -189,6 +212,9 @@ def register_routes(core):
     @core.app.get('/api/admin/architecture')
     def admin_architecture():
         admin_connections.require_admin(core)
+        account = core.request.args.get('account')
+        if account is not None and account != 'unattributed' and not diagnostic_store.ACCOUNT_KEY.fullmatch(account):
+            raise core.AppError('El filtro de cuenta no es válido.', 400)
         try:
             events = core.app.extensions['architecture_diagnostics'].snapshot()
         except Exception:
@@ -203,9 +229,38 @@ def register_routes(core):
                 pass
         scope = ('Historial compartido en el bucket privado de trabajos; más evidencia local pendiente.' if shared_available else
                  'Solo memoria de esta instancia: historial compartido no disponible; no prueba ausencia de incidentes.')
+        # Summaries always describe the global bounded evidence, even when filtered.
+        accounts = {}
+        unattributed = 0
+        for event in events:
+            key = event.get('accountKey')
+            key = key if isinstance(key, str) and diagnostic_store.ACCOUNT_KEY.fullmatch(key) else None
+            event['accountKey'] = key
+            if key is None:
+                unattributed += 1
+                continue
+            summary = accounts.setdefault(key, {'accountKey': key, 'eventCount': 0, 'errorCount': 0, 'lastAt': None})
+            summary['eventCount'] += 1
+            summary['errorCount'] += int(event.get('result') == 'error' and event.get('confirmed') is True)
+            at = event.get('at')
+            if isinstance(at, str) and (summary['lastAt'] is None or at > summary['lastAt']):
+                summary['lastAt'] = at
+        total = len(events)
+        if account == 'unattributed':
+            events = [event for event in events if event['accountKey'] is None]
+        elif account is not None:
+            events = [event for event in events if event['accountKey'] == account]
+        coverage = dict(mode='unattributed' if account == 'unattributed' else 'account' if account else 'global',
+            accountKey=account if account and account != 'unattributed' else None,
+            totalEvents=total, attributedEvents=total-unattributed, unattributedEvents=unattributed,
+            visibleEvents=len(events),
+            coverage='Evidencia limitada a una hora y 400 eventos compartidos; no es un historial completo. Sin atribución significa identidad no verificada en esa etapa o evento legado.')
         response = core.jsonify(nodes=NODES, edges=EDGES, events=events,
+            accounts=sorted(accounts.values(), key=lambda item: item['accountKey']), scope=coverage,
             retention={'seconds': RETENTION_SECONDS, 'maxEvents': MAX_EVENTS, 'scope': scope, 'sharedAvailable': shared_available},
-            limitations=['HTTP confirma únicamente la etapa del backend; no acredita PDF, Drive ni otras dependencias.',
+            limitations=['La cuenta se deriva exclusivamente de identidad verificada en backend; etapas previas, webhooks sin identidad y eventos legados pueden quedar sin atribución.',
+                         'La ausencia de eventos de una cuenta no demuestra que funcione ni que carezca de errores; el almacenamiento es una ventana limitada.',
+                         'HTTP confirma únicamente la etapa del backend; no acredita PDF, Drive ni otras dependencias.',
                          'Sin consulta a producción ni verificación de dominios, OAuth, IAM o disponibilidad.',
                          'Causa no determinada — requiere investigación cuando no hay evidencia de una etapa.',
                          'Retención lógica de una hora y 400 eventos; objetos vencidos se reemplazan al siguiente guardado, sin borrado programado.',

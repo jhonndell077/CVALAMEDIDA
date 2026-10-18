@@ -44,17 +44,22 @@ def register_routes(core):
         data = core.request.get_json(silent=True)
         if not isinstance(data, dict) or set(data) - {'component'} != {'service', 'stage', 'result', 'code'}:
             raise core.AppError('Señal de diagnóstico inválida.', 400)
-        if (data.get('service') != 'drive-api' or data.get('stage') != 'oauth-authorization'
-                or data.get('result') not in ('error', 'pending') or data.get('component', 'google') not in ('google', 'telegram') or not isinstance(data.get('code'), str)
-                or data['code'] not in _codes):
+        if not isinstance(data.get('code'), str):
+            raise core.AppError('Señal de diagnóstico inválida.', 400)
+        oauth = (data.get('service') == 'drive-api' and data.get('stage') == 'oauth-authorization'
+                 and data.get('component', 'google') in ('google', 'telegram') and data.get('code') in _codes)
+        network = (data.get('service') == 'api' and data.get('stage') == 'browser-request'
+                   and data.get('component') in ('bank', 'pdf', 'google', 'drive', 'telegram')
+                   and data.get('code') in ('network_error', 'request_timeout'))
+        if not isinstance(data.get('code'), str) or data.get('result') not in ('error', 'pending') or not (oauth or network):
             raise core.AppError('Señal de diagnóstico inválida.', 400)
         if (data['code'] == 'authorization_pending') != (data['result'] == 'pending'):
             raise core.AppError('Señal de diagnóstico inválida.', 400)
         if not _admit(str(identity['uid'])):
             raise core.AppError('Demasiadas señales; espera un minuto.', 429)
         import architecture_diagnostics
-        architecture_diagnostics.record_stage(core, component=data.get('component', 'google'), service='drive-api',
-            endpoint='/api/diagnostics/client', stage='oauth-authorization',
+        architecture_diagnostics.record_stage(core, component=data.get('component', 'google'), service=data['service'],
+            endpoint='/api/diagnostics/client', stage=data['stage'],
             result='warning', code=data['code'], confirmed=False)
         response = core.jsonify(accepted=True, confirmed=False)
         response.headers['Cache-Control'] = 'no-store, private'

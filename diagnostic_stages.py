@@ -8,7 +8,7 @@ def observe(component, service, stage):
         @wraps(function)
         def wrapped(*args, **kwargs):
             started = monotonic()
-            outcome, code = 'success', None
+            outcome, code, reason = 'success', None, None
             try:
                 return function(*args, **kwargs)
             except Exception as error:
@@ -16,6 +16,12 @@ def observe(component, service, stage):
                 code = getattr(error, 'code', None)
                 if code is None:
                     code = getattr(getattr(error, '__cause__', None), 'code', None)
+                from diagnostic_store import GOOGLE_REASON_CODES
+                reason = getattr(error, 'reason', None)
+                if not isinstance(reason, str) or reason not in GOOGLE_REASON_CODES:
+                    reason = code if isinstance(code, str) and code in GOOGLE_REASON_CODES else None
+                if not (isinstance(code, int) and not isinstance(code, bool) and 100 <= code <= 599) and reason is None:
+                    code = None
                 raise
             finally:
                 try:
@@ -25,7 +31,7 @@ def observe(component, service, stage):
                         from architecture_diagnostics import record_stage
                         record_stage(core, component=component or __import__('architecture_diagnostics').ROUTES.get(request.url_rule.rule, 'telegram'), service=service,
                                      endpoint=request.url_rule.rule, stage=stage,
-                                     result=('warning' if service in {'drive-api', 'gmail', 'vertex', 'storage'} and outcome == 'error' and code is None else outcome), code=code,
+                                     result=('warning' if service in {'drive-api', 'gmail', 'vertex', 'storage'} and outcome == 'error' and code is None else outcome), code=code, reason=reason,
                                      duration_ms=(monotonic() - started) * 1000)
                 except Exception:
                     pass
@@ -49,9 +55,16 @@ def provider_response(response, started, *, component='bank', service='drive-api
             return
         import app as core
         from architecture_diagnostics import record_stage
+        reason = None
+        if service in {'drive-api', 'gmail'} and not response.ok:
+            from drive_error_details import classify
+            body = getattr(response, 'text', None)
+            url = getattr(response, 'url', '')
+            if isinstance(body, str) and len(body) <= 32768:
+                reason, _ = classify(url if isinstance(url, str) else '', response.status_code, body)
         record_stage(core, component=component, service=service,
                      endpoint=request.url_rule.rule, stage=stage,
                      result='success' if (response.ok if success is None else success) else 'error',
-                     code=response.status_code, duration_ms=(monotonic()-started)*1000)
+                     code=response.status_code, reason=reason, duration_ms=(monotonic()-started)*1000)
     except Exception:
         pass

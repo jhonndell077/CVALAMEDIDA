@@ -9,6 +9,7 @@ import os
 import re
 import time
 from datetime import datetime
+import drive_error_details
 
 from google.api_core.exceptions import NotFound, PreconditionFailed
 
@@ -17,8 +18,10 @@ RETENTION_SECONDS = 3600
 OBJECT_NAME = 'diagnostics/architecture-v1.json'
 TIMEOUT = 0.7
 MAX_BYTES = 512000
-STAGES = frozenset({'http-backend', 'pdf-generated', 'drive-upload', 'drive-readback', 'drive-request', 'telegram-request', 'bank-sync', 'identity-verified', 'oauth-authorization', 'browser-signin', 'task-dispatched', 'vertex-response', 'gmail-request', 'storage-read', 'storage-write'})
-CLIENT_CODES = frozenset({'access_denied', 'popup_closed', 'popup_failed_to_open', 'oauth_error', 'origin_mismatch', 'redirect_uri_mismatch', 'authorization_pending', 'authorization_timeout'})
+STAGES = frozenset({'http-backend', 'pdf-generated', 'drive-upload', 'drive-readback', 'drive-request', 'telegram-request', 'bank-sync', 'identity-verified', 'oauth-authorization', 'browser-signin', 'task-dispatched', 'vertex-response', 'gmail-request', 'storage-read', 'storage-write', 'browser-request'})
+CLIENT_CODES = frozenset({'access_denied', 'popup_closed', 'popup_failed_to_open', 'oauth_error', 'origin_mismatch', 'redirect_uri_mismatch', 'authorization_pending', 'authorization_timeout', 'network_error', 'request_timeout'})
+GOOGLE_REASON_CODES = frozenset(drive_error_details.REASONS) | frozenset(value[0] for value in drive_error_details.REASONS.values()) | frozenset({'google_authorization_expired', 'google_identity_check_failed', 'drive_access_undetermined', 'google_request_failed'})
+ACCOUNT_KEY = re.compile(r'^[a-f0-9]{64}$')
 IDENTIFIER = re.compile(r'^[a-f0-9]{32}$')
 OPERATION = re.compile(r'^(?:[a-f0-9]{32}|[a-f0-9]{64}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$')
 
@@ -57,12 +60,17 @@ class DiagnosticStore:
             duration = event.get('durationMs')
             duration = round(duration, 2) if isinstance(duration, (int, float)) and not isinstance(duration, bool) and math.isfinite(duration) and 0 <= duration <= 86400000 else None
             code = event.get('code')
-            client_code = code if isinstance(code, str) and code in CLIENT_CODES and event.get('stage') in {'oauth-authorization', 'browser-signin'} and event.get('confirmed') is False else None
-            code = code if isinstance(code, int) and not isinstance(code, bool) and 100 <= code <= 599 else client_code
+            client_code = code if isinstance(code, str) and code in CLIENT_CODES and event.get('stage') in {'oauth-authorization', 'browser-signin', 'browser-request'} and (event.get('confirmed') is False or event.get('stage') == 'browser-request') else None
+            google_code = code if isinstance(code, str) and code in GOOGLE_REASON_CODES and event.get('service') in {'drive-api', 'gmail'} else None
+            code = code if isinstance(code, int) and not isinstance(code, bool) and 100 <= code <= 599 else (google_code or client_code)
+            reason = event.get('reason')
+            reason = reason if isinstance(reason, str) and reason in GOOGLE_REASON_CODES and event.get('service') in {'drive-api', 'gmail'} else google_code
+            account_key = event.get('accountKey')
+            account_key = account_key if isinstance(account_key, str) and ACCOUNT_KEY.fullmatch(account_key) else None
             clean[event['id']] = dict(id=event['id'], correlationId=event['correlationId'], operationId=event['operationId'],
                 component=event['component'], service=event['service'], endpoint=event['endpoint'],
-                at=event['at'], durationMs=duration, result=event['result'], code=code,
-                stage=event['stage'], confirmed=event.get('confirmed') is True, dependencies=[])
+                at=event['at'], durationMs=duration, result=event['result'], code=code, reason=reason, accountKey=account_key,
+                stage=event['stage'], confirmed=event.get('confirmed') is True and event['stage'] != 'browser-request', dependencies=[])
         return sorted(clean.values(), key=lambda item: (item['at'], item['id']))[-MAX_EVENTS:]
 
     def _read(self):

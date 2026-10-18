@@ -68,7 +68,6 @@ informationForm.addEventListener("submit", async event => {
   const button = $("#save-information");
   const errorBox = $("#information-error");
   errorBox.hidden = true;
-  if (typeof CustomEvent !== "undefined") window.dispatchEvent?.(new CustomEvent("cv-app-error", {detail: {message: ""}}));
   try {
     const values = {...Object.fromEntries(new FormData(informationForm)), ...window.cvRepeaters.collect(informationForm)};
     const type = values.type;
@@ -106,7 +105,6 @@ informationForm.addEventListener("submit", async event => {
     if (!isCurrent()) return;
     errorBox.textContent = error.message;
     errorBox.hidden = false;
-  if (typeof CustomEvent !== "undefined") window.dispatchEvent?.(new CustomEvent("cv-app-error", {detail: {message}}));
     if (informationForm.hidden) $("#information-status").textContent += " No se pudo actualizar la vista: " + error.message;
   } finally {
     if (isCurrent() || (owner === state.user?.uid && epoch === state.authEpoch && informationForm.hidden)) {
@@ -172,11 +170,13 @@ function setBusy(button, busy, label = "Cargando") {
 function showError(message) {
   errorBox.textContent = message;
   errorBox.hidden = false;
+  if (typeof CustomEvent !== "undefined") window.dispatchEvent?.(new CustomEvent("cv-app-error", {detail: {message}}));
 }
 
 function clearError() {
   errorBox.textContent = "";
   errorBox.hidden = true;
+  if (typeof CustomEvent !== "undefined") window.dispatchEvent?.(new CustomEvent("cv-app-error", {detail: {message: ""}}));
 }
 
 function operationIdFor(payload = {}) {
@@ -187,6 +187,7 @@ function operationIdFor(payload = {}) {
 
 window.addEventListener('cv-client-diagnostic', event => {
   const detail = event.detail || {};
+  if (window.cvClientSupervisor) { window.cvClientSupervisor.report(detail); return; }
   if (!state.user || !['access_denied', 'popup_closed', 'popup_failed_to_open', 'oauth_error'].includes(detail.code)) return;
   if (detail.service !== 'drive-api' || detail.stage !== 'oauth-authorization') return;
   directRequestJson('/api/diagnostics/client', {
@@ -207,12 +208,17 @@ async function directRequestJson(url, payload, headers = {}, requestOptions = {}
     if (requestOwner !== state.user?.uid || requestEpoch !== state.authEpoch) throw Object.assign(new Error('La cuenta cambió. Inicia esta operación con tu nueva sesión.'), {terminal: true});
     state.idToken = token;
   }
-  const response = await fetch(url, {
+  const requestOperationId = operationIdFor({request_id: headers['X-CV-Operation-ID'] || payload?.request_id});
+  let response;
+  try { response = await fetch(url, {
     signal: requestOptions.signal,
     method: "POST",
-    headers: authenticatedHeaders({ "Content-Type": "application/json", "X-CV-Operation-ID": operationIdFor(payload), ...headers }),
+    headers: authenticatedHeaders({ "Content-Type": "application/json", "X-CV-Operation-ID": requestOperationId, ...headers }),
     body: JSON.stringify(payload),
-  });
+  }); } catch (error) {
+    if (requestOwner === state.user?.uid && requestEpoch === state.authEpoch) window.cvClientSupervisor?.network(url, error, requestOperationId);
+    throw error;
+  }
   const data = await response.json().catch(() => ({}));
   if (requestOwner !== state.user?.uid || requestEpoch !== state.authEpoch) throw Object.assign(new Error('La cuenta cambió. Inicia esta operación con tu nueva sesión.'), {terminal: true});
   window.cvSubscription?.observe(response, data)?.catch(() => {});
@@ -1133,6 +1139,7 @@ async function updateGoogleUserWork(user) {
     if (state.photoUrl) URL.revokeObjectURL(state.photoUrl); state.photoUrl = null;
   }
   state.user = user;
+  window.cvClientSupervisor?.initialize(user);
   if (typeof CustomEvent !== "undefined") window.dispatchEvent?.(new CustomEvent("cv-session-state", {detail: {signedIn: Boolean(user)}}));
   window.cvSubscription?.initialize(user)?.catch(() => {});
   const token = user ? await user.getIdToken() : null;
@@ -1214,9 +1221,9 @@ async function updateGoogleUserWork(user) {
   }
 }
 
-async function verifiedGoogleCredential(accessToken) {
+async function verifiedGoogleCredential(accessToken, operationId) {
   if (!accessToken) throw new Error('Google no entregó los permisos de Drive.');
-  const metadata = await directRequestJson('/api/google/grant', {}, {'X-Drive-Access-Token': accessToken});
+  const metadata = await directRequestJson('/api/google/grant', {}, {'X-Drive-Access-Token': accessToken, ...(operationId ? {'X-CV-Operation-ID': operationId} : {})});
   return {access_token: accessToken, expires_in: metadata.expires_in, scope: metadata.scope};
 }
 
@@ -1233,7 +1240,7 @@ async function initializeGoogleAuth() {
     provider.setCustomParameters(state.user ? {login_hint:state.user.email, include_granted_scopes:'true'} : {prompt:'select_account', include_granted_scopes:'true'});
     return provider;
   };
-  window.cvDrive.setAuthorizationHandler(async () => {
+  window.cvDrive.setAuthorizationHandler(async ({operationId} = {}) => {
     const owner = state.user?.uid, epoch = state.authEpoch;
     // Open Google authorization directly from the click, independently of Telegram.
     const result = state.user
@@ -1244,7 +1251,7 @@ async function initializeGoogleAuth() {
     if (!owner) await updateGoogleUser(result.user);
     if (state.user?.uid !== result.user.uid) throw new Error('La cuenta cambió durante la autorización.');
     if (!result.credential?.accessToken) throw new Error("Google no entregó los permisos de Gmail y Drive.");
-    return verifiedGoogleCredential(result.credential.accessToken);
+    return verifiedGoogleCredential(result.credential.accessToken, operationId);
   });
   state.auth.onIdTokenChanged((user) => {
     updateGoogleUser(user).catch((error) =>

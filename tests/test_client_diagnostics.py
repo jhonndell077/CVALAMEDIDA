@@ -62,3 +62,14 @@ class BrowserDiagnosticsTests(unittest.TestCase):
         for _ in range(11):
             self.assertEqual(self.client.post('/api/diagnostics/client', json=self.payload, headers=self.headers).status_code, 200)
         self.assertEqual(self.client.post('/api/diagnostics/client', json=self.payload, headers=self.headers).status_code, 429)
+
+
+    def test_browser_network_failure_is_unconfirmed_and_cannot_spoof_account(self):
+        payload=dict(component='bank',service='api',stage='browser-request',result='error',code='network_error')
+        response=self.client.post('/api/diagnostics/client',json=payload,headers=self.headers)
+        self.assertEqual(response.status_code,200)
+        event=next(e for e in self.core.app.extensions['architecture_diagnostics'].snapshot() if e['stage']=='browser-request')
+        self.assertFalse(event['confirmed'])
+        self.assertEqual(event['code'],'network_error')
+        self.assertEqual(self.client.post('/api/diagnostics/client',json={**payload,'accountKey':'a'*64},headers=self.headers).status_code,400)
+        self.assertEqual(self.client.post('/api/diagnostics/client',json={**payload,'code':{}},headers=self.headers).status_code,400)
