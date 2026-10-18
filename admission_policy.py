@@ -49,7 +49,7 @@ PLAN_CATALOG = [
 
 def validate_plan(plan):
     required = {'name', 'priceMinor', 'currency', 'interval', 'collection', 'paymentStatus'}
-    if not isinstance(plan, dict) or set(plan) not in (required, required | {'customLimits'}):
+    if not isinstance(plan, dict) or not required <= set(plan) or set(plan) - required - {'customLimits', 'assignmentId'}:
         raise ValueError('Plan inválido.')
     if not isinstance(plan['name'], str) or plan['name'] not in {'basic', 'plus', 'pro', 'custom'}:
         raise ValueError('Plan inválido.')
@@ -65,6 +65,8 @@ def validate_plan(plan):
         raise ValueError('La configuración no habilita cobros ni verifica pagos.')
     if 'customLimits' in plan and plan['customLimits'] is not True:
         raise ValueError('Plan inválido.')
+    if 'assignmentId' in plan and (not isinstance(plan['assignmentId'], str) or len(plan['assignmentId']) != 32 or any(c not in '0123456789abcdef' for c in plan['assignmentId'])):
+        raise ValueError('Asignación inválida.')
     return dict(plan)
 
 
@@ -84,6 +86,9 @@ def read_policy_document(store, uid=''):
 
 def read_policy(store, uid=''):
     document, generation = read_policy_document(store, uid)
+    if uid and document and document.get('plan', {}).get('name') == 'basic':
+        global_policy, _ = read_policy(store)
+        return global_policy or dict(zip(('daily', 'monthly'), limits())), generation
     return (validate_limits({key: document[key] for key in ('daily', 'monthly')}) if document is not None else None), generation
 
 

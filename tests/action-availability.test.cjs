@@ -5,7 +5,7 @@ const source=fs.readFileSync('static/app.js','utf8');
 function setup(state={}) {
   const elements=new Map();
   const $=id=>{if(!elements.has(id))elements.set(id,{disabled:false,focus(){this.focused=true},scrollIntoView(){},click(){this.clicked=true}});return elements.get(id)};
-  const context=vm.createContext({state,$,busyButtons:new WeakMap(),showError:message=>context.error=message});
+  const context=vm.createContext({window:{},state,$,busyButtons:new WeakMap(),showError:message=>context.error=message});
   vm.runInContext(source.slice(source.indexOf('function updateAnalyzeButton()'),source.indexOf('async function loadModels(')),context);
   return {context,$};
 }

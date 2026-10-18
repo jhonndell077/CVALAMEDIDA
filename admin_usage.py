@@ -12,6 +12,7 @@ from firebase_admin import auth
 import admin_connections
 import admission_policy
 import job_runtime
+import plan_catalog
 
 ORIGINS = frozenset({'https://cvalamedida.web.app', 'https://cv-a-la-medida-jhonn.web.app',
                      'https://cv-a-la-medida-jhonn.firebaseapp.com'})
@@ -39,6 +40,7 @@ def register_routes(core):
             global_override, generation = admission_policy.read_policy(store)
             defaults = dict(zip(('daily', 'monthly'), admission_policy.limits()))
             global_policy = global_override or defaults
+            catalog, catalog_generation = plan_catalog.load(store, global_policy)
             page = auth.list_users(page_token=token, max_results=int(size))
             timestamp = time.time()
             accounts = []
@@ -46,6 +48,8 @@ def register_routes(core):
                 uid = user.uid
                 document, version = admission_policy.read_policy_document(store, uid)
                 override = ({key: document[key] for key in ('daily', 'monthly')} if document else None)
+                if document and document.get('plan', {}).get('name') == 'basic':
+                    override = dict(global_policy)
                 policy = override or global_policy
                 queue, _ = store.read(admission_policy.queue_key(uid))
                 accounts.append(dict(uid=uid, email=_text(user.email, 320), displayName=_text(user.display_name, 200),
@@ -58,7 +62,7 @@ def register_routes(core):
                                      day=1, hour=0, minute=0, second=0, microsecond=0)
             return reply(at=now.isoformat(), timeZone='UTC', defaults=defaults,
                 **{'global': {**global_policy, 'generation': str(generation)}}, accounts=accounts,
-                planCatalog=admission_policy.PLAN_CATALOG,
+                planCatalog=catalog, catalogGeneration=str(catalog_generation),
                 resets={'daily': tomorrow.isoformat(), 'monthly': next_month.isoformat()},
                 nextPageToken=page.next_page_token or None)
         except Exception as error:
@@ -97,7 +101,12 @@ def register_routes(core):
                 if str(current_generation) != version:
                     raise PreconditionFailed('configuration changed')
                 if previous and previous.get('plan'):
-                    policy['plan'] = {**previous['plan'], 'customLimits': True}
+                    if previous['plan']['name'] == 'basic':
+                        global_policy, _ = admission_policy.read_policy(store)
+                        policy = global_policy or dict(zip(('daily', 'monthly'), admission_policy.limits()))
+                        policy['plan'] = {key: value for key, value in previous['plan'].items() if key != 'customLimits'}
+                    else:
+                        policy['plan'] = {**previous['plan'], 'customLimits': True}
             store.write(admission_policy.policy_key(uid), policy, int(version))
             _, new_generation = store.read(admission_policy.policy_key(uid))
             return reply(ok=True, scope=data['scope'], uid=uid if account else None, generation=str(new_generation),

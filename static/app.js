@@ -213,6 +213,7 @@ async function directRequestJson(url, payload, headers = {}, requestOptions = {}
   });
   const data = await response.json().catch(() => ({}));
   if (requestOwner !== state.user?.uid || requestEpoch !== state.authEpoch) throw Object.assign(new Error('La cuenta cambió. Inicia esta operación con tu nueva sesión.'), {terminal: true});
+  window.cvSubscription?.observe(response, data)?.catch(() => {});
   if (!response.ok) {
     throw Object.assign(new Error(data.error || `La solicitud falló (${response.status}).`), {status: response.status});
   }
@@ -222,7 +223,14 @@ async function directRequestJson(url, payload, headers = {}, requestOptions = {}
 async function processFetch(url, settings) {
   const owner = state.user?.uid, epoch = state.authEpoch;
   const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch;
-  if (!window.cvBackground.enabled() || !window.cvBackground.handles(url) || settings.method !== 'POST') return fetch(url, settings);
+  if (!window.cvBackground.enabled() || !window.cvBackground.handles(url) || settings.method !== 'POST') {
+    const response = await fetch(url, settings);
+    if (isCurrent() && response.status === 429) {
+      const data = await response.clone().json().catch(() => ({}));
+      if (isCurrent()) window.cvSubscription?.observe(response, data)?.catch(() => {});
+    }
+    return response;
+  }
   const result = await window.cvBackground.run(url, JSON.parse(settings.body || '{}'), settings.headers);
   if (!isCurrent()) throw new Error('La cuenta cambió.');
   if (result.download_url) {
@@ -1118,6 +1126,7 @@ async function updateGoogleUserWork(user) {
     if (state.photoUrl) URL.revokeObjectURL(state.photoUrl); state.photoUrl = null;
   }
   state.user = user;
+  window.cvSubscription?.initialize(user)?.catch(() => {});
   const token = user ? await user.getIdToken() : null;
   if (state.user !== user) return;
   state.idToken = token;

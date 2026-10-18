@@ -27,3 +27,14 @@ No se añadieron dependencias ni servicios de pago. Plan y cupos comparten el ob
 ## Publicación
 
 Firebase confirmó api, telegram_worker y ambos sitios Hosting, build `20261017T175306Z-38eeedae`. Los archivos JS/CSS publicados coinciden con los probados (`tmp/manual-plans-smoke.json`). Con sesión administrativa se verificaron los botones Plan en las cuentas cargadas y el formulario con plantilla Plus, cupos 20/200, precio vacío y moneda DOP. Se comprobó a 390 px sin controles desbordados. No se pulsó Guardar plan ni se cambiaron asignaciones reales. Captura: `tmp/plan-dop-publicado.png`.
+
+
+## Plan Básico, catálogo y anuncios de consumo
+
+Los límites generales definen siempre el Básico gratuito. Una asignación explícita de Básico hereda esos límites también en la admisión real. Configuración → Límites generales → Planes y beneficios permite editar el catálogo Plus/Pro y el Personalizado opcional: nombre, cupos, precio mensual DOP, beneficios y publicación. Los cambios del catálogo no reasignan ni cobran automáticamente a cuentas existentes.
+
+La app consulta el plan propio al iniciar sesión, sin exigir Drive. Un rechazo verificado por agotamiento diario o mensual muestra un anuncio flotante con Ver planes. Los errores de concurrencia no generan ese anuncio. La bienvenida identifica una asignación confirmada y presenta sus beneficios o cupos reales; no afirma que el pago manual esté confirmado. Se evita repetirla al editar sólo los cupos. Los anuncios se deduplican por cuenta, asignación y período; cerrar sesión elimina la vista y descarta respuestas atrasadas.
+
+No hay consultas periódicas. La consulta del plan realiza cuatro lecturas de objetos privados al iniciar sesión o recibir un rechazo por cuota. La página administrativa añade una lectura de catálogo por página de cuentas. Guardar el catálogo hace una escritura explícita con control de generación. No se añadieron dependencias ni pasarela de pago; los precios vacíos se presentan como Precio por confirmar.
+
+Archivos principales: plan_catalog.py, admission_policy.py, admin_usage.py, admin_plans.py, app.py, static/admin-architecture.js/.css, static/subscription-notices.js/.css, static/app.js y static/index.html. Pruebas locales con fixtures, red bloqueada y sin operaciones sobre cuentas reales.

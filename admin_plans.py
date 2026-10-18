@@ -1,11 +1,13 @@
 """Manual per-account plan metadata and atomic quota assignment; no billing API."""
 import re
+import uuid
 from firebase_admin import auth
 from google.api_core.exceptions import PreconditionFailed
 import admin_connections
 import admin_usage
 import admission_policy
 import job_runtime
+import plan_catalog
 
 
 def register_routes(core):
@@ -26,14 +28,18 @@ def register_routes(core):
             limits = admission_policy.validate_limits({key: data[key] for key in ('daily', 'monthly')})
             plan = admission_policy.validate_plan({key: data[key] for key in ('name', 'priceMinor', 'currency')} | {
                 'interval': 'month', 'collection': 'manual', 'paymentStatus': 'unverified'})
-            preset = next((item for item in admission_policy.PLAN_CATALOG if item['id'] == plan['name']), None)
-            if preset is None or any(limits[key] != preset[key] for key in ('daily', 'monthly')):
-                plan['customLimits'] = True
         except ValueError:
             raise core.AppError('Verifica plan, moneda, precio en centavos y límites enteros. El plan básico es gratuito.', 400) from None
         try:
             auth.get_user(uid)
             store = job_runtime.JobStore()
+            catalog, _ = plan_catalog.load(store)
+            preset = next((item for item in catalog if item['id'] == plan['name']), None)
+            if plan['name'] == 'basic':
+                limits = {key: catalog[0][key] for key in ('daily', 'monthly')}
+            elif preset is None or any(limits[key] != preset[key] for key in ('daily', 'monthly')):
+                plan['customLimits'] = True
+            plan['assignmentId'] = uuid.uuid4().hex
             store.write(admission_policy.policy_key(uid), {**limits, 'plan': plan}, int(generation))
             _, new_generation = store.read(admission_policy.policy_key(uid))
             response = core.jsonify(ok=True, uid=uid, plan=plan, limits=limits, generation=str(new_generation))

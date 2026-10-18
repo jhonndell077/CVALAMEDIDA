@@ -98,6 +98,15 @@ class AdminPlanTests(unittest.TestCase):
             self.assertEqual(self.assign(**changes).status_code,400)
         self.assertEqual(self.store.writes,[])
 
+    def test_paid_zero_rejected_and_basic_zero_uses_global_limits(self):
+        for name in ('plus', 'pro', 'custom'):
+            self.assertEqual(self.assign(name=name, priceMinor=0).status_code, 400)
+        self.store.write(admission_policy.policy_key(), {'daily': 7, 'monthly': 33}, 0)
+        response = self.assign(name='basic', priceMinor=0, daily=999, monthly=999)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['limits'], {'daily': 7, 'monthly': 33})
+        self.assertNotIn('customLimits', response.json['plan'])
+
     def test_owner_and_origin_guards(self):
         self.headers = {**self.headers,'Origin':'https://attacker.example'}
         self.assertEqual(self.assign().status_code,403)

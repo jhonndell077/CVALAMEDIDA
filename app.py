@@ -1317,7 +1317,7 @@ def enforce_request_policy() -> tuple[Any, int] | None:
         hostname = request.host.partition(":")[0].strip("[]").casefold()
         if hostname not in {"127.0.0.1", "localhost", "::1"}:
             return jsonify({"error": "La app solo acepta conexiones locales."}), 403
-    if request.path == '/api/diagnostics/client':
+    if request.path in {'/api/diagnostics/client', '/api/subscription'}:
         verify_google_identity()
         return None
     if request.path == '/api/admin/connections/push/receipt' and request.method == 'POST':
@@ -1402,7 +1402,7 @@ def static_asset(asset_name: str) -> Any:
         "vendor/leaflet/LICENSE","vendor/leaflet/images/marker-icon.png","vendor/leaflet/images/marker-icon-2x.png","vendor/leaflet/images/marker-shadow.png"}
     if asset_name in employment_assets:
         return send_from_directory(app.static_folder or "static",asset_name)
-    if asset_name not in {"app.js", "background.js", "sw.js", "drive.js", "gmail.js", "loading.js", "styles.css", "card-motion.js", "card-motion.css", "app-version.js", "version.json", "logo-cv-a-la-medida.png", "app-background.png", "app-icon.png", "manifest.webmanifest", "telegram.js", "onboarding.js", "repeaters.js",
+    if asset_name not in {"subscription-notices.js", "subscription-notices.css", "app.js", "background.js", "sw.js", "drive.js", "gmail.js", "loading.js", "styles.css", "card-motion.js", "card-motion.css", "app-version.js", "version.json", "logo-cv-a-la-medida.png", "app-background.png", "app-icon.png", "manifest.webmanifest", "telegram.js", "onboarding.js", "repeaters.js",
                          "profile-dialog.js", "data-panel.js", "employment-window.js", "ui-navigation.js",
                          "drive-auth.html", "drive-auth.js", "drive-config.json", "privacy.html", "manual.html", "manual.css", "manual.js",
                          "manual-assets/flujo-datos.svg", "manual-assets/paso-vacante.jpg", "manual-assets/canales-envio.svg"}:
@@ -1788,6 +1788,8 @@ import admin_user_actions
 admin_user_actions.register_routes(sys.modules[__name__])
 import admin_plans
 admin_plans.register_routes(sys.modules[__name__])
+import plan_catalog
+plan_catalog.register_routes(sys.modules[__name__])
 
 import profile_routes
 import resume_routes
