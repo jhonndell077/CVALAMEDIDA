@@ -423,15 +423,18 @@ async function synchronizeBank(onProgress) {
 }
 
 let synchronizationRunning = false;
-$("#sync-bank").addEventListener("click", async () => {
+async function startBankSynchronization() {
   if (synchronizationRunning) return;
   if (!requireSession('sincronizar tu banco')) return;
   synchronizationRunning = true;
   $("#sync-bank").disabled = true;
   clearError();
-  try { await window.cvLoading.run("Sincronizando tu banco en Google Drive", async update => {
+  try {
+    // Start OAuth from the real user gesture before opening the loading modal.
+    const connection = window.cvDrive.connect();
+    await window.cvLoading.run("Sincronizando tu banco en Google Drive", async update => {
     update(2, 'Comprobando la conexión de Gmail y Drive');
-    await window.cvDrive.connect();
+    await connection;
     if (!window.cvDrive.isConnected()) throw new Error("Faltan permisos de Drive. Pulsa Sincronizar todo y acepta los permisos.");
     update(15, 'Conexión comprobada; sincronizando el banco');
     await synchronizeBank((progress, stage, durable) => update(15 + Math.floor(progress * 0.75), stage, durable));
@@ -442,7 +445,9 @@ $("#sync-bank").addEventListener("click", async () => {
   }); }
   catch (error) { showError(error.message); }
   finally { synchronizationRunning = false; $("#sync-bank").disabled = false; }
-});
+}
+window.cvSynchronizeBank = startBankSynchronization;
+$("#sync-bank").addEventListener("click", startBankSynchronization);
 
 async function loadProfileSummary() {
   return window.cvLoading.run("Cargando tu perfil", () => loadProfileSummaryWork());

@@ -26,3 +26,13 @@ test('automatic folder setup needs neither Picker scripts nor installed apps',as
  drive.setAuthorizationHandler(async()=>({access_token:'token'}));await drive.connect();
  assert.equal(path,'/api/account/setup');assert.equal(drive.isConnected(),true);
 });
+
+
+test('sync starts authorization before loading UI and shares one operation for repeated taps',async()=>{
+ let click,resolve;const calls=[];const button={addEventListener:(_,fn)=>click=fn};
+ const context=vm.createContext({window:{cvDrive:{connect(){calls.push('oauth');return new Promise(done=>resolve=done)},isConnected:()=>true},cvLoading:{run:async(_,work)=>{calls.push('loading');return work(()=>{})}}},$:()=>button,requireSession:()=>true,clearError(){},showError:assert.fail,synchronizeBank:async()=>calls.push('bank'),loadProfileSummaryWork:async()=>{}});
+ vm.runInContext(source.slice(source.indexOf('let synchronizationRunning ='),source.indexOf('async function loadProfileSummary()')),context);
+ const operation=context.window.cvSynchronizeBank();assert.deepEqual(calls,['oauth','loading']);
+ await click();assert.deepEqual(calls,['oauth','loading']);resolve();await operation;
+ assert.deepEqual(calls,['oauth','loading','bank']);assert.equal(button.disabled,false);
+});

@@ -105,7 +105,12 @@
   });
   new MutationObserver(availability).observe(panel, {attributes: true, attributeFilter: ['hidden']});
   availability();
-  syncButton.addEventListener('click', () => originalSync.click());
+  syncButton.addEventListener('click', () => {
+    // Call the action directly: the original button is hidden and can be inert
+    // while Datos is modal. Preserve Safari's real user activation for OAuth.
+    if (window.cvSynchronizeBank) window.cvSynchronizeBank();
+    else originalSync.click();
+  });
   const syncAvailability = () => { syncButton.disabled = originalSync.disabled; };
   new MutationObserver(syncAvailability).observe(originalSync, {attributes: true, attributeFilter: ['disabled']});
   syncAvailability();

@@ -109,9 +109,13 @@ window.cvDrive = (() => {
     if (connection) return connection;
     if (authorizationHandler) {
       const started = generation;
+      // Open Google before showing a modal can change the active top layer.
+      let authorization;
+      try { authorization = authorizationHandler(); }
+      catch (error) { return Promise.reject(error); }
       const finish = window.cvLoading.start("Conectando Gmail y Drive con tu cuenta");
       button().disabled = true;
-      const operation = connection = authorizationHandler().then(result => {
+      const operation = connection = Promise.resolve(authorization).then(result => {
         if (started !== generation) throw new Error('La cuenta cambió durante la autorización.');
         return connected(result);
       }).catch(error => {

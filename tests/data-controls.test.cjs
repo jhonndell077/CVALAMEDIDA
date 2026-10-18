@@ -14,7 +14,7 @@ function setup(){
  const listeners={};
  const root={scrollY:0,innerWidth:1000,scrollTo(){},addEventListener(type,handler){listeners[type]=handler}};
  vm.runInNewContext(fs.readFileSync('static/data-panel.js','utf8'),{document,window:root,MutationObserver:Observer,matchMedia:()=>({matches:true})});
- return {document,dialog,emit:(type,detail)=>listeners[type]?.({detail}),notify:target=>observers.filter(o=>o.target===target).forEach(o=>o.callback())};
+ return {document,dialog,root,emit:(type,detail)=>listeners[type]?.({detail}),notify:target=>observers.filter(o=>o.target===target).forEach(o=>o.callback())};
 }
 
 test('Datos opens before synchronization and remains visible across account state changes',async()=>{
@@ -61,4 +61,14 @@ test('signed-in disconnected user sees Drive instructions and sync errors inside
  emit('cv-app-error',{message:'Cuenta anterior'});
  emit('cv-session-state',{signedIn:false});assert.equal(error.hidden,true);
  assert.doesNotMatch(document.querySelector('#data-unavailable').textContent,/Tu sesión está iniciada/);
+});
+
+
+test('floating sync calls public action directly without clicking hidden or inert original',()=>{
+ const {document,root,notify}=setup();let started=0;
+ root.cvSynchronizeBank=()=>started++;
+ const original=document.querySelector('#sync-bank');original.disabled=false;notify(original);
+ original.click=()=>{throw Error('Hidden button must not receive synthetic click')};
+ document.querySelector('#data-toggle').click();document.querySelector('#data-sync').click();
+ assert.equal(started,1);
 });
