@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-10-18T01:35:34.588Z",
+  "generatedAt": "2026-10-18T01:51:20.803Z",
   "baseline": {
     "buildId": "20261016T223144Z-bb10ff7c",
     "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
@@ -1129,8 +1129,8 @@
   },
   "previous": {
     "analysisVersion": 2,
-    "buildId": "20261018T012954Z-c6e6d708",
-    "sourceHash": "833ae44ee6f0f8471b34e617a7ca1c630ec6860d8bc8fdb77f4f6540e5d50fc8",
+    "buildId": "20261018T013530Z-bb7a01c0",
+    "sourceHash": "6fc85510c8a40826b1f47014da95d5f8ca5dff023d774c9796da8d8d5e03fa1a",
     "controls": [
       {
         "key": "/drive-auth.html::#authorize",
@@ -1571,7 +1571,7 @@
         "label": "Sincronizar todo",
         "page": "/",
         "group": "main",
-        "fingerprint": "54cf0886d8e9c8ceac5de094dd56e161909fb327ac0f410fd3afbfa310929742"
+        "fingerprint": "ae0b6113f9d6ebbab0d43196e7a2e74336a97ab3efc8f60f83780950433ce45b"
       },
       {
         "key": "/::#google-sign-in",
@@ -1893,7 +1893,7 @@
         "label": "Crear y enviar mi CV →",
         "page": "/",
         "group": "analysis-panel",
-        "fingerprint": "744efe60a03d0cceab75cf8a2d7aef589f72fad1f703ce88d4bc1512fb71a7e9"
+        "fingerprint": "79b0fa657e154bb99ff60f8b00f9fab0dbdf4987b73465881785b18e5b582285"
       },
       {
         "key": "/::#back-to-analysis",
@@ -1907,14 +1907,14 @@
         "label": "Descargar PDF",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "4b5b23a565284651dd79bb63516ed87531e91275d75537bb9ba4e0a965a5628e"
+        "fingerprint": "e3ddaf257c6b759aeb8406f9cf7278320d0d8663f5c54567ab63e8dbe784ff02"
       },
       {
         "key": "/::#download-docx",
         "label": "Descargar Word",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "6fe505b42e3e83d6d1b48cce817761785f699f80d81e213d9017496529e9f4bd"
+        "fingerprint": "ee78866edf3213931d9e310ad6f4f3321aa00966ed9de2c82c2ccba259cfb6e5"
       },
       {
         "key": "/::#application-email",
@@ -1949,7 +1949,7 @@
         "label": "◉ Abrir WhatsApp",
         "page": "/",
         "group": "section",
-        "fingerprint": "6892a55f90f78d29dbc821051ae58772ae41f4d86f0bec419389812a6b94a355"
+        "fingerprint": "150535c6726984ec0dbbee4344a45c52e849de22e3a8fcc0ef798410141160ca"
       },
       {
         "key": "/::#application-history-details>summary:nth-of-type(1)",
@@ -1963,14 +1963,14 @@
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "5aad952a7df63a51592a0ffd3ce52ef5672ac38ff23f26ec0f81208483051e60"
+        "fingerprint": "d52e1e25d6f232b45c9b2048d4756536c8c7e8f63b30b3e7b9d920212ff0e730"
       },
       {
         "key": "/::#load-more-applications",
         "label": "Cargar más postulaciones",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "206eef5d80e1576b6e551559e7f16eeb8860e73ccb4ff71a5ed60996d579a207"
+        "fingerprint": "f0f9c9c5bec5313c7082da1e40d89a3316612baf30f74482aedc26dca96c6115"
       },
       {
         "key": "/::#onboarding-close",
@@ -2033,7 +2033,7 @@
         "label": "Guardar y consolidar mi banco",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "f967593e02d040bae7a335f3ac951bd62acfbbabd6299f771994cdc722854977"
+        "fingerprint": "645f3e3e0e0a4c803efb82d57de3a4c684de9c1bbe34530700e079a7ce48a011"
       },
       {
         "key": "/::#onboarding-preview-open",
@@ -2075,7 +2075,7 @@
         "label": "Sincronizar todo",
         "page": "/",
         "group": "data-actions",
-        "fingerprint": "d9fc307eef3967b143ea1eeedabc84ced2f69a074aaba43bc13f5b1f5a9f222b"
+        "fingerprint": "9483a0e623a72a94bf55cb03fc4e2667357084b2143987f9ea59530594796d33"
       },
       {
         "key": "/::#data-close",
@@ -2256,7 +2256,7 @@
   },
   "current": {
     "analysisVersion": 2,
-    "sourceHash": "6fc85510c8a40826b1f47014da95d5f8ca5dff023d774c9796da8d8d5e03fa1a",
+    "sourceHash": "887934093a4612c404c8595745fbb305a8d9730894dd58166f075ef032635308",
     "pages": [
       {
         "path": "/drive-auth.html",
@@ -6793,76 +6793,12 @@
     ],
     "warnings": [],
     "parser": "acorn 8.16.0",
-    "buildId": "20261018T013530Z-bb7a01c0"
+    "buildId": "20261018T015116Z-258f69b3"
   },
   "changesSincePrevious": {
     "added": [],
     "removed": [],
-    "changed": [
-      {
-        "key": "/::#sync-bank",
-        "label": "Sincronizar todo",
-        "page": "/",
-        "group": "main",
-        "fingerprint": "ae0b6113f9d6ebbab0d43196e7a2e74336a97ab3efc8f60f83780950433ce45b"
-      },
-      {
-        "key": "/::#create-button",
-        "label": "Crear y enviar mi CV →",
-        "page": "/",
-        "group": "analysis-panel",
-        "fingerprint": "79b0fa657e154bb99ff60f8b00f9fab0dbdf4987b73465881785b18e5b582285"
-      },
-      {
-        "key": "/::#download-pdf",
-        "label": "Descargar PDF",
-        "page": "/",
-        "group": "cv-panel",
-        "fingerprint": "e3ddaf257c6b759aeb8406f9cf7278320d0d8663f5c54567ab63e8dbe784ff02"
-      },
-      {
-        "key": "/::#download-docx",
-        "label": "Descargar Word",
-        "page": "/",
-        "group": "cv-panel",
-        "fingerprint": "ee78866edf3213931d9e310ad6f4f3321aa00966ed9de2c82c2ccba259cfb6e5"
-      },
-      {
-        "key": "/::#send-whatsapp",
-        "label": "◉ Abrir WhatsApp",
-        "page": "/",
-        "group": "section",
-        "fingerprint": "150535c6726984ec0dbbee4344a45c52e849de22e3a8fcc0ef798410141160ca"
-      },
-      {
-        "key": "/::#refresh-application-history",
-        "label": "Consultar historial en Drive",
-        "page": "/",
-        "group": "application-history-panel",
-        "fingerprint": "d52e1e25d6f232b45c9b2048d4756536c8c7e8f63b30b3e7b9d920212ff0e730"
-      },
-      {
-        "key": "/::#load-more-applications",
-        "label": "Cargar más postulaciones",
-        "page": "/",
-        "group": "application-history-panel",
-        "fingerprint": "f0f9c9c5bec5313c7082da1e40d89a3316612baf30f74482aedc26dca96c6115"
-      },
-      {
-        "key": "/::#onboarding-save",
-        "label": "Guardar y consolidar mi banco",
-        "page": "/",
-        "group": "onboarding-form",
-        "fingerprint": "645f3e3e0e0a4c803efb82d57de3a4c684de9c1bbe34530700e079a7ce48a011"
-      },
-      {
-        "key": "/::#data-sync",
-        "label": "Sincronizar todo",
-        "page": "/",
-        "group": "data-actions",
-        "fingerprint": "9483a0e623a72a94bf55cb03fc4e2667357084b2143987f9ea59530594796d33"
-      }
-    ]
+    "changed": []
   },
   "changesSinceBaseline": {
     "added": [],
@@ -7312,12 +7248,12 @@
     ]
   },
   "tests": {
-    "sourceHash": "6fc85510c8a40826b1f47014da95d5f8ca5dff023d774c9796da8d8d5e03fa1a",
+    "sourceHash": "887934093a4612c404c8595745fbb305a8d9730894dd58166f075ef032635308",
     "passed": true,
-    "checkedAt": "2026-10-18T01:34:59.254467+00:00",
-    "pythonTests": 475,
+    "checkedAt": "2026-10-18T01:50:34.884780+00:00",
+    "pythonTests": 478,
     "javascriptTests": 260,
-    "coveragePercent": 82.14,
+    "coveragePercent": 82.29,
     "network": "blocked",
     "scope": "Suite local; no acredita cada acción ni servicios desplegados."
   }

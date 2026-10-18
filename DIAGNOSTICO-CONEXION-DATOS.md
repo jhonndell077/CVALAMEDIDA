@@ -20,3 +20,16 @@ El usuario confirmó que no se abre ninguna ventana de Google. Se sustituyó la 
 Nuevas pruebas: el botón flotante invoca la acción sin click sintético con Mis datos abierto; OAuth arranca antes de la interfaz de carga; pulsaciones repetidas no duplican la operación. Suite completa: 475 Python + 260 JavaScript (735), todas aprobadas, cobertura Python 82,14 %, con red bloqueada. No se probó una autorización real en Safari/iPhone ni se sincronizaron datos reales. La corrección del recorrido de apertura no acredita por sí sola la concesión de permisos ni la sincronización completa en ese dispositivo.
 
 Publicación confirmada de la corrección móvil: 20261018T013530Z-bb7a01c0. Cuatro archivos publicados coinciden con los probados.
+
+
+## Capturas con rechazo de Google
+
+El nuevo mensaje fotografiado procede del traductor genérico de HTTPError de drive_request: cualquier 403/404, incluso de userinfo, se convertía en un problema para guardar en CV GENERADOS. Por tanto la captura no permite concluir almacenamiento lleno ni falta de permiso de una carpeta concreta. La sesión Firebase sigue siendo independiente.
+
+Se corrigió la clasificación: inspección acotada de 16 KiB de respuesta JSON, únicamente motivos de una lista permitida, sin registrar respuestas completas, tokens, nombres o identificadores. Distingue almacenamiento lleno, permisos insuficientes, permiso de archivo/carpeta, API no configurada, límites de Google y causa desconocida. La comprobación userinfo se observa en etapa OAuth en lugar de atribuirla al guardado. Se conservan las validaciones de identidad y los controles de acceso existentes. No se concede ningún permiso adicional.
+
+Fuente técnica: https://developers.google.com/workspace/drive/api/guides/handle-errors . Consulta administrativa del historial no mostró un evento confirmado del intento fotografiado; no se reconstruye ni se inventa su causa. El siguiente intento podrá mostrar el motivo permitido si Google lo proporciona; en ausencia de evidencia se conserva Causa no determinada.
+
+Pruebas: 478 Python + 260 JavaScript (738), todas aprobadas, cobertura 82,29 %, red bloqueada. Casos de razón confirmada, rechazo de identidad, causa desconocida, aislamiento de texto privado y propagación del código seguro en el wrapper real. Sin operaciones reales sobre la cuenta afectada. La corrección mejora el diagnóstico y no acredita que el acceso a Drive de esa persona haya sido reparado.
+
+Publicación confirmada de api, telegram_worker y Hosting: 20261018T015116Z-258f69b3. Versión pública comparada. Sin probar operaciones reales de Drive.
