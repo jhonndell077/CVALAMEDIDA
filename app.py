@@ -1581,12 +1581,16 @@ def drive_request(url: str, token: str, data: bytes | None = None, content_type:
         with urllib.request.urlopen(req, timeout=60) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
-        # Never expose the OAuth token or raw Google responses to the client.
-        if error.code == 401:
-            raise AppError("La autorización de Drive venció. Vuelve a conectar Google Drive.", 401) from error
-        if error.code in {403, 404}:
-            raise AppError("Drive no permite guardar en la carpeta. Conecta Drive y selecciona la carpeta CV GENERADOS; comprueba también su espacio disponible.", 403) from error
-        raise AppError("Drive no pudo guardar el CV. Inténtalo de nuevo.", 502) from error
+        # Inspect only bounded JSON for allowlisted reasons, never raw messages.
+        from drive_error_details import classify
+        try:
+            body = error.read(16384)
+        except Exception:
+            body = b''
+        code, message = classify(url, error.code, body)
+        translated = AppError(message, 401 if error.code == 401 else 403 if error.code in {403, 404} else 502)
+        translated.code = code
+        raise translated from error
     except (urllib.error.URLError, TimeoutError, ValueError) as error:
         raise AppError("No se pudo confirmar el guardado en Drive. Revisa la carpeta antes de reintentar.", 502) from error
 

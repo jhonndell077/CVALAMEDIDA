@@ -36,7 +36,7 @@ def observe(component, service, stage):
 def observe_drive(function):
     @wraps(function)
     def wrapped(url, token, data=None, content_type="application/json"):
-        stage = 'drive-upload' if '/upload/drive/' in url else 'drive-readback'
+        stage = 'oauth-authorization' if url.partition('?')[0].endswith('/userinfo') else 'drive-upload' if '/upload/drive/' in url else 'drive-readback'
         return observe('drive', 'drive-api', stage)(function)(url, token, data, content_type)
     return wrapped
 
