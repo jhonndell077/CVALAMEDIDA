@@ -26,3 +26,5 @@ Archivos principales: architecture_diagnostics.py, diagnostic_store.py, diagnost
 ## Comprobación publicada
 
 Firebase confirmó ambas funciones y ambos sitios Hosting. Se verificó la sesión administrativa, el selector y la acción Ver diagnóstico de la cuenta afectada, sin cambios administrativos: cero eventos atribuidos no se marcó como salud confirmada. Una carga normal de la app con la sesión administrativa existente produjo eventos nuevos con referencia de cuenta verificada (26 atribuidos observados en la comprobación global), mientras los eventos legados se conservaron sin atribución. No se inició sincronización, autorización Drive, generación ni mensajes. Se ajustó la etiqueta Referencias en el selector para no llamar cuentas con señales a una selección sin eventos.
+
+Versión final publicada: 20261018T020703Z-b41a77e4. Archivos públicos comparados con los verificados. Captura: tmp/supervisor-cuentas-publicado.png. La comprobación de viewport móvil no fue concluyente: el navegador mantuvo innerWidth=1280 pese a solicitar 390; no se afirma validación en iPhone físico.
