@@ -11,3 +11,12 @@ No se reprodujo el intento concreto del teléfono ajeno ni se autorizaron permis
 Verificación local con scripts/verify_release.py, fixtures y red bloqueada; sin generar CV, sincronizar, modificar datos ni consumir cupos reales. La publicación contiene únicamente los cambios de interfaz y el manifiesto generado.
 
 Resultado: 475 pruebas Python y 258 JavaScript aprobadas (733), cobertura 82,14 %. Hosting publicado en ambos dominios, build 20261018T012954Z-c6e6d708. Archivos publicados comparados con los probados. Se comprobó en la app publicada una sesión iniciada sin conexión Drive, sin pulsar sincronización ni crear carpetas reales. Captura: tmp/datos-conexion-publicado.png.
+
+
+## Botón móvil: Google no abre
+
+El usuario confirmó que no se abre ninguna ventana de Google. Se sustituyó la delegación mediante click sintético al botón oculto por una función de sincronización compartida invocada directamente desde el botón flotante. La autorización se inicia antes de abrir los cuadros de carga, tanto en sincronización como en el conector Drive. Esto evita depender de un botón oculto/inert y del cambio de capa modal para iniciar el popup. No se cambian permisos, cuentas ni configuración de Google.
+
+Nuevas pruebas: el botón flotante invoca la acción sin click sintético con Mis datos abierto; OAuth arranca antes de la interfaz de carga; pulsaciones repetidas no duplican la operación. Suite completa: 475 Python + 260 JavaScript (735), todas aprobadas, cobertura Python 82,14 %, con red bloqueada. No se probó una autorización real en Safari/iPhone ni se sincronizaron datos reales. La corrección del recorrido de apertura no acredita por sí sola la concesión de permisos ni la sincronización completa en ese dispositivo.
+
+Publicación confirmada de la corrección móvil: 20261018T013530Z-bb7a01c0. Cuatro archivos publicados coinciden con los probados.
