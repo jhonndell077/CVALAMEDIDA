@@ -21,3 +21,8 @@ La retención continúa siendo una hora y 400 eventos compartidos; no es un hist
 Se reutiliza el bucket privado existente, sin cambios IAM, reglas, credenciales o dependencias. Cambiar de filtro lee la ventana existente; no sondea servicios de usuarios. Las señales del navegador agregan solicitudes y escrituras diagnósticas acotadas, con límite de 12 por minuto y cuenta en el receptor. El refresco automático administrativo sigue siendo opcional, cada 60 segundos mientras la vista está visible. Los costos posibles son invocaciones de Functions y operaciones de Cloud Storage existentes. No hay escaneo externo, importación de Cloud Logging, reparación automática ni comprobación activa de Drive desde los diagramas.
 
 Archivos principales: architecture_diagnostics.py, diagnostic_store.py, diagnostic_stages.py, client_diagnostics.py, app.py, static/admin-architecture.html/.js/.css, static/client-supervisor.js, static/app.js, static/drive.js, static/index.html y pruebas asociadas.
+
+
+## Comprobación publicada
+
+Firebase confirmó ambas funciones y ambos sitios Hosting. Se verificó la sesión administrativa, el selector y la acción Ver diagnóstico de la cuenta afectada, sin cambios administrativos: cero eventos atribuidos no se marcó como salud confirmada. Una carga normal de la app con la sesión administrativa existente produjo eventos nuevos con referencia de cuenta verificada (26 atribuidos observados en la comprobación global), mientras los eventos legados se conservaron sin atribución. No se inició sincronización, autorización Drive, generación ni mensajes. Se ajustó la etiqueta Referencias en el selector para no llamar cuentas con señales a una selección sin eventos.
