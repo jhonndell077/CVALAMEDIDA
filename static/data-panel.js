@@ -81,9 +81,28 @@
     if (outside && event.target === dialog && isOutside(event)) close();
     outside = false;
   });
+  let signedIn = false;
+  const connectionError = document.createElement('p');
+  connectionError.id = 'data-connection-error';
+  connectionError.className = 'error';
+  connectionError.setAttribute('role', 'alert');
+  connectionError.hidden = true;
+  document.querySelector('#data-content').prepend(connectionError);
   function availability() {
     unavailable.hidden = !panel.hidden;
+    unavailable.textContent = signedIn
+      ? 'Tu sesión está iniciada. Para cargar o crear tu banco de datos, pulsa Sincronizar y autoriza el acceso a tu Google Drive. Iniciar sesión y conectar Drive son pasos distintos.'
+      : 'Inicia sesión con Google para consultar tus datos. Después pulsa Sincronizar para conectar tu banco en Drive.';
   }
+  window.addEventListener('cv-session-state', event => {
+    signedIn = Boolean(event.detail?.signedIn);
+    connectionError.textContent = ''; connectionError.hidden = true;
+    availability();
+  });
+  window.addEventListener('cv-app-error', event => {
+    connectionError.textContent = event.detail?.message || '';
+    connectionError.hidden = !connectionError.textContent;
+  });
   new MutationObserver(availability).observe(panel, {attributes: true, attributeFilter: ['hidden']});
   availability();
   syncButton.addEventListener('click', () => originalSync.click());

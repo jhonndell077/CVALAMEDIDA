@@ -11,9 +11,10 @@ function setup(){
  Object.defineProperty(dialog,'open',{get:()=>dialog.hasAttribute('open')});
  dialog.showModal=()=>dialog.setAttribute('open','');
  dialog.close=()=>{dialog.removeAttribute('open');dialog.dispatchEvent(new window.Event('close'))};
- const root={scrollY:0,innerWidth:1000,scrollTo(){},addEventListener(){}};
+ const listeners={};
+ const root={scrollY:0,innerWidth:1000,scrollTo(){},addEventListener(type,handler){listeners[type]=handler}};
  vm.runInNewContext(fs.readFileSync('static/data-panel.js','utf8'),{document,window:root,MutationObserver:Observer,matchMedia:()=>({matches:true})});
- return {document,dialog,notify:target=>observers.filter(o=>o.target===target).forEach(o=>o.callback())};
+ return {document,dialog,emit:(type,detail)=>listeners[type]?.({detail}),notify:target=>observers.filter(o=>o.target===target).forEach(o=>o.callback())};
 }
 
 test('Datos opens before synchronization and remains visible across account state changes',async()=>{
@@ -46,4 +47,18 @@ test('cloud arrows rotate independently of the cloud and respect reduced motion'
  assert.equal(document.querySelector('#data-sync .cloud-sync-arrows').contains(document.querySelector('#data-sync svg > path')),false);
  assert.match(css,/\.cloud-sync-arrows\s*\{[^}]*animation: cloud-sync-spin 3s linear infinite/);
  assert.match(css,/@media \(prefers-reduced-motion: reduce\).*\.cloud-sync-arrows.*animation: none/);
+});
+
+
+test('signed-in disconnected user sees Drive instructions and sync errors inside Datos',()=>{
+ const {document,emit}=setup();
+ emit('cv-session-state',{signedIn:true});
+ assert.match(document.querySelector('#data-unavailable').textContent,/Tu sesión está iniciada/);
+ emit('cv-app-error',{message:'Google bloqueó la ventana de autorización.'});
+ const error=document.querySelector('#data-connection-error');
+ assert.equal(error.hidden,false);assert.match(error.textContent,/Google bloqueó/);
+ emit('cv-app-error',{message:''});assert.equal(error.hidden,true);
+ emit('cv-app-error',{message:'Cuenta anterior'});
+ emit('cv-session-state',{signedIn:false});assert.equal(error.hidden,true);
+ assert.doesNotMatch(document.querySelector('#data-unavailable').textContent,/Tu sesión está iniciada/);
 });

@@ -68,6 +68,7 @@ informationForm.addEventListener("submit", async event => {
   const button = $("#save-information");
   const errorBox = $("#information-error");
   errorBox.hidden = true;
+  if (typeof CustomEvent !== "undefined") window.dispatchEvent?.(new CustomEvent("cv-app-error", {detail: {message: ""}}));
   try {
     const values = {...Object.fromEntries(new FormData(informationForm)), ...window.cvRepeaters.collect(informationForm)};
     const type = values.type;
@@ -105,6 +106,7 @@ informationForm.addEventListener("submit", async event => {
     if (!isCurrent()) return;
     errorBox.textContent = error.message;
     errorBox.hidden = false;
+  if (typeof CustomEvent !== "undefined") window.dispatchEvent?.(new CustomEvent("cv-app-error", {detail: {message}}));
     if (informationForm.hidden) $("#information-status").textContent += " No se pudo actualizar la vista: " + error.message;
   } finally {
     if (isCurrent() || (owner === state.user?.uid && epoch === state.authEpoch && informationForm.hidden)) {
@@ -1126,6 +1128,7 @@ async function updateGoogleUserWork(user) {
     if (state.photoUrl) URL.revokeObjectURL(state.photoUrl); state.photoUrl = null;
   }
   state.user = user;
+  if (typeof CustomEvent !== "undefined") window.dispatchEvent?.(new CustomEvent("cv-session-state", {detail: {signedIn: Boolean(user)}}));
   window.cvSubscription?.initialize(user)?.catch(() => {});
   const token = user ? await user.getIdToken() : null;
   if (state.user !== user) return;
