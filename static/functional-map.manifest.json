@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-10-19T08:50:59.238Z",
+  "generatedAt": "2026-10-19T11:53:22.856Z",
   "baseline": {
     "buildId": "20261016T223144Z-bb10ff7c",
     "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
@@ -1129,8 +1129,8 @@
   },
   "previous": {
     "analysisVersion": 2,
-    "buildId": "20261019T071754Z-26463771",
-    "sourceHash": "79c4385571c52a553ed1bafe8885ae5bb670a93d585ebf2b1077cb89b35a73dd",
+    "buildId": "20261019T085037Z-23275215",
+    "sourceHash": "ad3e19af0b8496e13c41565778fc7e07f478092e9afead574beca6a598c63e81",
     "controls": [
       {
         "key": "/drive-auth.html::#authorize",
@@ -1138,6 +1138,13 @@
         "page": "/drive-auth.html",
         "group": "section",
         "fingerprint": "63144b266e79781894922a69d41527fab62aa9367c72a823147710655ef94bed"
+      },
+      {
+        "key": "/::#workspace-menu",
+        "label": "Abrir menú",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "cafc83da36b9e20020241634a0738b20bcc7ac8d7933e8342c069f8f0d8ff661"
       },
       {
         "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(1)",
@@ -1627,7 +1634,7 @@
         "label": "Vincular mi Telegram y Drive",
         "page": "/",
         "group": "telegram-panel",
-        "fingerprint": "76eacfd701c7fc6de3496cf4e0b276b4cd820dfc5bb947670d6225ca820d1830"
+        "fingerprint": "f84dbe04241b3c56edfa44e0de0bddff787b08f548d88733bad190b94b585909"
       },
       {
         "key": "/::#telegram-open-bot",
@@ -1669,14 +1676,14 @@
         "label": "Seleccionar mis carpetas manualmente",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "3145558797a4c771ab9ff4c27fc97c902f03446b9ee327c4a059aa3103ed6827"
+        "fingerprint": "2674a8932e324e235aaff069c0371c7bc78fb463e80ed4643824ac7ef09b3447"
       },
       {
         "key": "/::#open-onboarding",
         "label": "Completar mis datos para el CV",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "01e7a2c8cac4f46d22d49520e39174c97a5edaa8447a924f4dbc3e4c6fa9d418"
+        "fingerprint": "b46cec1d289eb11263ac71f623b2d422a66831be7e657e8d4910cba4c93ea794"
       },
       {
         "key": "/::#bank-review>summary:nth-of-type(1)",
@@ -1851,7 +1858,7 @@
         "label": "job-text",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "8129ffeb385b413f1b4b015c3e8b3f07d8b32bdeef8a8aba058414bebed991ca"
+        "fingerprint": "efb5a787f17f1539ba10875c432919933c25655db53284fa7fad05dd18844e93"
       },
       {
         "key": "/::#remove-job-text",
@@ -1886,7 +1893,7 @@
         "label": "Analizar vacante →",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "5c1e77ce9c5a61e801829431642f000867ff59469535f8de7816a056284bf4f7"
+        "fingerprint": "1c590935b562254438c67d2a679eddede69b149cdd69fc618aea6ffea2b0c66d"
       },
       {
         "key": "/::#how-to-use",
@@ -1984,7 +1991,7 @@
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "8c4ce65bcc99886f76995f9d5dcffe101593b0b73264b12b27f7f34fd5e2d036"
+        "fingerprint": "27e91096caaf134fdb0ee062254eb89f41d2fc4f2452df64d4039ff6e6719f63"
       },
       {
         "key": "/::#load-more-applications",
@@ -2125,6 +2132,41 @@
         "page": "/",
         "group": "header",
         "fingerprint": "3e304afde1891cc5a3ce857bd17c8280eac83827d24a9732879392c011ecf503"
+      },
+      {
+        "key": "/::#workspace-sidebar>header:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Cerrar menú",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "0fd9cfbef7c9cb4df93174a41f4cc4b5bb8ded7176a08cc32a54e3d6192be97c"
+      },
+      {
+        "key": "/::#open-vacancy",
+        "label": "Analizar vacante →",
+        "page": "/",
+        "group": "nav",
+        "fingerprint": "8b1dcdb66b1f64b315877be40773992003ed9e39fa93da159c1807df262cc0d7"
+      },
+      {
+        "key": "/::#open-history",
+        "label": "Historial",
+        "page": "/",
+        "group": "nav",
+        "fingerprint": "32c8a9ce68a7775b1cc3792451d0e45db4612b61f8be232a2d693673660c5128"
+      },
+      {
+        "key": "/::#vacancy-window>header:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Cerrar vacante",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "ccf816753b800b91631cc4b92007abdba02146ab033e2dfcfd6cbb7cdd37dcd5"
+      },
+      {
+        "key": "/::#history-window>header:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Cerrar historial",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "25a488b9d8733dbc53a50d5144721eca7ae2c8d4407ff3784a09bb3eb80e2b5f"
       },
       {
         "key": "/manual.html::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(1)",
@@ -2277,7 +2319,7 @@
   },
   "current": {
     "analysisVersion": 2,
-    "sourceHash": "ad3e19af0b8496e13c41565778fc7e07f478092e9afead574beca6a598c63e81",
+    "sourceHash": "ee063f504db83185b506bd4229d1a090916b04fa7860afef432bad83f213d391",
     "pages": [
       {
         "path": "/drive-auth.html",
@@ -2290,7 +2332,7 @@
       {
         "path": "/",
         "label": "CV a la medida",
-        "controls": 147,
+        "controls": 165,
         "scripts": [
           "static/functional-telemetry.js",
           "static/loading.js",
@@ -2305,6 +2347,7 @@
           "static/data-panel.js",
           "static/employment-window.js",
           "static/workspace-navigation.js",
+          "static/presentation.js",
           "static/ui-navigation.js",
           "static/subscription-notices.js",
           "static/client-supervisor.js",
@@ -2410,8 +2453,8 @@
           }
         ],
         "guards": [],
-        "relatedTestCount": 1,
-        "fingerprint": "cafc83da36b9e20020241634a0738b20bcc7ac8d7933e8342c069f8f0d8ff661"
+        "relatedTestCount": 2,
+        "fingerprint": "1455317992ee001f3630e65b878a4b1099397b162b228c83aafa744d0e7774aa"
       },
       {
         "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(1)",
@@ -2428,6 +2471,54 @@
         "guards": [],
         "relatedTestCount": 0,
         "fingerprint": "7c04a99b9c6890ebbd39b9f9b6fa2f2c04eae43d18f70c2776e3c09f4c9f3b25"
+      },
+      {
+        "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(1)",
+        "page": "/",
+        "selector": "html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(1)",
+        "id": null,
+        "tag": "a",
+        "label": "Cómo funciona",
+        "group": "nav",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": "",
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "bab28ad2695e76048660667c9d23ebf4855e76736bf4d94f637fc094365df05c"
+      },
+      {
+        "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(2)",
+        "page": "/",
+        "selector": "html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(2)",
+        "id": null,
+        "tag": "a",
+        "label": "Tu información",
+        "group": "nav",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": "",
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "c8ebeabbd2df1041d8d66996cd184f597b2fb930b3eec28ea172df99e2fd147b"
+      },
+      {
+        "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(3)",
+        "page": "/",
+        "selector": "html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(3)",
+        "id": null,
+        "tag": "a",
+        "label": "Preguntas",
+        "group": "nav",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": "",
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "ac74c2d74b35ad09564f49333cba40455b596959e0d67548906047b8811e3305"
       },
       {
         "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(2)",
@@ -3855,6 +3946,246 @@
         "fingerprint": "e1d78ca946333ea4380efe9978fbf3112b059ad2d058e76daef89e6600b9baea"
       },
       {
+        "key": "/::#presentacion>section:nth-of-type(1)>div:nth-of-type(1)>button:nth-of-type(1)",
+        "page": "/",
+        "selector": "#presentacion>section:nth-of-type(1)>div:nth-of-type(1)>button:nth-of-type(1)",
+        "id": null,
+        "tag": "button",
+        "label": "Preparar mi CV →",
+        "group": "section",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "2bdd188808fde2cc09006514baeaa6971433f900fa375ac41d3ac0934956f5c0"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(1)>div:nth-of-type(1)>a:nth-of-type(1)",
+        "page": "/",
+        "selector": "#presentacion>section:nth-of-type(1)>div:nth-of-type(1)>a:nth-of-type(1)",
+        "id": null,
+        "tag": "a",
+        "label": "Conoce cómo funciona",
+        "group": "section",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": "",
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "b94f3ab791131cce9503a365c675cbd513ab32e5bd7adee8a5b565327c1d132a"
+      },
+      {
+        "key": "/::#sample-job-tab",
+        "page": "/",
+        "selector": "#sample-job-tab",
+        "id": "sample-job-tab",
+        "tag": "button",
+        "label": "La vacante",
+        "group": "section",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 1,
+        "fingerprint": "864fe58a86b98e71c8a3c4305fb3cc759946135fa3d268f51ccd47e0167cf979"
+      },
+      {
+        "key": "/::#sample-cv-tab",
+        "page": "/",
+        "selector": "#sample-cv-tab",
+        "id": "sample-cv-tab",
+        "tag": "button",
+        "label": "Tu CV adaptado",
+        "group": "section",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 1,
+        "fingerprint": "e7fde2a67c2e54868313ee64c34f5f1e8732f0dd16773350fa0666c7e1594bed"
+      },
+      {
+        "key": "/::#como-funciona>div:nth-of-type(1)>a:nth-of-type(1)",
+        "page": "/",
+        "selector": "#como-funciona>div:nth-of-type(1)>a:nth-of-type(1)",
+        "id": null,
+        "tag": "a",
+        "label": "Ver la guía de uso ↗",
+        "group": "como-funciona",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": "/manual.html",
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "b6463a5fedff1403010ef5d3a1759da27590a2035a1563864c83e95f203b9078"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(5)>div:nth-of-type(1)>a:nth-of-type(1)",
+        "page": "/",
+        "selector": "#presentacion>section:nth-of-type(5)>div:nth-of-type(1)>a:nth-of-type(1)",
+        "id": null,
+        "tag": "a",
+        "label": "Conocer privacidad y conservación de datos ↗",
+        "group": "section",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": "/privacy.html",
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "faee20a2fb355be79a93929ebd16605da435be68ad6a131de9aa1182778ea221"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(1)>summary:nth-of-type(1)",
+        "page": "/",
+        "selector": "#preguntas>div:nth-of-type(1)>details:nth-of-type(1)>summary:nth-of-type(1)",
+        "id": null,
+        "tag": "summary",
+        "label": "¿Qué necesito para preparar mi primera hoja de vida?",
+        "group": "preguntas",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "0a83c84e20739cc00af04e763e268e75b694aa7c3b4775b39b0dfb3ee7b1a32a"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(2)>summary:nth-of-type(1)",
+        "page": "/",
+        "selector": "#preguntas>div:nth-of-type(1)>details:nth-of-type(2)>summary:nth-of-type(1)",
+        "id": null,
+        "tag": "summary",
+        "label": "¿Tengo que volver a escribir mis datos con cada vacante?",
+        "group": "preguntas",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "c7273e9909645077c9e854a243c9fb8c94d792115cd8b4cd90cbb5b6c9fd30d8"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(3)>summary:nth-of-type(1)",
+        "page": "/",
+        "selector": "#preguntas>div:nth-of-type(1)>details:nth-of-type(3)>summary:nth-of-type(1)",
+        "id": null,
+        "tag": "summary",
+        "label": "¿La inteligencia artificial inventa experiencia por mí?",
+        "group": "preguntas",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "d5ed317cfb7ad7a719310be96bce0eb724807b8d0437bd9cde75a6d0030f6e19"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(4)>summary:nth-of-type(1)",
+        "page": "/",
+        "selector": "#preguntas>div:nth-of-type(1)>details:nth-of-type(4)>summary:nth-of-type(1)",
+        "id": null,
+        "tag": "summary",
+        "label": "¿Cuántos CV puedo crear?",
+        "group": "preguntas",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "a09f131a017f5753c7d4208e083b5499db69e9aaa5245b08c8c58551e643d489"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(5)>summary:nth-of-type(1)",
+        "page": "/",
+        "selector": "#preguntas>div:nth-of-type(1)>details:nth-of-type(5)>summary:nth-of-type(1)",
+        "id": null,
+        "tag": "summary",
+        "label": "¿Es obligatorio vincular Telegram?",
+        "group": "preguntas",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "b268daf7959fc7f212044a49056e7f3abcc97c1236480a80354b7b7ca4203c49"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(6)>summary:nth-of-type(1)",
+        "page": "/",
+        "selector": "#preguntas>div:nth-of-type(1)>details:nth-of-type(6)>summary:nth-of-type(1)",
+        "id": null,
+        "tag": "summary",
+        "label": "¿CV a la Medida garantiza que consiga empleo?",
+        "group": "preguntas",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "b01b9617bf1c30c49cb533cbe9ba322097d61da133f493c7a606a0f6f45a1d52"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(7)>div:nth-of-type(1)>button:nth-of-type(1)",
+        "page": "/",
+        "selector": "#presentacion>section:nth-of-type(7)>div:nth-of-type(1)>button:nth-of-type(1)",
+        "id": null,
+        "tag": "button",
+        "label": "Comenzar ahora →",
+        "group": "section",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "0c0318cf66d7f853885befcc5849eba663e196e440dd9f621f66541ef4fd1ec9"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(7)>div:nth-of-type(2)>a:nth-of-type(1)",
+        "page": "/",
+        "selector": "#presentacion>section:nth-of-type(7)>div:nth-of-type(2)>a:nth-of-type(1)",
+        "id": null,
+        "tag": "a",
+        "label": "Guía de uso",
+        "group": "section",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": "/manual.html",
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "08530efa1142697195dfa6401335773512b9dfdfeb221325a9e6d4051b1ba2cb"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(7)>div:nth-of-type(2)>a:nth-of-type(2)",
+        "page": "/",
+        "selector": "#presentacion>section:nth-of-type(7)>div:nth-of-type(2)>a:nth-of-type(2)",
+        "id": null,
+        "tag": "a",
+        "label": "Privacidad",
+        "group": "section",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": "/privacy.html",
+        "handlers": [],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "84da30dfed5cc09d4c90752a857a829c552deddb1d18d90ce9593cb7bc9ffcb6"
+      },
+      {
         "key": "/::#google-sign-in",
         "page": "/",
         "selector": "#google-sign-in",
@@ -4150,8 +4481,8 @@
             "source": "static/telegram.js"
           }
         ],
-        "relatedTestCount": 3,
-        "fingerprint": "f84dbe04241b3c56edfa44e0de0bddff787b08f548d88733bad190b94b585909"
+        "relatedTestCount": 4,
+        "fingerprint": "00d4aa7c0a3c8ea6de0190068eae332db9b8adbb73f2770817ee9c4bc4305e81"
       },
       {
         "key": "/::#telegram-open-bot",
@@ -4368,8 +4699,8 @@
             "source": "static/onboarding.js"
           }
         ],
-        "relatedTestCount": 2,
-        "fingerprint": "b46cec1d289eb11263ac71f623b2d422a66831be7e657e8d4910cba4c93ea794"
+        "relatedTestCount": 3,
+        "fingerprint": "3be9686512f33c9f9d1591a9e4f16290595fa048859ca6f51fb14fce53d8f77c"
       },
       {
         "key": "/::#bank-review>summary:nth-of-type(1)",
@@ -5135,8 +5466,8 @@
             "source": "static/app.js"
           }
         ],
-        "relatedTestCount": 2,
-        "fingerprint": "1c590935b562254438c67d2a679eddede69b149cdd69fc618aea6ffea2b0c66d"
+        "relatedTestCount": 3,
+        "fingerprint": "139dfbaf1185c5d4f808d158efa38e85064b3eef3bbddb6f77e7662993191a7d"
       },
       {
         "key": "/::#how-to-use",
@@ -6172,8 +6503,8 @@
           }
         ],
         "guards": [],
-        "relatedTestCount": 1,
-        "fingerprint": "8b1dcdb66b1f64b315877be40773992003ed9e39fa93da159c1807df262cc0d7"
+        "relatedTestCount": 2,
+        "fingerprint": "a3f5249d2a112e465ee2fb9c89155945255b0f092651a949cac7249896bf8f21"
       },
       {
         "key": "/::#open-history",
@@ -6845,6 +7176,27 @@
       {
         "event": "click",
         "target": null,
+        "line": 3,
+        "source": "static/presentation.js",
+        "confidence": "destino dinámico/global"
+      },
+      {
+        "event": "click",
+        "target": null,
+        "line": 15,
+        "source": "static/presentation.js",
+        "confidence": "destino dinámico/global"
+      },
+      {
+        "event": "keydown",
+        "target": null,
+        "line": 16,
+        "source": "static/presentation.js",
+        "confidence": "destino dinámico/global"
+      },
+      {
+        "event": "click",
+        "target": null,
         "line": 18,
         "source": "static/subscription-notices.js",
         "confidence": "destino dinámico/global"
@@ -7174,96 +7526,173 @@
     ],
     "warnings": [],
     "parser": "acorn 8.16.0",
-    "buildId": "20261019T085037Z-23275215"
+    "buildId": "20261019T115317Z-d086c9d2"
   },
   "changesSincePrevious": {
     "added": [
       {
-        "key": "/::#workspace-menu",
-        "label": "Abrir menú",
-        "page": "/",
-        "group": "header",
-        "fingerprint": "cafc83da36b9e20020241634a0738b20bcc7ac8d7933e8342c069f8f0d8ff661"
-      },
-      {
-        "key": "/::#workspace-sidebar>header:nth-of-type(1)>button:nth-of-type(1)",
-        "label": "Cerrar menú",
-        "page": "/",
-        "group": "header",
-        "fingerprint": "0fd9cfbef7c9cb4df93174a41f4cc4b5bb8ded7176a08cc32a54e3d6192be97c"
-      },
-      {
-        "key": "/::#open-vacancy",
-        "label": "Analizar vacante →",
+        "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(1)",
+        "label": "Cómo funciona",
         "page": "/",
         "group": "nav",
-        "fingerprint": "8b1dcdb66b1f64b315877be40773992003ed9e39fa93da159c1807df262cc0d7"
+        "fingerprint": "bab28ad2695e76048660667c9d23ebf4855e76736bf4d94f637fc094365df05c"
       },
       {
-        "key": "/::#open-history",
-        "label": "Historial",
+        "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(2)",
+        "label": "Tu información",
         "page": "/",
         "group": "nav",
-        "fingerprint": "32c8a9ce68a7775b1cc3792451d0e45db4612b61f8be232a2d693673660c5128"
+        "fingerprint": "c8ebeabbd2df1041d8d66996cd184f597b2fb930b3eec28ea172df99e2fd147b"
       },
       {
-        "key": "/::#vacancy-window>header:nth-of-type(1)>button:nth-of-type(1)",
-        "label": "Cerrar vacante",
+        "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(3)",
+        "label": "Preguntas",
         "page": "/",
-        "group": "header",
-        "fingerprint": "ccf816753b800b91631cc4b92007abdba02146ab033e2dfcfd6cbb7cdd37dcd5"
+        "group": "nav",
+        "fingerprint": "ac74c2d74b35ad09564f49333cba40455b596959e0d67548906047b8811e3305"
       },
       {
-        "key": "/::#history-window>header:nth-of-type(1)>button:nth-of-type(1)",
-        "label": "Cerrar historial",
+        "key": "/::#presentacion>section:nth-of-type(1)>div:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Preparar mi CV →",
         "page": "/",
-        "group": "header",
-        "fingerprint": "25a488b9d8733dbc53a50d5144721eca7ae2c8d4407ff3784a09bb3eb80e2b5f"
+        "group": "section",
+        "fingerprint": "2bdd188808fde2cc09006514baeaa6971433f900fa375ac41d3ac0934956f5c0"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(1)>div:nth-of-type(1)>a:nth-of-type(1)",
+        "label": "Conoce cómo funciona",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "b94f3ab791131cce9503a365c675cbd513ab32e5bd7adee8a5b565327c1d132a"
+      },
+      {
+        "key": "/::#sample-job-tab",
+        "label": "La vacante",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "864fe58a86b98e71c8a3c4305fb3cc759946135fa3d268f51ccd47e0167cf979"
+      },
+      {
+        "key": "/::#sample-cv-tab",
+        "label": "Tu CV adaptado",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "e7fde2a67c2e54868313ee64c34f5f1e8732f0dd16773350fa0666c7e1594bed"
+      },
+      {
+        "key": "/::#como-funciona>div:nth-of-type(1)>a:nth-of-type(1)",
+        "label": "Ver la guía de uso ↗",
+        "page": "/",
+        "group": "como-funciona",
+        "fingerprint": "b6463a5fedff1403010ef5d3a1759da27590a2035a1563864c83e95f203b9078"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(5)>div:nth-of-type(1)>a:nth-of-type(1)",
+        "label": "Conocer privacidad y conservación de datos ↗",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "faee20a2fb355be79a93929ebd16605da435be68ad6a131de9aa1182778ea221"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(1)>summary:nth-of-type(1)",
+        "label": "¿Qué necesito para preparar mi primera hoja de vida?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "0a83c84e20739cc00af04e763e268e75b694aa7c3b4775b39b0dfb3ee7b1a32a"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(2)>summary:nth-of-type(1)",
+        "label": "¿Tengo que volver a escribir mis datos con cada vacante?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "c7273e9909645077c9e854a243c9fb8c94d792115cd8b4cd90cbb5b6c9fd30d8"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(3)>summary:nth-of-type(1)",
+        "label": "¿La inteligencia artificial inventa experiencia por mí?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "d5ed317cfb7ad7a719310be96bce0eb724807b8d0437bd9cde75a6d0030f6e19"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(4)>summary:nth-of-type(1)",
+        "label": "¿Cuántos CV puedo crear?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "a09f131a017f5753c7d4208e083b5499db69e9aaa5245b08c8c58551e643d489"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(5)>summary:nth-of-type(1)",
+        "label": "¿Es obligatorio vincular Telegram?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "b268daf7959fc7f212044a49056e7f3abcc97c1236480a80354b7b7ca4203c49"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(6)>summary:nth-of-type(1)",
+        "label": "¿CV a la Medida garantiza que consiga empleo?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "b01b9617bf1c30c49cb533cbe9ba322097d61da133f493c7a606a0f6f45a1d52"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(7)>div:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Comenzar ahora →",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "0c0318cf66d7f853885befcc5849eba663e196e440dd9f621f66541ef4fd1ec9"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(7)>div:nth-of-type(2)>a:nth-of-type(1)",
+        "label": "Guía de uso",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "08530efa1142697195dfa6401335773512b9dfdfeb221325a9e6d4051b1ba2cb"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(7)>div:nth-of-type(2)>a:nth-of-type(2)",
+        "label": "Privacidad",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "84da30dfed5cc09d4c90752a857a829c552deddb1d18d90ce9593cb7bc9ffcb6"
       }
     ],
     "removed": [],
     "changed": [
       {
+        "key": "/::#workspace-menu",
+        "label": "Abrir menú",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "1455317992ee001f3630e65b878a4b1099397b162b228c83aafa744d0e7774aa"
+      },
+      {
         "key": "/::#telegram-link",
         "label": "Vincular mi Telegram y Drive",
         "page": "/",
         "group": "telegram-panel",
-        "fingerprint": "f84dbe04241b3c56edfa44e0de0bddff787b08f548d88733bad190b94b585909"
-      },
-      {
-        "key": "/::#select-account-folders",
-        "label": "Seleccionar mis carpetas manualmente",
-        "page": "/",
-        "group": "bank-panel",
-        "fingerprint": "2674a8932e324e235aaff069c0371c7bc78fb463e80ed4643824ac7ef09b3447"
+        "fingerprint": "00d4aa7c0a3c8ea6de0190068eae332db9b8adbb73f2770817ee9c4bc4305e81"
       },
       {
         "key": "/::#open-onboarding",
         "label": "Completar mis datos para el CV",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "b46cec1d289eb11263ac71f623b2d422a66831be7e657e8d4910cba4c93ea794"
-      },
-      {
-        "key": "/::#job-text",
-        "label": "job-text",
-        "page": "/",
-        "group": "job-panel",
-        "fingerprint": "efb5a787f17f1539ba10875c432919933c25655db53284fa7fad05dd18844e93"
+        "fingerprint": "3be9686512f33c9f9d1591a9e4f16290595fa048859ca6f51fb14fce53d8f77c"
       },
       {
         "key": "/::#analyze-button",
         "label": "Analizar vacante →",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "1c590935b562254438c67d2a679eddede69b149cdd69fc618aea6ffea2b0c66d"
+        "fingerprint": "139dfbaf1185c5d4f808d158efa38e85064b3eef3bbddb6f77e7662993191a7d"
       },
       {
-        "key": "/::#refresh-application-history",
-        "label": "Consultar historial en Drive",
+        "key": "/::#open-vacancy",
+        "label": "Analizar vacante →",
         "page": "/",
-        "group": "application-history-panel",
-        "fingerprint": "27e91096caaf134fdb0ee062254eb89f41d2fc4f2452df64d4039ff6e6719f63"
+        "group": "nav",
+        "fingerprint": "a3f5249d2a112e465ee2fb9c89155945255b0f092651a949cac7249896bf8f21"
       }
     ]
   },
@@ -7274,7 +7703,133 @@
         "label": "Abrir menú",
         "page": "/",
         "group": "header",
-        "fingerprint": "cafc83da36b9e20020241634a0738b20bcc7ac8d7933e8342c069f8f0d8ff661"
+        "fingerprint": "1455317992ee001f3630e65b878a4b1099397b162b228c83aafa744d0e7774aa"
+      },
+      {
+        "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(1)",
+        "label": "Cómo funciona",
+        "page": "/",
+        "group": "nav",
+        "fingerprint": "bab28ad2695e76048660667c9d23ebf4855e76736bf4d94f637fc094365df05c"
+      },
+      {
+        "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(2)",
+        "label": "Tu información",
+        "page": "/",
+        "group": "nav",
+        "fingerprint": "c8ebeabbd2df1041d8d66996cd184f597b2fb930b3eec28ea172df99e2fd147b"
+      },
+      {
+        "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(3)",
+        "label": "Preguntas",
+        "page": "/",
+        "group": "nav",
+        "fingerprint": "ac74c2d74b35ad09564f49333cba40455b596959e0d67548906047b8811e3305"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(1)>div:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Preparar mi CV →",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "2bdd188808fde2cc09006514baeaa6971433f900fa375ac41d3ac0934956f5c0"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(1)>div:nth-of-type(1)>a:nth-of-type(1)",
+        "label": "Conoce cómo funciona",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "b94f3ab791131cce9503a365c675cbd513ab32e5bd7adee8a5b565327c1d132a"
+      },
+      {
+        "key": "/::#sample-job-tab",
+        "label": "La vacante",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "864fe58a86b98e71c8a3c4305fb3cc759946135fa3d268f51ccd47e0167cf979"
+      },
+      {
+        "key": "/::#sample-cv-tab",
+        "label": "Tu CV adaptado",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "e7fde2a67c2e54868313ee64c34f5f1e8732f0dd16773350fa0666c7e1594bed"
+      },
+      {
+        "key": "/::#como-funciona>div:nth-of-type(1)>a:nth-of-type(1)",
+        "label": "Ver la guía de uso ↗",
+        "page": "/",
+        "group": "como-funciona",
+        "fingerprint": "b6463a5fedff1403010ef5d3a1759da27590a2035a1563864c83e95f203b9078"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(5)>div:nth-of-type(1)>a:nth-of-type(1)",
+        "label": "Conocer privacidad y conservación de datos ↗",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "faee20a2fb355be79a93929ebd16605da435be68ad6a131de9aa1182778ea221"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(1)>summary:nth-of-type(1)",
+        "label": "¿Qué necesito para preparar mi primera hoja de vida?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "0a83c84e20739cc00af04e763e268e75b694aa7c3b4775b39b0dfb3ee7b1a32a"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(2)>summary:nth-of-type(1)",
+        "label": "¿Tengo que volver a escribir mis datos con cada vacante?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "c7273e9909645077c9e854a243c9fb8c94d792115cd8b4cd90cbb5b6c9fd30d8"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(3)>summary:nth-of-type(1)",
+        "label": "¿La inteligencia artificial inventa experiencia por mí?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "d5ed317cfb7ad7a719310be96bce0eb724807b8d0437bd9cde75a6d0030f6e19"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(4)>summary:nth-of-type(1)",
+        "label": "¿Cuántos CV puedo crear?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "a09f131a017f5753c7d4208e083b5499db69e9aaa5245b08c8c58551e643d489"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(5)>summary:nth-of-type(1)",
+        "label": "¿Es obligatorio vincular Telegram?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "b268daf7959fc7f212044a49056e7f3abcc97c1236480a80354b7b7ca4203c49"
+      },
+      {
+        "key": "/::#preguntas>div:nth-of-type(1)>details:nth-of-type(6)>summary:nth-of-type(1)",
+        "label": "¿CV a la Medida garantiza que consiga empleo?",
+        "page": "/",
+        "group": "preguntas",
+        "fingerprint": "b01b9617bf1c30c49cb533cbe9ba322097d61da133f493c7a606a0f6f45a1d52"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(7)>div:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Comenzar ahora →",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "0c0318cf66d7f853885befcc5849eba663e196e440dd9f621f66541ef4fd1ec9"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(7)>div:nth-of-type(2)>a:nth-of-type(1)",
+        "label": "Guía de uso",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "08530efa1142697195dfa6401335773512b9dfdfeb221325a9e6d4051b1ba2cb"
+      },
+      {
+        "key": "/::#presentacion>section:nth-of-type(7)>div:nth-of-type(2)>a:nth-of-type(2)",
+        "label": "Privacidad",
+        "page": "/",
+        "group": "section",
+        "fingerprint": "84da30dfed5cc09d4c90752a857a829c552deddb1d18d90ce9593cb7bc9ffcb6"
       },
       {
         "key": "/::#verify-session-gmail",
@@ -7316,7 +7871,7 @@
         "label": "Analizar vacante →",
         "page": "/",
         "group": "nav",
-        "fingerprint": "8b1dcdb66b1f64b315877be40773992003ed9e39fa93da159c1807df262cc0d7"
+        "fingerprint": "a3f5249d2a112e465ee2fb9c89155945255b0f092651a949cac7249896bf8f21"
       },
       {
         "key": "/::#open-history",
@@ -7523,7 +8078,7 @@
         "label": "Vincular mi Telegram y Drive",
         "page": "/",
         "group": "telegram-panel",
-        "fingerprint": "f84dbe04241b3c56edfa44e0de0bddff787b08f548d88733bad190b94b585909"
+        "fingerprint": "00d4aa7c0a3c8ea6de0190068eae332db9b8adbb73f2770817ee9c4bc4305e81"
       },
       {
         "key": "/::#telegram-check-link",
@@ -7544,7 +8099,7 @@
         "label": "Completar mis datos para el CV",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "b46cec1d289eb11263ac71f623b2d422a66831be7e657e8d4910cba4c93ea794"
+        "fingerprint": "3be9686512f33c9f9d1591a9e4f16290595fa048859ca6f51fb14fce53d8f77c"
       },
       {
         "key": "/::#new-information",
@@ -7628,7 +8183,7 @@
         "label": "Analizar vacante →",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "1c590935b562254438c67d2a679eddede69b149cdd69fc618aea6ffea2b0c66d"
+        "fingerprint": "139dfbaf1185c5d4f808d158efa38e85064b3eef3bbddb6f77e7662993191a7d"
       },
       {
         "key": "/::#retry-bootstrap",
@@ -7801,11 +8356,11 @@
     ]
   },
   "tests": {
-    "sourceHash": "ad3e19af0b8496e13c41565778fc7e07f478092e9afead574beca6a598c63e81",
+    "sourceHash": "ee063f504db83185b506bd4229d1a090916b04fa7860afef432bad83f213d391",
     "passed": true,
-    "checkedAt": "2026-10-19T08:48:57.299403+00:00",
+    "checkedAt": "2026-10-19T11:52:32.327647+00:00",
     "pythonTests": 533,
-    "javascriptTests": 322,
+    "javascriptTests": 325,
     "coveragePercent": 82.73,
     "network": "blocked",
     "scope": "Suite local; no acredita cada acción ni servicios desplegados."
