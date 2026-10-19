@@ -57,7 +57,7 @@
   body[data-cv-surface="app"] :is(.workspace-window-header, .data-header, .profile-category-header, .onboarding-header, .onboarding-actions, .employment-window-header, .employment-results-header) {
     background: var(--cv-surface); color: var(--cv-text); border-color: var(--cv-border);
   }
-  body[data-cv-surface="app"] :is(.profile-node > summary, .profile-node[open] > summary) { background: var(--cv-raised); color: var(--cv-text); border-left-color: #92b879; }
+  body[data-cv-surface="app"] :is(.profile-node > summary, .profile-node[open] > summary, .data-preview-card) { background: var(--cv-raised); color: var(--cv-text); border-left-color: #92b879; }
   body[data-cv-surface="app"] .profile-card-icon { background: var(--cv-field); color: var(--cv-accent); }
   body[data-cv-surface="app"] :is(.profile-card-count, .tag, .template-chip) { background: var(--cv-raised); color: var(--cv-accent); }
   body[data-cv-surface="app"] :is(.evidence-type.direct, .background-process.process-done) { background: #143423; color: var(--cv-success); }

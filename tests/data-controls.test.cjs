@@ -98,3 +98,20 @@ test('late load errors from the previous session are ignored',async()=>{
  await new Promise(r=>setImmediate(r));
  assert.equal(document.querySelector('#data-connection-error').hidden,true);
 });
+
+
+test('pending panel uses complete category cards and clears recovered load errors',async()=>{
+ const {document,root,emit}=setup();let release;
+ root.cvDataPanel={open:()=>new Promise(r=>release=r)};
+ document.querySelector('#data-toggle').click();
+ const preview=document.querySelector('#data-preview');
+ assert.ok(preview.classList.contains('profile-panel'));
+ assert.equal(preview.querySelectorAll('.profile-card-icon').length,8);
+ assert.equal(preview.querySelectorAll('.profile-card-description').length,8);
+ assert.equal(preview.querySelectorAll('button, input, summary').length,0);
+ emit('cv-app-error',{message:'Error de una carga anterior'});
+ document.querySelector('#profile-panel').hidden=false;release();
+ await new Promise(r=>setImmediate(r));
+ assert.equal(document.querySelector('#data-connection-error').hidden,true);
+ assert.equal(document.querySelector('#data-connection-error').textContent,'');
+});

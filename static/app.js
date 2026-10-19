@@ -402,14 +402,15 @@ function renderBankStatus(data) {
     : `Banco sincronizado · ${data.counts?.courses || 0} cursos · ${data.counts?.education || 0} estudios · ${data.counts?.experiences || 0} experiencias.${data.warnings?.length ? ' Hay observaciones informativas; consulta el detalle.' : ''}${unread ? ` ${unread} archivo(s) no pudieron leerse; revisa los avisos.` : ""}`;
 }
 
-async function synchronizeBank(onProgress, operationId) {
+async function synchronizeBank(onProgress, operationId, {inline = false} = {}) {
   if (!state.bankEnabled) return;
   if (state.bankSyncPromise) return state.bankSyncPromise;
   const bankOwner = state.user?.uid, bankEpoch = state.authEpoch;
   const bankIsCurrent = () => bankOwner === state.user?.uid && bankEpoch === state.authEpoch;
   const operation = state.bankSyncPromise = (async () => {
     const button = $("#sync-bank");
-    setBusy(button, true, "Leyendo documentos de Drive…");
+    if (!inline) setBusy(button, true, "Leyendo documentos de Drive…");
+    button.disabled = true;
     let previousSignature = null;
     try {
       if (window.cvBackground.enabled()) {
@@ -445,7 +446,7 @@ async function synchronizeBank(onProgress, operationId) {
       throw error;
     } finally {
       if (bankIsCurrent()) {
-        setBusy(button, false);
+        if (!inline) setBusy(button, false);
         button.disabled = false;
       }
     }
@@ -477,7 +478,7 @@ async function startBankSynchronization({throwOnError = false, inline = false} =
   try {
     // Start OAuth from the real user gesture before opening the loading modal.
     const accountVerification = state.authRequired || Boolean(state.user);
-    const connection = window.cvDrive.connect({requireGmail: accountVerification, operationId});
+    const connection = window.cvDrive.connect({requireGmail: accountVerification, operationId, inline});
     const work = async update => {
     update(2, accountVerification ? 'Comprobando la conexión de Gmail y Drive' : 'Comprobando Drive en modo local');
     await connection;
@@ -492,7 +493,7 @@ async function startBankSynchronization({throwOnError = false, inline = false} =
       await window.cvDrive.verify();
     }
     update(15, 'Conexión comprobada; sincronizando el banco');
-    const bank = await synchronizeBank((progress, stage, durable) => update(15 + Math.floor(progress * 0.75), stage, durable), operationId);
+    const bank = await synchronizeBank((progress, stage, durable) => update(15 + Math.floor(progress * 0.75), stage, durable), operationId, {inline});
     if (!current()) throw new Error('La cuenta cambió durante la sincronización.');
     if (bankSyncBlocked(bank)) throw new Error('La sincronización necesita revisión: hay documentos pendientes o bloqueados. Consulta Documentos y avisos de lectura.');
     update(92, 'Banco sincronizado; actualizando tu perfil');
@@ -1229,6 +1230,9 @@ async function updateGoogleUserWork(user) {
   const token = user ? await user.getIdToken() : null;
   if (state.user !== user) return;
   state.idToken = token;
+  // Reauthentication renews the token while the active synchronization owns the refresh.
+  if (!changed && typeof synchronizationRunning !== 'undefined' && synchronizationRunning &&
+      synchronizationRunning.owner === user?.uid && synchronizationRunning.epoch === state.authEpoch) return;
   window.cvEmployment?.initialize(user, async path => {
     const owner = state.user;
     if (!owner) throw new Error('Inicia sesión para continuar.');
@@ -2190,7 +2194,10 @@ $("#send-whatsapp").addEventListener("click", (event) => prepareApplication("wha
 $("#refresh-application-history").addEventListener("click", refreshApplications);
 $('#load-more-applications').addEventListener('click', () => refreshApplications(true));
 window.addEventListener('cv-account-ready', event => { state.accountReady = event.detail.ready; });
-window.addEventListener("cv-drive-connected", async () => {
+async function handleDriveConnected() {
+  // Explicit synchronization owns verification, bank refresh and profile rendering.
+  // Its connection event must not start a second competing refresh.
+  if (synchronizationRunning && synchronizationRunning.owner === state.user?.uid && synchronizationRunning.epoch === state.authEpoch) return;
   if (state.multiAccount) {
     const uid = state.user?.uid;
     try {
@@ -2203,7 +2210,8 @@ window.addEventListener("cv-drive-connected", async () => {
       if (uid === state.user?.uid) { await loadProfileSummaryWork(); if (!$('#data-dialog').open) await window.cvOnboarding?.check(); }
     } catch (error) { showError(error.message); }
   }
-});
+}
+window.addEventListener('cv-drive-connected', handleDriveConnected);
 $('#select-account-folders').addEventListener('click', async () => {
   clearError();
   try { await window.cvDrive.chooseFolders(); } catch (error) { showError(error.message); }

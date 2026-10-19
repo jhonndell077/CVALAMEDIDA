@@ -101,16 +101,55 @@
   const preview = document.createElement('section');
   preview.id = 'data-preview';
   preview.setAttribute('aria-label', 'Banco profesional');
+  preview.className = 'profile-panel data-preview';
+  const panelHeading = document.createElement('div');
+  panelHeading.className = 'panel-heading';
+  const titleGroup = document.createElement('div');
+  const eyebrow = document.createElement('div');
+  eyebrow.className = 'eyebrow';
+  eyebrow.textContent = 'BANCO PROFESIONAL';
   const heading = document.createElement('h2');
   heading.textContent = 'Mi árbol de información';
-  preview.append(heading);
+  titleGroup.append(eyebrow, heading);
+  const loadingStatus = document.createElement('span');
+  loadingStatus.className = 'step-number';
+  loadingStatus.textContent = 'Preparando tu banco';
+  panelHeading.append(titleGroup, loadingStatus);
+  const lead = document.createElement('p');
+  lead.className = 'panel-lead';
+  lead.textContent = 'Estamos conectando tu banco y cargando tu información. Las categorías estarán disponibles al terminar.';
+  preview.append(panelHeading, lead);
   const grid = document.createElement('div');
   grid.className = 'profile-tree';
-  for (const title of ['Datos personales', 'Experiencias', 'Habilidades', 'Estudios', 'Cursos realizados', 'Proyectos', 'Referencias', 'Datos pendientes de documentar']) {
+  for (const [icon, title, description] of [
+    ['◉', 'Datos personales', 'Tu identidad y contacto'],
+    ['▣', 'Experiencias', 'Tu recorrido profesional'],
+    ['✦', 'Habilidades', 'Lo que sabes hacer'],
+    ['▤', 'Estudios', 'Tu formación académica'],
+    ['✧', 'Cursos realizados', 'Aprendizaje y certificados'],
+    ['◇', 'Proyectos', 'Ideas que has llevado a la práctica'],
+    ['◎', 'Referencias', 'Personas que respaldan tu trayectoria'],
+    ['⋯', 'Datos pendientes de documentar', 'Información por completar'],
+  ]) {
     const card = document.createElement('div');
     card.className = 'profile-node';
-    card.textContent = title;
-    card.style.padding = '20px';
+    const row = document.createElement('div');
+    row.className = 'data-preview-card';
+    const symbol = document.createElement('span');
+    symbol.className = 'profile-card-icon';
+    symbol.textContent = icon;
+    symbol.setAttribute('aria-hidden', 'true');
+    const copy = document.createElement('span');
+    copy.className = 'profile-card-copy';
+    const label = document.createElement('span');
+    label.className = 'profile-card-title';
+    label.textContent = title;
+    const caption = document.createElement('span');
+    caption.className = 'profile-card-description';
+    caption.textContent = description;
+    copy.append(label, caption);
+    row.append(symbol, copy);
+    card.append(row);
     grid.append(card);
   }
   preview.append(grid);
@@ -134,7 +173,11 @@
       if (!window.cvDataPanel?.open) throw new Error('La aplicación se está preparando. Pulsa Cargar mis datos para reintentar.');
       task = window.cvDataPanel.open();
     } catch (error) { task = Promise.reject(error); }
-    Promise.resolve(task).catch(error => {
+    Promise.resolve(task).then(() => {
+      if (epoch !== generation) return;
+      connectionError.textContent = '';
+      connectionError.hidden = true;
+    }).catch(error => {
       if (epoch !== generation) return;
       connectionError.textContent = error.message || 'No se pudieron cargar tus datos. Reintenta la conexión.';
       connectionError.hidden = false;

@@ -93,3 +93,41 @@ test('manual folder selection closes both pickers and submits the selected pair'
  await drive.acceptCredential('account-token');await drive.chooseFolders();
  assert.deepEqual(bodies[1],{bank_id:'manual-bank',archive_id:'manual-cv'});assert.equal(closed,2);
 });
+
+
+for (const inline of [true,false]) test(`Drive connection honors inline loading through authorization and setup (${inline})`,async()=>{
+ const {context,drive,events}=environment();let overlays=0,authorizations=0;
+ context.window.cvLoading.start=()=>{overlays++;return ()=>{}};
+ context.crypto={randomUUID:()=> 'fixture-operation'};
+ context.fetch=async()=>({ok:true,json:async()=>({ready:true,bank_id:'bank',archive_id:'archive'})});
+ await drive.initialize({provider:'drive',multi_account:true},()=>({}));
+ drive.setAuthorizationHandler(async()=>{authorizations++;return {access_token:'synthetic',expires_in:3600}});
+ await drive.connect({inline});
+ assert.equal(authorizations,1);assert.equal(drive.isConnected(),true);
+ assert.equal(overlays,inline?0:2);
+ assert.equal(events.filter(e=>e.type==='cv-drive-connected').length,1);
+});
+
+test('real Drive connection event does not race the explicit inline bank refresh',async()=>{
+ const {context,drive}=environment();let overlays=0,profiles=0,syncs=0,statusReads=0;
+ const app=fs.readFileSync('static/app.js','utf8');
+ context.state={user:{uid:'fixture',getIdToken:async()=> 'synthetic'},authEpoch:1,authRequired:true,multiAccount:true,bankEnabled:true};
+ context.crypto={randomUUID:()=> 'fixture-operation'};
+ context.$=()=>({disabled:false,open:true});
+ context.requireSession=()=>true;context.clearError=()=>{};context.showError=assert.fail;
+ context.directRequestJson=async path=>{if(path==='/api/bank/sync')syncs++;return {ok:true,pending:false}};
+ context.renderBankStatus=()=>{};context.setBusy=()=>assert.fail('Busy button must not open its own loading overlay');
+ context.window.cvBackground={enabled:()=>false};
+ context.loadProfileSummaryWork=async()=>profiles++;
+ context.window.cvLoading={start:()=>{overlays++;return ()=>{}},run:async(_,work)=>{overlays++;return work(()=>{})}};
+ context.window.cvRequiredSync={ready:()=>true};context.window.addEventListener=()=>{};
+ context.fetch=async path=>{if(path==='/api/bank/status')statusReads++;return {ok:true,json:async()=>({ready:true,bank_id:'bank',archive_id:'archive'})}};
+ vm.runInContext(app.slice(app.indexOf('async function synchronizeBank('),app.indexOf('\nlet synchronizationRunning')),context);
+ vm.runInContext(app.slice(app.indexOf('let synchronizationRunning = false;'),app.indexOf('window.cvSynchronizeBank =')),context);
+ vm.runInContext(app.slice(app.indexOf('async function handleDriveConnected()'),app.indexOf("$('#select-account-folders').addEventListener")),context);
+ const pending=[];context.window.dispatchEvent=event=>{if(event.type==='cv-drive-connected')pending.push(context.handleDriveConnected())};
+ await drive.initialize({provider:'drive',multi_account:true},()=>({}));
+ drive.setAuthorizationHandler(async()=>({access_token:'synthetic',expires_in:3600}));
+ await context.startBankSynchronization({inline:true,throwOnError:true});await Promise.all(pending);
+ assert.equal(statusReads,0);assert.equal(syncs,1);assert.equal(profiles,1);assert.equal(overlays,0);
+});

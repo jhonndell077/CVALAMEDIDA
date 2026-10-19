@@ -83,9 +83,10 @@ window.cvDrive = (() => {
     connectedReady = true;
     return data;
   }
-  async function connected(result, started = generation) {
+  const connectionLoading = (message, options = {}) => options.inline ? () => {} : window.cvLoading.start(message);
+  async function connected(result, started = generation, options = {}) {
     if (started !== generation) throw new Error('La cuenta cambió durante la autorización.');
-    const finish = window.cvLoading.start("Conectando Google Drive");
+    const finish = connectionLoading("Conectando Google Drive", options);
     try {
       if (result.error) throw new Error("Google no autorizó Drive. Usa la cuenta permitida e inténtalo de nuevo.");
       token = result.access_token;
@@ -131,11 +132,11 @@ window.cvDrive = (() => {
       let authorization;
       try { authorization = authorizationHandler({operationId}); }
       catch (error) { window.clearTimeout?.(timer); report('oauth_error'); return Promise.reject(error); }
-      const finish = window.cvLoading.start("Conectando Gmail y Drive con tu cuenta");
+      const finish = connectionLoading("Conectando Gmail y Drive con tu cuenta", options);
       button().disabled = true;
       const operation = connection = Promise.resolve(authorization).then(result => {
         if (started !== generation) throw new Error('La cuenta cambió durante la autorización.');
-        return connected(result);
+        return connected(result, started, options);
       }).catch(error => {
         if (started === generation) {
           const known = {'auth/popup-closed-by-user': 'popup_closed', 'auth/popup-blocked': 'popup_failed_to_open', 'auth/cancelled-popup-request': 'popup_closed', 'auth/user-cancelled': 'access_denied'};
@@ -165,7 +166,7 @@ window.cvDrive = (() => {
       status().textContent = error.message;
       return Promise.reject(error);
     }
-    const finish = window.cvLoading.start("Conectando Google Drive");
+    const finish = connectionLoading("Conectando Google Drive", options);
     const started = generation;
     button().disabled = true;
     status().textContent = "Autoriza Drive y selecciona CV GENERADOS…";
@@ -189,7 +190,7 @@ window.cvDrive = (() => {
           return;
         }
         cleanup();
-        connected(event.data.result, started).then(resolve, reject);
+        connected(event.data.result, started, options).then(resolve, reject);
       };
       window.addEventListener("message", receive);
       timer = setInterval(() => {
@@ -206,7 +207,7 @@ window.cvDrive = (() => {
   async function acceptCredential(accessToken, options = {}) {
     if (config?.provider !== "drive") return;
     if (!accessToken) throw new Error("Google no entregó el permiso de Drive. Sincroniza el banco para conectarlo.");
-    await connected({ access_token: accessToken, expires_in: 3600, ...options });
+    await connected({ access_token: accessToken, expires_in: 3600, ...options }, generation, options);
   }
   function headers() {
     if (config?.provider !== "drive") return {};

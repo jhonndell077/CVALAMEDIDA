@@ -67,3 +67,14 @@ test('a stalled Firebase script times out and releases startup for retry',async(
   vm.runInContext(source.slice(source.indexOf('function loadScript('),source.indexOf('function renderBankStatus(')),context);
   const pending=context.loadScript('/fixture.js');timeout();await assert.rejects(pending,/Reintentar inicio/);assert.equal(script.removed,true);
 });
+
+
+test('same-account token renewal does not restart bank loading during synchronization',async()=>{
+ const user={uid:'alice',getIdToken:async()=> 'renewed-local-token'};
+ const {context}=setup({user,activeUserId:'alice',authEpoch:1});
+ context.synchronizationRunning={owner:'alice',epoch:1};
+ context.window.cvBackground={initialize(){throw Error('Duplicate initialization during bank sync')}};
+ vm.runInContext(source.slice(source.indexOf('async function updateGoogleUserWork('),source.indexOf('async function initializeGoogleAuth(')),context);
+ await context.updateGoogleUserWork(user);
+ assert.equal(context.state.idToken,'renewed-local-token');assert.equal(context.state.user,user);
+});
