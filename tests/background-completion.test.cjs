@@ -175,3 +175,51 @@ test('a delayed submission cannot repopulate the panel after logout and same-acc
  release({job_id:jobId});await assert.rejects(pending,/La sesi/);
  assert.equal(calls,1);assert.equal(q.document.querySelector('#background-processes').children.length,0);
 });
+
+for(const failure of [
+ {status:503,code:'job_dispatch_unavailable',job_id:jobId},
+ {status:503,code:'queue_unavailable'},
+ {}
+]) test(`uncertain submission retains its cause and explicit retry identity (${failure.code||'network'})`,async()=>{
+ const q=setup();let serial=0;const submissions=[];let polls=0;
+ q.context.crypto={randomUUID:()=>`12345678-1234-1234-1234-${String(++serial).padStart(12,'0')}`};
+ const original=Object.assign(new Error('Error original de despacho'),failure);
+ q.settings.request=async(path,data)=>{
+  if(path==='/api/background/jobs'){
+   submissions.push(data);if(submissions.length===1)throw original;
+   return {job_id:`web-${data.request_id}`};
+  }
+  polls++;return {state:'done',progress:100,path:'/api/draft',result:{draft:{}}};
+ };
+ await q.window.cvBackground.initialize(q.settings);
+ await assert.rejects(q.window.cvBackground.run('/api/draft',{position:'A'}),error=>error===original);
+ assert.equal(polls,0,'a rejected or unconfirmed submit must not become a fictional queued job');
+ assert.match(q.document.querySelector('.process-failed').textContent,/Error original de despacho/);
+ q.window.dispatchEvent(new q.window.Event('online'));await settle();
+ assert.equal(submissions.length,1,'reconnect must not repeat external work');
+ await q.window.cvBackground.run('/api/draft',{position:'A'});
+ assert.equal(submissions[0].request_id,submissions[1].request_id);
+ assert.equal(polls,1);assert.equal(q.document.querySelector('#background-processes').children.length,1);
+});
+
+test('uncertain retry identity is isolated by payload and account',async()=>{
+ const q=setup();let serial=0;const ids=[];
+ q.context.crypto={randomUUID:()=>`12345678-1234-1234-1234-${String(++serial).padStart(12,'0')}`};
+ q.settings.request=async(path,data)=>{ids.push(data.request_id);throw Object.assign(new Error('Temporal'),{status:503})};
+ await q.window.cvBackground.initialize(q.settings);
+ await assert.rejects(q.window.cvBackground.run('/api/gmail/send',{to:'first@example.test'}));
+ await assert.rejects(q.window.cvBackground.run('/api/gmail/send',{to:'second@example.test'}));
+ await q.window.cvBackground.initialize({...q.settings,user:()=>({uid:'bob'})});
+ await assert.rejects(q.window.cvBackground.run('/api/gmail/send',{to:'first@example.test'}));
+ assert.equal(new Set(ids).size,3);
+});
+
+test('a known admission rejection preserves its status without polling a missing job',async()=>{
+ const q=setup();let polls=0;
+ const rejection=Object.assign(new Error('La cuenta necesita autorización'),{status:403,code:'authorization_required'});
+ q.settings.request=async(path)=>{if(path==='/api/background/jobs')throw rejection;polls++;throw new Error('Unexpected poll')};
+ await q.window.cvBackground.initialize(q.settings);
+ await assert.rejects(q.window.cvBackground.run('/api/bank/sync',{}),error=>error===rejection);
+ assert.equal(polls,0);assert.equal(q.window.cvBackground.hasActive(),false);
+ assert.match(q.document.querySelector('.process-failed').textContent,/necesita autorización/);
+});

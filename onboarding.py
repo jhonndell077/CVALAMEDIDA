@@ -2,6 +2,10 @@
 import io
 import json
 import hashlib
+import time
+import uuid
+from contextlib import contextmanager
+from google.api_core.exceptions import PreconditionFailed
 from urllib.parse import quote
 from PIL import Image, ImageOps, UnidentifiedImageError
 import user_accounts as users
@@ -70,9 +74,15 @@ def status(core, store):
 def put(core, token, folder, name, mime, raw):
     item=users.existing(core,token,name,folder)
     if item:
-        response=users.requests.patch("https://www.googleapis.com/upload/drive/v3/files/"+quote(item["id"],safe="")+"?uploadType=media&fields=id",
+        url = "https://www.googleapis.com/upload/drive/v3/files/"+quote(item["id"],safe="")+"?uploadType=media&fields=id"
+        response=users.requests.patch(url,
             headers={"Authorization":"Bearer "+token,"Content-Type":mime},data=raw,timeout=45)
-        if not response.ok: raise core.AppError("No se pudo actualizar el archivo del formulario en Drive. Tus datos siguen en el formulario.",503)
+        if not response.ok:
+            from drive_error_details import classify
+            code, message = classify(url, response.status_code, response.content[:16384])
+            error = core.AppError(message, 401 if response.status_code == 401 else 403 if response.status_code in {403, 404} else 502)
+            error.code = code
+            raise error
         return response.json()["id"]
     boundary="cv-form-"+hashlib.sha256(name.encode()).hexdigest()[:16]
     metadata=json.dumps({"name":name,"mimeType":mime,"parents":[folder]}).encode()
@@ -148,27 +158,88 @@ def collect(core, payload, photo=None, reference=None):
         files.append(reference_file(core, reference))
     return files
 
+@contextmanager
+def save_lease(core, store, uid):
+    """Serialize folder setup and form writes for one verified account."""
+    key = 'setup-' + users.account_key(uid)
+    holder = uuid.uuid4().hex
+    for attempt in range(11):
+        lease, generation = store.read(key)
+        if lease and lease.get('expires_at', 0) > time.time():
+            if attempt == 10:
+                raise users._setup_busy(core)
+            time.sleep(.05)
+            continue
+        try:
+            store.write(key, {'holder': holder, 'expires_at': time.time() + 180}, generation)
+            break
+        except PreconditionFailed:
+            if attempt == 10:
+                raise users._setup_busy(core) from None
+
+    def renew():
+        lease, generation = store.read(key)
+        if not lease or lease.get('holder') != holder or lease.get('expires_at', 0) <= time.time():
+            raise core.AppError('La reserva de guardado venció. Tus datos siguen en el formulario; vuelve a guardar.', 409)
+        try:
+            store.write(key, {**lease, 'expires_at': time.time() + 180}, generation)
+        except PreconditionFailed:
+            raise core.AppError('El banco cambió en otra sesión. Tus datos siguen en el formulario; vuelve a guardar.', 409) from None
+
+    try:
+        yield renew
+    finally:
+        try:
+            lease, generation = store.read(key)
+            if lease and lease.get('holder') == holder:
+                store.write(key, {**lease, 'expires_at': 0}, generation)
+        except Exception:
+            core.app.logger.warning('La reserva de guardado se liberará al vencer.')
+
+
+def mark_completed(core, store, uid):
+    # A concurrent/legacy completion is already success, not a failed save.
+    for attempt in range(3):
+        current, generation = store.read(marker(uid))
+        if current and current.get('completed') is True:
+            return
+        try:
+            store.write(marker(uid), {**(current or {}), 'completed': True}, generation)
+            return
+        except PreconditionFailed:
+            if attempt == 2:
+                latest, _ = store.read(marker(uid))
+                if latest and latest.get('completed') is True:
+                    return
+                raise core.AppError('Los archivos se guardaron. Vuelve a guardar para confirmar la consolidación.', 409) from None
+
+
 def save(core, payload, photo, store, reference=None):
     identity=users.CURRENT.get();record=identity.get("record") or {}
     if not record.get("bank") or not record.get("sections"):
         raise core.AppError("Conecta Drive para preparar las carpetas de tu cuenta.",409)
     token=identity.get("drive_token","");users.assert_drive_identity(core,token,identity)
     files=collect(core,payload,photo,reference) # Validate everything before the first write.
-    if photo:
-        matches=[item for item in core.BANK_CLIENT.inventory().values() if item.get("name","").casefold()=="hoja_de_vida.jpeg" and item.get("mimeType","").startswith("image/")]
-        if matches:
-            normalized_photo = next(raw for section, name, mime, raw in files if name == 'hoja_de_vida.jpeg')
-            existing_photo = core.BANK_CLIENT.download(matches[0])[0] if len(matches) == 1 else None
-            if existing_photo != normalized_photo:
-                raise core.AppError("Ya hay una fotografia en tu banco. Cambiala desde Informacion personal y vuelve a sincronizar.",409)
-            # A retry after saving or consolidation must not reject the same photo.
-            files = [item for item in files if item[1] != 'hoja_de_vida.jpeg']
-    saved=[]
-    for section,name,mime,raw in files:
-        saved.append(put(core,token,record["sections"][section],name,mime,raw))
-    current,generation=store.read(marker(identity["uid"]))
-    store.write(marker(identity["uid"]),{"completed":True},generation)
-    return {"saved":len(saved),"sync_required":bool(saved)}
+    with save_lease(core, store, identity["uid"]) as renew:
+        latest, _ = store.read(users.account_key(identity['uid']))
+        if latest is not None and any(latest.get(field) != record.get(field) for field in ('bank', 'sections')):
+            raise core.AppError('Las carpetas de tu cuenta cambiaron en otra sesión. Vuelve a sincronizar antes de guardar; tus datos siguen en el formulario.', 409)
+        if photo:
+            matches=[item for item in core.BANK_CLIENT.inventory().values() if item.get("name","").casefold()=="hoja_de_vida.jpeg" and item.get("mimeType","").startswith("image/")]
+            if matches:
+                normalized_photo = next(raw for section, name, mime, raw in files if name == 'hoja_de_vida.jpeg')
+                existing_photo = core.BANK_CLIENT.download(matches[0])[0] if len(matches) == 1 else None
+                if existing_photo != normalized_photo:
+                    raise core.AppError("Ya hay una fotografia en tu banco. Cambiala desde Informacion personal y vuelve a sincronizar.",409)
+                # A retry after saving or consolidation must not reject the same photo.
+                files = [item for item in files if item[1] != 'hoja_de_vida.jpeg']
+        saved=[]
+        for section,name,mime,raw in files:
+            renew()
+            saved.append(put(core,token,record["sections"][section],name,mime,raw))
+        renew()
+        mark_completed(core, store, identity["uid"])
+        return {"saved":len(saved),"sync_required":bool(saved)}
 
 
 def import_reference(core, reference):

@@ -29,10 +29,14 @@ window.cvOnboarding = (() => {
     const started = generation;
     await options.refreshToken();
     if (!current(started)) throw new Error('La cuenta cambi\u00f3.');
-    const response = await fetch(path, {...init, headers: options.headers(init.headers || {})});
+    const requestHeaders = options.headers(init.headers || {});
+    const response = await fetch(path, {...init, headers: requestHeaders});
     const data = await response.json().catch(() => ({}));
     if (!current(started)) throw new Error('La cuenta cambi\u00f3.');
-    if (!response.ok) throw new Error(data.error || 'No se pudo completar el formulario.');
+    if (!response.ok) {
+      window.cvDrive?.invalidateAuthorization?.(data.code, requestHeaders);
+      throw Object.assign(new Error(data.error || 'No se pudo completar el formulario.'), {status: response.status, code: data.code});
+    }
     return data;
   }
   function show() {

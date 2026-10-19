@@ -254,7 +254,14 @@ def register_routes(app, core):
                     raise core.AppError('Este identificador ya corresponde a otra solicitud.', 409) from None
         traces.adopt(job)
         if job['state'] == 'queued':
-            bot.enqueue(identifier, bot.configuration(), task_identifier=f"{identifier}-{job.get('step', 0)}", kind='web_analysis')
+            try:
+                bot.enqueue(identifier, bot.configuration(), task_identifier=f"{identifier}-{job.get('step', 0)}", kind='web_analysis')
+            except Exception:
+                # The durable ID and deterministic task name make an explicit retry safe.
+                # Do not discard a request or claim the worker received it.
+                core.app.logger.warning('job_dispatch_unavailable operation=%s', identifier)
+                return jsonify(error=bot.JOB_MESSAGES['job_dispatch_unavailable'],
+                               code='job_dispatch_unavailable', job_id=identifier), 503
         return jsonify(job_id=identifier), 202
 
     @app.post('/api/background/jobs/<identifier>')

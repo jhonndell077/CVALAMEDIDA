@@ -60,3 +60,16 @@ test('failed network request keeps the effective explicit operation identifier',
  await assert.rejects(context.directRequestJson('/api/google/grant',{}, {'X-CV-Operation-ID':id}),/offline/);
  assert.equal(sent,id);assert.equal(reported[2],id);
 });
+
+test('server rejection preserves safe recovery code and binds Drive invalidation to request credential',async()=>{
+ let invalidated;
+ const context={state:{user:null},operationIdFor:()=> 'a'.repeat(32),
+  authenticatedHeaders:h=>({...h,'X-Drive-Access-Token':'fixture-request-token'}),
+  window:{cvDrive:{invalidateAuthorization:(...args)=>invalidated=args}},
+  fetch:async()=>({ok:false,status:401,json:async()=>({error:'Reconnect',code:'google_authorization_expired'})})};
+ vm.runInNewContext(part('async function directRequestJson','async function processFetch'),context);
+ await assert.rejects(context.directRequestJson('/api/bank/sync',{}),e=>e.status===401&&e.code==='google_authorization_expired');
+ assert.equal(invalidated[0],'google_authorization_expired');assert.equal(invalidated[1]['X-Drive-Access-Token'],'fixture-request-token');
+ context.fetch=async()=>({ok:false,status:503,json:async()=>({error:'Saved',code:'job_dispatch_unavailable',job_id:'web-12345678-1234-1234-1234-123456789012'})});
+ await assert.rejects(context.directRequestJson('/api/background/jobs',{}),e=>e.status===503&&e.code==='job_dispatch_unavailable'&&e.job_id==='web-12345678-1234-1234-1234-123456789012');
+});

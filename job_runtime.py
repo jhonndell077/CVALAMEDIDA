@@ -32,7 +32,18 @@ _session = None
 
 
 class JobError(Exception):
-    pass
+    def __init__(self, message, *, code='job_service_unavailable'):
+        super().__init__(message)
+        self.public_code = code if code in JOB_MESSAGES else 'job_service_unavailable'
+
+
+JOB_MESSAGES = {
+    'job_service_unavailable': 'El servicio temporal no está disponible. Vuelve a intentarlo.',
+    'job_account_maintenance': 'Esta cuenta tiene una acción administrativa pendiente. El administrador debe revisarla antes de continuar.',
+    'job_queue_busy': 'La cola está recibiendo cambios simultáneos. Espera unos segundos y vuelve a intentarlo.',
+    'job_policy_unavailable': 'No se pudo comprobar el plan de esta cuenta. El administrador debe revisar sus límites.',
+    'job_dispatch_unavailable': 'La solicitud está guardada, pero falta confirmar su envío al procesador. Reintenta la misma acción para recuperarla.',
+}
 
 
 class AdmissionLimit(JobError):
@@ -88,7 +99,7 @@ class JobStore:
                 # Without object versioning, a concurrent replacement removes
                 # the generation just loaded. It does not remove the job itself.
                 continue
-        raise JobError("El registro está cambiando. Vuelve a consultarlo en unos segundos.")
+        raise JobError("El registro está cambiando. Vuelve a consultarlo en unos segundos.", code='job_queue_busy')
 
     @observe(None, 'storage', 'storage-write')
     def write(self, identifier, data, generation):
@@ -102,10 +113,30 @@ class JobStore:
             queue, generation = self.read(queue_key)
             queue = queue or {}
             if (queue or {}).get('maintenance'):
-                raise JobError('La cuenta está bloqueada para una acción administrativa. Contacta al administrador.')
+                raise JobError('La cuenta está bloqueada para una acción administrativa. Contacta al administrador.', code='job_account_maintenance')
             pending = []
             for item in (queue or {}).get("pending", []):
-                job, _ = self.read(item["id"])
+                job, job_generation = self.read(item["id"])
+                # An undispatched request cannot acquire fresh permissions after an hour.
+                # CAS arbitrates with the worker: never expire active or uncertain writes.
+                if (job and job.get('owner_uid', '') == owner_uid and
+                        job.get('state') == 'queued' and not job.get('external_started') and
+                        not job.get('result') and not job.get('drive_url') and
+                        isinstance(job.get('created_at'), (int, float)) and
+                        time.time() - job['created_at'] > 3600 and
+                        job.get('lease_until', 0) <= time.time()):
+                    expired = {**job, 'state': 'failed', 'lease_until': 0,
+                               'completed_at': time.time(), 'errorCode': 'job_authorization_expired',
+                               'error': 'La autorización de esta solicitud pendiente venció. Inicia nuevamente la acción.',
+                               'stage': 'Solicitud pendiente vencida'}
+                    expired.pop('credentials', None)
+                    try:
+                        self.write(item['id'], expired, job_generation)
+                        job = expired
+                    except PreconditionFailed:
+                        # Keep this slot: a worker may now own it.
+                        pending.append(item)
+                        continue
                 abandoned = (not job and time.time() - item['created_at'] > 1800) or (
                     job and item['id'].startswith('direct-') and job.get('state') == 'processing'
                     and job.get('lease_until', 0) < time.time())
@@ -134,7 +165,7 @@ class JobStore:
             except admission_policy.QuotaExceeded as error:
                 raise AdmissionLimit(error.period, error.retry_after) from None
             except ValueError:
-                raise JobError('La política de admisión no está disponible.') from None
+                raise JobError('La política de admisión no está disponible.', code='job_policy_unavailable') from None
             if usage is None:
                 return True
             if probe:
@@ -145,7 +176,7 @@ class JobStore:
                 return True
             except PreconditionFailed:
                 continue
-        raise JobError("La cola está ocupada; vuelve a enviar la vacante en unos segundos.")
+        raise JobError("La cola está ocupada; vuelve a enviar la vacante en unos segundos.", code='job_queue_busy')
 
     def put_pdf(self, identifier, content):
         self.bucket.blob(f"temporary/{identifier}.pdf").upload_from_string(content, content_type="application/pdf")

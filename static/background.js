@@ -8,6 +8,9 @@ window.cvBackground = (() => {
   const watchers = new Map(), rows = new Map(), delivered = new Set();
   const progressListeners = new Map();
   const wakeups = new Map();
+  // Retry identity stays in this account's page memory, never browser storage.
+  // Reusing it lets the server reconcile an uncertain dispatch without repeating work.
+  const submissions = new Map();
   const panel = document.querySelector('#background-panel');
   const list = document.querySelector('#background-processes');
   const button = document.querySelector('#enable-notifications');
@@ -210,9 +213,12 @@ window.cvBackground = (() => {
     const existing = records.find(record => record.path === path && !['done', 'failed'].includes(record.state));
     if (path === '/api/bank/sync' && existing) return watch(existing, false, onProgress);
     const requestedOperation = headers['X-CV-Operation-ID'];
-    const identifier = path === '/api/bank/sync' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(requestedOperation || '')
-      ? requestedOperation : crypto.randomUUID();
-    const record = {id: `web-${identifier}`, path, state: 'queued'};
+    const submissionKey = JSON.stringify([path, payload]);
+    const retry = submissions.get(submissionKey);
+    const identifier = retry?.id.slice(4) || (path === '/api/bank/sync' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(requestedOperation || '')
+      ? requestedOperation : crypto.randomUUID());
+    const record = retry || {id: `web-${identifier}`, path, state: 'queued'};
+    record.state = 'queued';
     const currentSession = window.cvLoading.currentSession?.();
     if (currentSession != null) { record.sessionId = currentSession; record.actionId = `${pageId}:${currentSession}`; }
     const sessionId = window.cvLoading.backgroundSession?.();
@@ -226,12 +232,22 @@ window.cvBackground = (() => {
       const submitted = await options.request('/api/background/jobs', {path, payload, request_id: record.id.slice(4)}, {...headers, 'X-CV-Operation-ID': record.id.slice(4)});
       if (!current()) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
       record.id = submitted.job_id; persist();
+      submissions.delete(submissionKey);
     } catch (error) {
       if (error.terminal || !current()) throw error;
-      if (error.status && error.status < 500) {
-        record.state = 'failed'; persist(); render(record, {state: 'failed', error: error.message}); throw error;
+      if (!error.status || error.status >= 500) {
+        // Never infer admission from a 5xx or connection loss. An explicit retry
+        // uses the same ID; the server alone decides whether execution exists.
+        submissions.set(submissionKey, record);
+      } else {
+        submissions.delete(submissionKey);
       }
-      notice.textContent = 'Comprobando si el servidor recibió la solicitud.';
+      record.state = 'failed'; persist();
+      render(record, {state:'failed', progress:1, error:error.message});
+      notice.textContent = error.code === 'job_dispatch_unavailable'
+        ? 'La solicitud está guardada. Reintenta la misma acción para recuperar su despacho sin duplicarla.'
+        : error.status ? error.message : 'No se confirmó la recepción. Reintenta la misma acción para comprobarla sin duplicarla.';
+      throw error;
     }
     return watch(record, false, onProgress);
   }
@@ -292,7 +308,7 @@ window.cvBackground = (() => {
     if (owner) sessions.clear();
     owner = nextOwner; delivered.clear();
     queuedToast = false; clearTimeout(toastTimer); if (toast) { toast.hidePopover?.(); toast.hidden = true; }
-    rows.clear(); jobs.clear(); list.replaceChildren(); records = [];
+    rows.clear(); jobs.clear(); submissions.clear(); list.replaceChildren(); records = [];
     button.disabled = !enabled(); panel.hidden = !enabled();
     for (const record of sessions.values()) render(record, {progress:1, stage:record.title});
     if (!enabled()) return;

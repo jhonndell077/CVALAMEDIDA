@@ -227,11 +227,12 @@ async function directRequestJson(url, payload, headers = {}, requestOptions = {}
     state.idToken = token;
   }
   const requestOperationId = operationIdFor({request_id: headers['X-CV-Operation-ID'] || payload?.request_id});
+  const requestHeaders = authenticatedHeaders({ "Content-Type": "application/json", "X-CV-Operation-ID": requestOperationId, ...headers });
   let response;
   try { response = await fetch(url, {
     signal: requestOptions.signal,
     method: "POST",
-    headers: authenticatedHeaders({ "Content-Type": "application/json", "X-CV-Operation-ID": requestOperationId, ...headers }),
+    headers: requestHeaders,
     body: JSON.stringify(payload),
   }); } catch (error) {
     if (requestOwner === state.user?.uid && requestEpoch === state.authEpoch) window.cvClientSupervisor?.network(url, error, requestOperationId);
@@ -241,7 +242,12 @@ async function directRequestJson(url, payload, headers = {}, requestOptions = {}
   if (requestOwner !== state.user?.uid || requestEpoch !== state.authEpoch) throw Object.assign(new Error('La cuenta cambió. Inicia esta operación con tu nueva sesión.'), {terminal: true});
   window.cvSubscription?.observe(response, data)?.catch(() => {});
   if (!response.ok) {
-    throw Object.assign(new Error(data.error || `La solicitud falló (${response.status}).`), {status: response.status});
+    window.cvDrive?.invalidateAuthorization?.(data.code, requestHeaders);
+    throw Object.assign(new Error(data.error || `La solicitud falló (${response.status}).`), {
+      status: response.status,
+      ...(typeof data.code === 'string' ? {code: data.code} : {}),
+      ...(typeof data.job_id === 'string' && /^web-[a-f0-9-]{36}$/.test(data.job_id) ? {job_id: data.job_id} : {}),
+    });
   }
   return data;
 }

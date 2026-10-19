@@ -37,6 +37,27 @@ test('late onboarding response cannot show a popup for the previous account',asy
  controller.reset();resolve({ok:true,json:async()=>({needed:true})});
  await assert.rejects(pending,/cuenta cambi/);assert.equal(get('#onboarding-dialog').open,false);
 });
+
+test('confirmed expired Drive permission propagates error details and preserves draft',async()=>{
+ const {controller,context,get,settings,window}=environment();
+ const sentHeaders={'X-Drive-Access-Token':'current-test-token'};
+ settings.headers=()=>sentHeaders;
+ await controller.initialize({uid:'alice'},settings);
+ get('[name="name"]').value='Unsaved name';
+ let invalidation;
+ window.cvDrive.invalidateAuthorization=(code,headers)=>{invalidation={code,headers};};
+ context.fetch=async()=>({ok:false,status:401,json:async()=>({code:'google_authorization_expired',error:'Autoriza Drive otra vez'})});
+ const input=get('#onboarding-reference-cv');
+ input.files=[Object.assign(new Blob(['fixture'],{type:'application/pdf'}),{name:'fixture.pdf'})];
+ input.dispatchEvent(new window.Event('change')); await new Promise(r=>setImmediate(r));
+ assert.equal(get('[name="name"]').value,'Unsaved name');
+ assert.equal(get('#onboarding-dialog').open,true);
+ assert.equal(get('#onboarding-error').textContent,'Autoriza Drive otra vez');
+ // A new account also receives structured status/code from the same request wrapper.
+ await assert.rejects(controller.initialize({uid:'bob'},settings),error=>error.status===401&&error.code==='google_authorization_expired');
+ assert.equal(invalidation.code,'google_authorization_expired');
+ assert.equal(invalidation.headers,sentHeaders);
+});
 test('view my CV previews unsaved fields without uploading or dismissing onboarding',async()=>{
  const {controller,get,settings,calls}=environment();
  await controller.initialize({uid:'alice',displayName:'Alice'},settings);

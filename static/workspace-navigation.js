@@ -45,6 +45,7 @@
   document.getElementById('open-history').addEventListener('click', () => open(history, menu));
   // Close before existing handlers run, preserving their user activation for OAuth and popups.
   document.getElementById('workspace-services').addEventListener('click', event => {
+    if (event.target.closest('[data-functional-session]')) return;
     if (event.target.closest('button:not(:disabled), a[href]')) close(sidebar, false);
   }, true);
   for (const dialog of dialogs) {

@@ -16,6 +16,18 @@ window.cvDrive = (() => {
     token = ""; expiresAt = 0;
     if (status()) status().textContent = "Conecta Drive para guardar los CV en CV GENERADOS.";
   }
+  function invalidateAuthorization(code, requestHeaders) {
+    if (code !== 'google_authorization_expired' || !token) return false;
+    const sentToken = typeof requestHeaders?.get === 'function'
+      ? requestHeaders.get('X-Drive-Access-Token')
+      : Object.entries(requestHeaders || {}).find(([name]) => name.toLowerCase() === 'x-drive-access-token')?.[1];
+    // A delayed response from an older credential must not revoke a newer one.
+    if (!sentToken || sentToken !== token) return false;
+    token = ''; expiresAt = 0; connectedReady = false;
+    if (status()) status().textContent = 'El permiso de Drive caducó. Vuelve a pulsar la acción para autorizarlo sin perder tus datos.';
+    if (button()) button().textContent = 'Reconectar Drive';
+    return true;
+  }
   function script(src) {
     return new Promise((resolve, reject) => {
       const element = document.createElement("script");
@@ -57,9 +69,10 @@ window.cvDrive = (() => {
   async function check(selection = {}, retry = 0) {
     const started = generation;
     const path = config.multi_account ? '/api/account/setup' : '/api/drive/check';
+    const requestHeaders = { 'Content-Type':'application/json', ...authHeaders(), "X-Drive-Access-Token": token, ...(activeOperationId ? {'X-CV-Operation-ID':activeOperationId}: {}) };
     let response;
     try { response = await fetch(path, {
-      method: "POST", headers: { 'Content-Type':'application/json', ...authHeaders(), "X-Drive-Access-Token": token, ...(activeOperationId ? {'X-CV-Operation-ID':activeOperationId}: {}) },
+      method: "POST", headers: requestHeaders,
       ...(config.multi_account ? {body: JSON.stringify(selection)} : {}),
     }); } catch (error) {
       if (started === generation) window.cvClientSupervisor?.network(path, error, activeOperationId);
@@ -73,7 +86,10 @@ window.cvDrive = (() => {
       if (started !== generation) throw new Error('La sesión cambió. Conecta el Drive de la cuenta actual.');
       return check(selection, retry + 1);
     }
-    if (!response.ok) throw Object.assign(new Error(data.error || "No se pudo comprobar la carpeta de Drive."), { status: response.status });
+    if (!response.ok) {
+      invalidateAuthorization(data.code, requestHeaders);
+      throw Object.assign(new Error(data.error || "No se pudo comprobar la carpeta de Drive."), { status: response.status, code: data.code });
+    }
     if (config.multi_account) {
       config.folder_id = data.archive_id;
       document.querySelector('#bank-folder').href = `https://drive.google.com/drive/folders/${data.bank_id}`;
@@ -241,5 +257,5 @@ window.cvDrive = (() => {
     if (account.bank_id) document.querySelector('#bank-folder').href = `https://drive.google.com/drive/folders/${account.bank_id}`;
     if (account.archive_id) document.querySelector('#drive-folder').href = `https://drive.google.com/drive/folders/${account.archive_id}`;
   }
-  return { initialize, headers, headersIfConnected, reset, connect, isConnected, acceptCredential, setAuthorizationHandler, chooseFolders, setAccount, verify: check };
+  return { initialize, headers, headersIfConnected, reset, connect, isConnected, acceptCredential, setAuthorizationHandler, chooseFolders, setAccount, invalidateAuthorization, verify: check };
 })();

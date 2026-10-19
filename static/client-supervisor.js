@@ -46,6 +46,7 @@
     report({component,service:'api',stage:'browser-request',code:['TimeoutError','AbortError'].includes(error?.name)?'request_timeout':'network_error',operationId:id});
   }
   function initialize(next) {
+    window.cvFunctionalSession?.initialize(next);
     if (user?.uid === next?.uid) { user = next; void flush(); return; }
     epoch++; user = next; queue.length = 0; seen.clear();
   }
