@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-10-18T13:45:02.649Z",
+  "generatedAt": "2026-10-19T07:18:02.420Z",
   "baseline": {
     "buildId": "20261016T223144Z-bb10ff7c",
     "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
@@ -1129,8 +1129,8 @@
   },
   "previous": {
     "analysisVersion": 2,
-    "buildId": "20261018T051349Z-129466db",
-    "sourceHash": "53b76e985f968823d4fdd74e9724f12088e10c3f76deb7b10cec1996594eca78",
+    "buildId": "20261018T134458Z-3773e680",
+    "sourceHash": "42069fc554737397e65221e04c834c4258889c6bf289e22019bb714850e86905",
     "controls": [
       {
         "key": "/drive-auth.html::#authorize",
@@ -1571,28 +1571,28 @@
         "label": "Sincronizar todo",
         "page": "/",
         "group": "main",
-        "fingerprint": "057d421734e5ffd33ea63d098df1d51bea81e151fe717e44892bf3300c149d9a"
+        "fingerprint": "04654c58702667548282ba5b5697e17c53475282e8e663bf81cc7923c24640d9"
       },
       {
         "key": "/::#google-sign-in",
         "label": "1. Iniciar sesión con Google",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "a561e9df78c4135401baf5ab5506f6996926c985e56a87b8871e02f41b6518c4"
+        "fingerprint": "d10b446bdf3c1aa3bfde53afe13ba68853815b2a4b9e744f7d907f27956f1d20"
       },
       {
         "key": "/::#verify-session-gmail",
         "label": "2. Verificar inicio de sesión y sincronización con Gmail",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "8638bbfdc8393a68babd26f732252448aa22473d45eec5ea2855546b6827c082"
+        "fingerprint": "4c0a6fc3cb6669835b0c73cd00968cababbcc58469efa40a3223222b208cdee5"
       },
       {
         "key": "/::#verify-drive",
         "label": "3. Verificar sincronización con Google Drive",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "a0f0a1be8179c50301bc58472e23299656a049b9be6c52227c4b9c5659f979c1"
+        "fingerprint": "7264402014c11ce3b453edfb9382f22d2ebf2efd8deae9ee89dda1ded5a816f9"
       },
       {
         "key": "/::#sync-telegram-optional",
@@ -1679,11 +1679,11 @@
         "fingerprint": "01e7a2c8cac4f46d22d49520e39174c97a5edaa8447a924f4dbc3e4c6fa9d418"
       },
       {
-        "key": "/::#bank-panel>details:nth-of-type(1)>summary:nth-of-type(1)",
+        "key": "/::#bank-review>summary:nth-of-type(1)",
         "label": "Documentos y avisos de lectura",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "36bdb7f9a8f5a9d29ed11a7d78747e4ea42755b44cb2ba78707ace19a8ae474c"
+        "fingerprint": "b48488b7d594bd05c7a4e62b79b7aa618eceda75ef262cf4fa55af62f30ab365"
       },
       {
         "key": "/::#drive-folder",
@@ -1809,7 +1809,7 @@
         "label": "Guardar en mi banco",
         "page": "/",
         "group": "new-information-form",
-        "fingerprint": "4ee5dd69008b95d31a146999bdb4aa3ec2af7eaf337beca2b1516188aac34daf"
+        "fingerprint": "a641a9ae585564970dd72c166fc29ecf8002018a11d263779dccd1f48760f858"
       },
       {
         "key": "/::#cancel-information",
@@ -1886,7 +1886,7 @@
         "label": "Analizar vacante →",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "93b6215096560c1b003a83b5935a74c58054cd483e57d99577976d6d7ae13da6"
+        "fingerprint": "5c1e77ce9c5a61e801829431642f000867ff59469535f8de7816a056284bf4f7"
       },
       {
         "key": "/::#how-to-use",
@@ -1914,7 +1914,7 @@
         "label": "Crear y enviar mi CV →",
         "page": "/",
         "group": "analysis-panel",
-        "fingerprint": "f8f9d4a5baf0b3dc6b1672084fc3f962dc207318098be42cc0e7cccb2987fd4a"
+        "fingerprint": "fd57b1681fd2b597cd76dc59daa0bdf1c748e407a523f0cb58b8fd37ffd703f5"
       },
       {
         "key": "/::#back-to-analysis",
@@ -1928,14 +1928,14 @@
         "label": "Descargar PDF",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "85a349a6e7c6bf0bf71f890b81b3555caab673546054d6efdf4793d560c8d619"
+        "fingerprint": "791722ef4377b06a3ead04c1864dc1791350dedc6f4df819d3b60c703008e942"
       },
       {
         "key": "/::#download-docx",
         "label": "Descargar Word",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "ebf67c64133da6d4d4a7115a33c70b04c682a36b0c7b1927704d3db576da9d0f"
+        "fingerprint": "e4120aa33600dd1dc584e7f60c5b13aba38085b05ad28e8ace1867a11c890f9e"
       },
       {
         "key": "/::#application-email",
@@ -1970,7 +1970,7 @@
         "label": "◉ Abrir WhatsApp",
         "page": "/",
         "group": "section",
-        "fingerprint": "a9dd7f103f8c6aaceb0d6510e788d9804e80762c2ae4da0ad5cefc7a5239b94a"
+        "fingerprint": "ff8198ffb682e6c373cab675574dc134146731f9c66ab2274fc3e864568407ce"
       },
       {
         "key": "/::#application-history-details>summary:nth-of-type(1)",
@@ -1984,14 +1984,14 @@
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "69a2a4777bac44fe6a9803a2687ccc45f495a95c77a4d1bc99f2ddccabe60775"
+        "fingerprint": "cd59465d017ff137a773a5605064fbf7b0f914417dfee79f1a6617f9108df31d"
       },
       {
         "key": "/::#load-more-applications",
         "label": "Cargar más postulaciones",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "791fcc402cb9740e44421a05ffa30bc911df8ff6423e61d1e5e667d01892676a"
+        "fingerprint": "4d370453581b756e2bed5286100837d9cd3070cc476678eff8bbf477793e93db"
       },
       {
         "key": "/::#onboarding-close",
@@ -2277,7 +2277,7 @@
   },
   "current": {
     "analysisVersion": 2,
-    "sourceHash": "42069fc554737397e65221e04c834c4258889c6bf289e22019bb714850e86905",
+    "sourceHash": "79c4385571c52a553ed1bafe8885ae5bb670a93d585ebf2b1077cb89b35a73dd",
     "pages": [
       {
         "path": "/drive-auth.html",
@@ -3763,7 +3763,7 @@
             "source": "static/app.js",
             "line": 495,
             "confidence": "selector estático",
-            "fingerprint": "8eb7b010e75c757a42d5f60e11fe95a70830886c6b0af0643d6b91e8788f8703",
+            "fingerprint": "37ae6de23f1cc2f17d97424e5900d3656484505518621763e3d79adab8da38e2",
             "endpoints": [
               "/api/account/connections/verify",
               "/api/account/initial-sync",
@@ -3822,7 +3822,7 @@
           }
         ],
         "relatedTestCount": 4,
-        "fingerprint": "04654c58702667548282ba5b5697e17c53475282e8e663bf81cc7923c24640d9"
+        "fingerprint": "e1d78ca946333ea4380efe9978fbf3112b059ad2d058e76daef89e6600b9baea"
       },
       {
         "key": "/::#google-sign-in",
@@ -3841,7 +3841,7 @@
             "source": "static/app.js",
             "line": 1302,
             "confidence": "selector estático",
-            "fingerprint": "9923d8c75752deea3707318a76a587d5eda1a0757d0f1d4d046976f7478df94e",
+            "fingerprint": "06373917aecbf914b480ad801665c2af6489dfca1fd8ad72a8e534c98094e045",
             "endpoints": [
               "/api/account",
               "/api/account/onboarding",
@@ -3880,7 +3880,7 @@
           }
         ],
         "relatedTestCount": 2,
-        "fingerprint": "d10b446bdf3c1aa3bfde53afe13ba68853815b2a4b9e744f7d907f27956f1d20"
+        "fingerprint": "18734041e5a36532a74c4df939044c938b0450473afee4fd57b23fed2155b4f0"
       },
       {
         "key": "/::#verify-session-gmail",
@@ -3889,7 +3889,7 @@
         "id": "verify-session-gmail",
         "tag": "button",
         "label": "2. Verificar inicio de sesión y sincronización con Gmail",
-        "group": "auth-panel",
+        "group": "required-sync",
         "initialDisabled": false,
         "initialHidden": true,
         "href": null,
@@ -3897,9 +3897,9 @@
           {
             "event": "click",
             "source": "static/required-sync.js",
-            "line": 79,
+            "line": 87,
             "confidence": "selector estático",
-            "fingerprint": "f8308b3ecfe75dd52b57e558620721a730d268de21036b7ca3e7e6d6d0ddf315",
+            "fingerprint": "9087576538a062be32c69837fcc512116df094d3e97241004e65ced87de778ea",
             "endpoints": [
               "/api/google/grant"
             ],
@@ -3917,12 +3917,18 @@
           {
             "selector": "#verify-session-gmail",
             "property": "disabled",
-            "line": 17,
+            "line": 23,
+            "source": "static/required-sync.js"
+          },
+          {
+            "selector": "#verify-session-gmail",
+            "property": "hidden",
+            "line": 24,
             "source": "static/required-sync.js"
           }
         ],
         "relatedTestCount": 1,
-        "fingerprint": "4c0a6fc3cb6669835b0c73cd00968cababbcc58469efa40a3223222b208cdee5"
+        "fingerprint": "f8c60fd41adbb6740854e99ecfe1ec35e1d5a4e35e1d3db23003708ef54d5e00"
       },
       {
         "key": "/::#verify-drive",
@@ -3931,7 +3937,7 @@
         "id": "verify-drive",
         "tag": "button",
         "label": "3. Verificar sincronización con Google Drive",
-        "group": "auth-panel",
+        "group": "required-sync",
         "initialDisabled": true,
         "initialHidden": true,
         "href": null,
@@ -3939,9 +3945,9 @@
           {
             "event": "click",
             "source": "static/required-sync.js",
-            "line": 80,
+            "line": 88,
             "confidence": "selector estático",
-            "fingerprint": "ec2cb1c86246413e68553e6521295fe1b07337c149c08e1d1b8b09af987edd0a",
+            "fingerprint": "213bc368492860379cbf6294e6e59cd91bd7bffdbfac8ffd0db6de639526cb88",
             "endpoints": [
               "/api/google/grant"
             ],
@@ -3959,12 +3965,12 @@
           {
             "selector": "#verify-drive",
             "property": "disabled",
-            "line": 18,
+            "line": 26,
             "source": "static/required-sync.js"
           }
         ],
         "relatedTestCount": 1,
-        "fingerprint": "7264402014c11ce3b453edfb9382f22d2ebf2efd8deae9ee89dda1ded5a816f9"
+        "fingerprint": "bb6380e6aad74d3325c51476b131ad3c8c4c06033e7f896b45a91e835fc8ec86"
       },
       {
         "key": "/::#sync-telegram-optional",
@@ -3973,7 +3979,7 @@
         "id": "sync-telegram-optional",
         "tag": "button",
         "label": "4. Sincronizar Telegram (opcional)",
-        "group": "auth-panel",
+        "group": "required-sync",
         "initialDisabled": false,
         "initialHidden": true,
         "href": null,
@@ -3981,9 +3987,9 @@
           {
             "event": "click",
             "source": "static/required-sync.js",
-            "line": 81,
+            "line": 89,
             "confidence": "selector estático",
-            "fingerprint": "9080ed250666ae503239be6f287cc2f622095876a1756fda7033229eeb870319",
+            "fingerprint": "09513b88773ea307a2d9514aa199451e5fc187e5cbb0800048b647f5799c8488",
             "endpoints": [],
             "destinations": [],
             "loading": [],
@@ -3993,7 +3999,7 @@
         ],
         "guards": [],
         "relatedTestCount": 0,
-        "fingerprint": "31de102339f37d2aa80fb9a3d988416d04b0ac1af01f9bc044efb6eee5f11ad7"
+        "fingerprint": "069b481f082fcfbf0acee4bc0fbaeb5fa79d4de95ff22bc12244e4942f70d908"
       },
       {
         "key": "/::#google-sign-out",
@@ -4104,12 +4110,18 @@
           {
             "selector": "#telegram-link",
             "property": "hidden",
-            "line": 70,
+            "line": 71,
+            "source": "static/telegram.js"
+          },
+          {
+            "selector": "#telegram-link",
+            "property": "hidden",
+            "line": 167,
             "source": "static/telegram.js"
           }
         ],
         "relatedTestCount": 2,
-        "fingerprint": "ba5bee16e50d457f9ee7f8a91459158e459443edec0e38571379ff05693177c6"
+        "fingerprint": "76eacfd701c7fc6de3496cf4e0b276b4cd820dfc5bb947670d6225ca820d1830"
       },
       {
         "key": "/::#telegram-open-bot",
@@ -4127,13 +4139,13 @@
           {
             "selector": "#telegram-open-bot",
             "property": "hidden",
-            "line": 68,
+            "line": 69,
             "source": "static/telegram.js"
           },
           {
             "selector": "#telegram-open-bot",
             "property": "hidden",
-            "line": 108,
+            "line": 109,
             "source": "static/telegram.js"
           }
         ],
@@ -4155,9 +4167,9 @@
           {
             "event": "click",
             "source": "static/telegram.js",
-            "line": 138,
+            "line": 156,
             "confidence": "selector estático",
-            "fingerprint": "37c681b7a9df8dbdbbf4b9f7956c793d705c1adb1f749d28e057ce49f4163ffa",
+            "fingerprint": "4a11add32bffcae1c97e79f94692c46db2dd78fffb3f77426e2c991706e403ab",
             "endpoints": [
               "/api/diagnostics/client",
               "/api/telegram/drive/authorize",
@@ -4176,12 +4188,12 @@
           {
             "selector": "#telegram-check-link",
             "property": "hidden",
-            "line": 72,
+            "line": 73,
             "source": "static/telegram.js"
           }
         ],
         "relatedTestCount": 1,
-        "fingerprint": "9fae889c80fc0f1a7036acaa444e29a04e9c50e271a835dc0aa7c26fdf95a8aa"
+        "fingerprint": "b18e4820ce015519dedddde4d8592298b5e1cfee0cabc89d4dd910012b34d24c"
       },
       {
         "key": "/::#telegram-confirm-link",
@@ -4199,7 +4211,7 @@
           {
             "selector": "#telegram-confirm-link",
             "property": "hidden",
-            "line": 73,
+            "line": 74,
             "source": "static/telegram.js"
           }
         ],
@@ -4222,7 +4234,7 @@
           {
             "selector": "#telegram-disconnect",
             "property": "hidden",
-            "line": 71,
+            "line": 72,
             "source": "static/telegram.js"
           }
         ],
@@ -4262,7 +4274,7 @@
             "source": "static/app.js",
             "line": 2163,
             "confidence": "selector estático",
-            "fingerprint": "41b6d841a2cfb4aa20e38cc6a669338238cce29431671e5b0903608581b7bcaf",
+            "fingerprint": "77197ee7f6a13309d9298fa10362c38850af77706d0ab39dfb5e54554abb9d55",
             "endpoints": [],
             "destinations": [],
             "loading": [],
@@ -4285,7 +4297,7 @@
           }
         ],
         "relatedTestCount": 0,
-        "fingerprint": "92dddd44fb92445a20f182400c4928f7e10833e2c3bda92070e3784d5473b1b3"
+        "fingerprint": "3145558797a4c771ab9ff4c27fc97c902f03446b9ee327c4a059aa3103ed6827"
       },
       {
         "key": "/::#open-onboarding",
@@ -4302,7 +4314,7 @@
           {
             "event": "click",
             "source": "static/onboarding.js",
-            "line": 177,
+            "line": 186,
             "confidence": "selector estático",
             "fingerprint": "8e2ecb4b3c07cdca5f4be882af3ec7b03791239636b3dc9a2c3025cf3e82d2df",
             "endpoints": [],
@@ -4322,7 +4334,7 @@
           {
             "selector": "#open-onboarding",
             "property": "hidden",
-            "line": 61,
+            "line": 62,
             "source": "static/onboarding.js"
           }
         ],
@@ -5194,7 +5206,7 @@
             "source": "static/app.js",
             "line": 1728,
             "confidence": "selector estático",
-            "fingerprint": "85ecd47b8336594cff61eb18387c601d4029e0903d836bce4d888c8cb927b872",
+            "fingerprint": "f01371b71800ed596353e62b19d2928db719b263606f6e2a35b366f0021eea78",
             "endpoints": [
               "/api/applications",
               "/api/background/jobs",
@@ -5221,7 +5233,7 @@
         ],
         "guards": [],
         "relatedTestCount": 1,
-        "fingerprint": "fd57b1681fd2b597cd76dc59daa0bdf1c748e407a523f0cb58b8fd37ffd703f5"
+        "fingerprint": "61dbc74490a076a51559c1c22a685ad74e1cf9416d912451cd65598c90a1d7ba"
       },
       {
         "key": "/::#back-to-analysis",
@@ -5269,7 +5281,7 @@
             "source": "static/app.js",
             "line": 1932,
             "confidence": "selector estático",
-            "fingerprint": "633dbda19235283c0098ba11d63d9e75ddc6bfba657ff634591de847adffcb88",
+            "fingerprint": "8b0901ba0708f36c79bac6472681d6970dcdac2f2ef7e7e06bb9b7d732add9a3",
             "endpoints": [
               "/api/background/jobs",
               "/api/background/jobs/:param",
@@ -5290,7 +5302,7 @@
         ],
         "guards": [],
         "relatedTestCount": 1,
-        "fingerprint": "791722ef4377b06a3ead04c1864dc1791350dedc6f4df819d3b60c703008e942"
+        "fingerprint": "141f2c9cd8c7cd45247eb75e598a5805d6d078fc027f4a28365c1fbfd961a36d"
       },
       {
         "key": "/::#download-docx",
@@ -5309,7 +5321,7 @@
             "source": "static/app.js",
             "line": 1933,
             "confidence": "selector estático",
-            "fingerprint": "9977835fbbaa830bb1442015024670a6616e8671392ded4a2f5f4afb0a9c826d",
+            "fingerprint": "96f519fcc174829be818351593d3fa1f2f0a2c0325484c1a83c8de2b64ce07e2",
             "endpoints": [
               "/api/background/jobs",
               "/api/background/jobs/:param",
@@ -5330,7 +5342,7 @@
         ],
         "guards": [],
         "relatedTestCount": 0,
-        "fingerprint": "e4120aa33600dd1dc584e7f60c5b13aba38085b05ad28e8ace1867a11c890f9e"
+        "fingerprint": "4aa88d3a8751bfe1a4693b29f3a2e7293bd6657659e70cde596396563af74f72"
       },
       {
         "key": "/::#application-email",
@@ -5413,7 +5425,7 @@
             "source": "static/app.js",
             "line": 2145,
             "confidence": "selector estático",
-            "fingerprint": "7a4e16740e029c011fb94b10d68db40012f49d9c1c4cdeb415fbca8b83603a2a",
+            "fingerprint": "aed540a4cf7da3a38309ed3269f6b10a923bd6e523157896f7b656f9839dd416",
             "endpoints": [
               "/api/applications",
               "/api/background/jobs",
@@ -5439,7 +5451,7 @@
         ],
         "guards": [],
         "relatedTestCount": 1,
-        "fingerprint": "ff8198ffb682e6c373cab675574dc134146731f9c66ab2274fc3e864568407ce"
+        "fingerprint": "fc8da91a1af8cf8a8bb541a44402141a43a8e4cf11ee7e2417072e383bb7d309"
       },
       {
         "key": "/::#application-history-details>summary:nth-of-type(1)",
@@ -5474,7 +5486,7 @@
             "source": "static/app.js",
             "line": 2146,
             "confidence": "selector estático",
-            "fingerprint": "c51abf88a36055eb9e59c91efd08989594477fb4ecd385ae6d30699e75747d68",
+            "fingerprint": "eab006f3181863ab7992272ea6ecffcda30226e0a4437f577ecedeffc5830308",
             "endpoints": [
               "/api/applications",
               "/api/background/jobs",
@@ -5497,7 +5509,7 @@
         ],
         "guards": [],
         "relatedTestCount": 4,
-        "fingerprint": "cd59465d017ff137a773a5605064fbf7b0f914417dfee79f1a6617f9108df31d"
+        "fingerprint": "8c4ce65bcc99886f76995f9d5dcffe101593b0b73264b12b27f7f34fd5e2d036"
       },
       {
         "key": "/::#load-more-applications",
@@ -5516,7 +5528,7 @@
             "source": "static/app.js",
             "line": 2147,
             "confidence": "selector estático",
-            "fingerprint": "2f260c55cfcdf1cbc4d83c1a0ea5dbb281425d6e86a11c849a0106dd87c31572",
+            "fingerprint": "b216d8a7a4def08f5e9be68bbfef102ed4242be638a11387248805a26f52d400",
             "endpoints": [
               "/api/applications",
               "/api/background/jobs",
@@ -5552,7 +5564,7 @@
           }
         ],
         "relatedTestCount": 0,
-        "fingerprint": "4d370453581b756e2bed5286100837d9cd3070cc476678eff8bbf477793e93db"
+        "fingerprint": "eacec9d448beea28e463d8006d08f241b899c749a974651c4a3df60b3989f62d"
       },
       {
         "key": "/::#onboarding-close",
@@ -5569,7 +5581,7 @@
           {
             "event": "click",
             "source": "static/onboarding.js",
-            "line": 173,
+            "line": 182,
             "confidence": "selector estático",
             "fingerprint": "43878c5fe78d1cdd7820f43223b3ab23756ff2d7d099b52b9d7740c16e1343dd",
             "endpoints": [],
@@ -5662,7 +5674,7 @@
           {
             "event": "change",
             "source": "static/onboarding.js",
-            "line": 168,
+            "line": 177,
             "confidence": "selector estático",
             "fingerprint": "fadde313d39259dfadf06a7ed79c83686e0ab979ab021ae3f01b39726c49fefc",
             "endpoints": [],
@@ -5673,8 +5685,8 @@
           }
         ],
         "guards": [],
-        "relatedTestCount": 1,
-        "fingerprint": "61da316c96136e576b2873d4b18af1f69d077f77452a72be4924c9ce55d4969b"
+        "relatedTestCount": 2,
+        "fingerprint": "bdb5bb6f82bd7cbab63493415cc371324691203fa31746e111756c1470dd0181"
       },
       {
         "key": "/::#onboarding-reference-cv",
@@ -5691,7 +5703,7 @@
           {
             "event": "change",
             "source": "static/onboarding.js",
-            "line": 136,
+            "line": 145,
             "confidence": "selector estático",
             "fingerprint": "83b2e9c01dcad9244bda26b3686e06ff7bca9b46711e2dc4aa34e0a4f49f4e9d",
             "endpoints": [
@@ -5722,7 +5734,7 @@
           {
             "event": "click",
             "source": "static/onboarding.js",
-            "line": 162,
+            "line": 171,
             "confidence": "selector estático",
             "fingerprint": "97956cf679635872f68cae9e7d1662b4b565ecad083d78e42b1f7b6a742c85fd",
             "endpoints": [],
@@ -5751,9 +5763,9 @@
           {
             "event": "submit",
             "source": "static/onboarding.js",
-            "line": 106,
+            "line": 107,
             "confidence": "selector estático",
-            "fingerprint": "8ba07153e8490d7639bf736623ebda0cbea74dd01b47856fa5a2d2c62c56a16b",
+            "fingerprint": "e64bbdbdc1266991e60bf4b3ed6aa82f6b5e4ef4d24086b77716165d1c89efcd",
             "endpoints": [
               "/api/account/onboarding"
             ],
@@ -5769,7 +5781,7 @@
         ],
         "guards": [],
         "relatedTestCount": 0,
-        "fingerprint": "b6404db0ae89b0cf4c26c260e404e1b5d1ac34bd98b6a0049d5dd551dd9d2527"
+        "fingerprint": "e8fd458788472166eb9a60140e53d9e5a6b0ab3f9c8295825e4df2f8156e6bed"
       },
       {
         "key": "/::#onboarding-preview-open",
@@ -5786,7 +5798,7 @@
           {
             "event": "click",
             "source": "static/onboarding.js",
-            "line": 98,
+            "line": 99,
             "confidence": "selector estático",
             "fingerprint": "08cd63eba34d2d9bed27096dbf445c1fb59e300721f85bea50eeb8d996aac27e",
             "endpoints": [],
@@ -5815,7 +5827,7 @@
           {
             "event": "click",
             "source": "static/onboarding.js",
-            "line": 102,
+            "line": 103,
             "confidence": "selector estático",
             "fingerprint": "98a3b9626c53eb451601b78efc524858bd1259a337e4d4d4dea8f219a51fe3ca",
             "endpoints": [],
@@ -5844,7 +5856,7 @@
           {
             "event": "click",
             "source": "static/onboarding.js",
-            "line": 103,
+            "line": 104,
             "confidence": "selector estático",
             "fingerprint": "98a3b9626c53eb451601b78efc524858bd1259a337e4d4d4dea8f219a51fe3ca",
             "endpoints": [],
@@ -6560,28 +6572,35 @@
       {
         "event": "click",
         "target": null,
-        "line": 108,
+        "line": 114,
         "source": "static/drive.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "message",
         "target": null,
-        "line": 188,
+        "line": 194,
         "source": "static/drive.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "click",
         "target": null,
-        "line": 121,
+        "line": 122,
         "source": "static/telegram.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "click",
         "target": null,
-        "line": 186,
+        "line": 205,
+        "source": "static/telegram.js",
+        "confidence": "destino dinámico/global"
+      },
+      {
+        "event": "focus",
+        "target": null,
+        "line": 206,
         "source": "static/telegram.js",
         "confidence": "destino dinámico/global"
       },
@@ -6623,21 +6642,28 @@
       {
         "event": "click",
         "target": null,
-        "line": 17,
+        "line": 18,
         "source": "static/subscription-notices.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "click",
         "target": null,
-        "line": 19,
+        "line": 20,
         "source": "static/subscription-notices.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "click",
         "target": null,
-        "line": 71,
+        "line": 82,
+        "source": "static/subscription-notices.js",
+        "confidence": "destino dinámico/global"
+      },
+      {
+        "event": "focus",
+        "target": null,
+        "line": 85,
         "source": "static/subscription-notices.js",
         "confidence": "destino dinámico/global"
       },
@@ -6651,14 +6677,14 @@
       {
         "event": "click",
         "target": null,
-        "line": 86,
+        "line": 93,
         "source": "static/required-sync.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "submit",
         "target": null,
-        "line": 91,
+        "line": 98,
         "source": "static/required-sync.js",
         "confidence": "destino dinámico/global"
       },
@@ -6887,51 +6913,44 @@
         "confidence": "destino dinámico/global"
       },
       {
-        "event": "pointerdown",
+        "event": "click",
         "target": null,
-        "line": 44,
+        "line": 45,
         "source": "static/card-motion.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "click",
         "target": null,
-        "line": 48,
-        "source": "static/card-motion.js",
-        "confidence": "destino dinámico/global"
-      },
-      {
-        "event": "click",
-        "target": null,
-        "line": 64,
+        "line": 61,
         "source": "static/card-motion.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "toggle",
         "target": null,
-        "line": 112,
+        "line": 109,
         "source": "static/card-motion.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "resize",
         "target": null,
-        "line": 146,
+        "line": 143,
         "source": "static/card-motion.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "visibilitychange",
         "target": null,
-        "line": 147,
+        "line": 144,
         "source": "static/card-motion.js",
         "confidence": "destino dinámico/global"
       },
       {
         "event": "change",
         "target": null,
-        "line": 148,
+        "line": 145,
         "source": "static/card-motion.js",
         "confidence": "destino dinámico/global"
       },
@@ -6952,111 +6971,123 @@
     ],
     "warnings": [],
     "parser": "acorn 8.16.0",
-    "buildId": "20261018T134458Z-3773e680"
+    "buildId": "20261019T071754Z-26463771"
   },
   "changesSincePrevious": {
-    "added": [
-      {
-        "key": "/::#bank-review>summary:nth-of-type(1)",
-        "label": "Documentos y avisos de lectura",
-        "page": "/",
-        "group": "bank-panel",
-        "fingerprint": "b48488b7d594bd05c7a4e62b79b7aa618eceda75ef262cf4fa55af62f30ab365"
-      }
-    ],
-    "removed": [
-      {
-        "key": "/::#bank-panel>details:nth-of-type(1)>summary:nth-of-type(1)",
-        "label": "Documentos y avisos de lectura",
-        "page": "/",
-        "group": "bank-panel",
-        "fingerprint": "36bdb7f9a8f5a9d29ed11a7d78747e4ea42755b44cb2ba78707ace19a8ae474c"
-      }
-    ],
+    "added": [],
+    "removed": [],
     "changed": [
       {
         "key": "/::#sync-bank",
         "label": "Sincronizar todo",
         "page": "/",
         "group": "main",
-        "fingerprint": "04654c58702667548282ba5b5697e17c53475282e8e663bf81cc7923c24640d9"
+        "fingerprint": "e1d78ca946333ea4380efe9978fbf3112b059ad2d058e76daef89e6600b9baea"
       },
       {
         "key": "/::#google-sign-in",
         "label": "1. Iniciar sesión con Google",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "d10b446bdf3c1aa3bfde53afe13ba68853815b2a4b9e744f7d907f27956f1d20"
+        "fingerprint": "18734041e5a36532a74c4df939044c938b0450473afee4fd57b23fed2155b4f0"
       },
       {
         "key": "/::#verify-session-gmail",
         "label": "2. Verificar inicio de sesión y sincronización con Gmail",
         "page": "/",
-        "group": "auth-panel",
-        "fingerprint": "4c0a6fc3cb6669835b0c73cd00968cababbcc58469efa40a3223222b208cdee5"
+        "group": "required-sync",
+        "fingerprint": "f8c60fd41adbb6740854e99ecfe1ec35e1d5a4e35e1d3db23003708ef54d5e00"
       },
       {
         "key": "/::#verify-drive",
         "label": "3. Verificar sincronización con Google Drive",
         "page": "/",
-        "group": "auth-panel",
-        "fingerprint": "7264402014c11ce3b453edfb9382f22d2ebf2efd8deae9ee89dda1ded5a816f9"
+        "group": "required-sync",
+        "fingerprint": "bb6380e6aad74d3325c51476b131ad3c8c4c06033e7f896b45a91e835fc8ec86"
       },
       {
-        "key": "/::#save-information",
-        "label": "Guardar en mi banco",
+        "key": "/::#sync-telegram-optional",
+        "label": "4. Sincronizar Telegram (opcional)",
         "page": "/",
-        "group": "new-information-form",
-        "fingerprint": "a641a9ae585564970dd72c166fc29ecf8002018a11d263779dccd1f48760f858"
+        "group": "required-sync",
+        "fingerprint": "069b481f082fcfbf0acee4bc0fbaeb5fa79d4de95ff22bc12244e4942f70d908"
       },
       {
-        "key": "/::#analyze-button",
-        "label": "Analizar vacante →",
+        "key": "/::#telegram-link",
+        "label": "Vincular mi Telegram y Drive",
         "page": "/",
-        "group": "job-panel",
-        "fingerprint": "5c1e77ce9c5a61e801829431642f000867ff59469535f8de7816a056284bf4f7"
+        "group": "telegram-panel",
+        "fingerprint": "76eacfd701c7fc6de3496cf4e0b276b4cd820dfc5bb947670d6225ca820d1830"
+      },
+      {
+        "key": "/::#telegram-check-link",
+        "label": "Ya pulsé Iniciar: revisar vinculación",
+        "page": "/",
+        "group": "telegram-panel",
+        "fingerprint": "b18e4820ce015519dedddde4d8592298b5e1cfee0cabc89d4dd910012b34d24c"
+      },
+      {
+        "key": "/::#select-account-folders",
+        "label": "Seleccionar mis carpetas manualmente",
+        "page": "/",
+        "group": "bank-panel",
+        "fingerprint": "3145558797a4c771ab9ff4c27fc97c902f03446b9ee327c4a059aa3103ed6827"
       },
       {
         "key": "/::#create-button",
         "label": "Crear y enviar mi CV →",
         "page": "/",
         "group": "analysis-panel",
-        "fingerprint": "fd57b1681fd2b597cd76dc59daa0bdf1c748e407a523f0cb58b8fd37ffd703f5"
+        "fingerprint": "61dbc74490a076a51559c1c22a685ad74e1cf9416d912451cd65598c90a1d7ba"
       },
       {
         "key": "/::#download-pdf",
         "label": "Descargar PDF",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "791722ef4377b06a3ead04c1864dc1791350dedc6f4df819d3b60c703008e942"
+        "fingerprint": "141f2c9cd8c7cd45247eb75e598a5805d6d078fc027f4a28365c1fbfd961a36d"
       },
       {
         "key": "/::#download-docx",
         "label": "Descargar Word",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "e4120aa33600dd1dc584e7f60c5b13aba38085b05ad28e8ace1867a11c890f9e"
+        "fingerprint": "4aa88d3a8751bfe1a4693b29f3a2e7293bd6657659e70cde596396563af74f72"
       },
       {
         "key": "/::#send-whatsapp",
         "label": "◉ Abrir WhatsApp",
         "page": "/",
         "group": "section",
-        "fingerprint": "ff8198ffb682e6c373cab675574dc134146731f9c66ab2274fc3e864568407ce"
+        "fingerprint": "fc8da91a1af8cf8a8bb541a44402141a43a8e4cf11ee7e2417072e383bb7d309"
       },
       {
         "key": "/::#refresh-application-history",
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "cd59465d017ff137a773a5605064fbf7b0f914417dfee79f1a6617f9108df31d"
+        "fingerprint": "8c4ce65bcc99886f76995f9d5dcffe101593b0b73264b12b27f7f34fd5e2d036"
       },
       {
         "key": "/::#load-more-applications",
         "label": "Cargar más postulaciones",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "4d370453581b756e2bed5286100837d9cd3070cc476678eff8bbf477793e93db"
+        "fingerprint": "eacec9d448beea28e463d8006d08f241b899c749a974651c4a3df60b3989f62d"
+      },
+      {
+        "key": "/::#onboarding-photo",
+        "label": "file",
+        "page": "/",
+        "group": "onboarding-form",
+        "fingerprint": "bdb5bb6f82bd7cbab63493415cc371324691203fa31746e111756c1470dd0181"
+      },
+      {
+        "key": "/::#onboarding-save",
+        "label": "Guardar y consolidar mi banco",
+        "page": "/",
+        "group": "onboarding-form",
+        "fingerprint": "e8fd458788472166eb9a60140e53d9e5a6b0ab3f9c8295825e4df2f8156e6bed"
       }
     ]
   },
@@ -7066,22 +7097,22 @@
         "key": "/::#verify-session-gmail",
         "label": "2. Verificar inicio de sesión y sincronización con Gmail",
         "page": "/",
-        "group": "auth-panel",
-        "fingerprint": "4c0a6fc3cb6669835b0c73cd00968cababbcc58469efa40a3223222b208cdee5"
+        "group": "required-sync",
+        "fingerprint": "f8c60fd41adbb6740854e99ecfe1ec35e1d5a4e35e1d3db23003708ef54d5e00"
       },
       {
         "key": "/::#verify-drive",
         "label": "3. Verificar sincronización con Google Drive",
         "page": "/",
-        "group": "auth-panel",
-        "fingerprint": "7264402014c11ce3b453edfb9382f22d2ebf2efd8deae9ee89dda1ded5a816f9"
+        "group": "required-sync",
+        "fingerprint": "bb6380e6aad74d3325c51476b131ad3c8c4c06033e7f896b45a91e835fc8ec86"
       },
       {
         "key": "/::#sync-telegram-optional",
         "label": "4. Sincronizar Telegram (opcional)",
         "page": "/",
-        "group": "auth-panel",
-        "fingerprint": "31de102339f37d2aa80fb9a3d988416d04b0ac1af01f9bc044efb6eee5f11ad7"
+        "group": "required-sync",
+        "fingerprint": "069b481f082fcfbf0acee4bc0fbaeb5fa79d4de95ff22bc12244e4942f70d908"
       },
       {
         "key": "/::#bank-review>summary:nth-of-type(1)",
@@ -7246,14 +7277,14 @@
         "label": "Sincronizar todo",
         "page": "/",
         "group": "main",
-        "fingerprint": "04654c58702667548282ba5b5697e17c53475282e8e663bf81cc7923c24640d9"
+        "fingerprint": "e1d78ca946333ea4380efe9978fbf3112b059ad2d058e76daef89e6600b9baea"
       },
       {
         "key": "/::#google-sign-in",
         "label": "1. Iniciar sesión con Google",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "d10b446bdf3c1aa3bfde53afe13ba68853815b2a4b9e744f7d907f27956f1d20"
+        "fingerprint": "18734041e5a36532a74c4df939044c938b0450473afee4fd57b23fed2155b4f0"
       },
       {
         "key": "/::#google-sign-out",
@@ -7270,18 +7301,25 @@
         "fingerprint": "7ca53d51b870ac3dedae2ae7c6702be98dc6f0e52bd01fc646b7f7cbe3dd609b"
       },
       {
+        "key": "/::#telegram-link",
+        "label": "Vincular mi Telegram y Drive",
+        "page": "/",
+        "group": "telegram-panel",
+        "fingerprint": "76eacfd701c7fc6de3496cf4e0b276b4cd820dfc5bb947670d6225ca820d1830"
+      },
+      {
         "key": "/::#telegram-check-link",
         "label": "Ya pulsé Iniciar: revisar vinculación",
         "page": "/",
         "group": "telegram-panel",
-        "fingerprint": "9fae889c80fc0f1a7036acaa444e29a04e9c50e271a835dc0aa7c26fdf95a8aa"
+        "fingerprint": "b18e4820ce015519dedddde4d8592298b5e1cfee0cabc89d4dd910012b34d24c"
       },
       {
         "key": "/::#select-account-folders",
         "label": "Seleccionar mis carpetas manualmente",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "92dddd44fb92445a20f182400c4928f7e10833e2c3bda92070e3784d5473b1b3"
+        "fingerprint": "3145558797a4c771ab9ff4c27fc97c902f03446b9ee327c4a059aa3103ed6827"
       },
       {
         "key": "/::#open-onboarding",
@@ -7393,7 +7431,7 @@
         "label": "Crear y enviar mi CV →",
         "page": "/",
         "group": "analysis-panel",
-        "fingerprint": "fd57b1681fd2b597cd76dc59daa0bdf1c748e407a523f0cb58b8fd37ffd703f5"
+        "fingerprint": "61dbc74490a076a51559c1c22a685ad74e1cf9416d912451cd65598c90a1d7ba"
       },
       {
         "key": "/::#back-to-analysis",
@@ -7407,35 +7445,35 @@
         "label": "Descargar PDF",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "791722ef4377b06a3ead04c1864dc1791350dedc6f4df819d3b60c703008e942"
+        "fingerprint": "141f2c9cd8c7cd45247eb75e598a5805d6d078fc027f4a28365c1fbfd961a36d"
       },
       {
         "key": "/::#download-docx",
         "label": "Descargar Word",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "e4120aa33600dd1dc584e7f60c5b13aba38085b05ad28e8ace1867a11c890f9e"
+        "fingerprint": "4aa88d3a8751bfe1a4693b29f3a2e7293bd6657659e70cde596396563af74f72"
       },
       {
         "key": "/::#send-whatsapp",
         "label": "◉ Abrir WhatsApp",
         "page": "/",
         "group": "section",
-        "fingerprint": "ff8198ffb682e6c373cab675574dc134146731f9c66ab2274fc3e864568407ce"
+        "fingerprint": "fc8da91a1af8cf8a8bb541a44402141a43a8e4cf11ee7e2417072e383bb7d309"
       },
       {
         "key": "/::#refresh-application-history",
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "cd59465d017ff137a773a5605064fbf7b0f914417dfee79f1a6617f9108df31d"
+        "fingerprint": "8c4ce65bcc99886f76995f9d5dcffe101593b0b73264b12b27f7f34fd5e2d036"
       },
       {
         "key": "/::#load-more-applications",
         "label": "Cargar más postulaciones",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "4d370453581b756e2bed5286100837d9cd3070cc476678eff8bbf477793e93db"
+        "fingerprint": "eacec9d448beea28e463d8006d08f241b899c749a974651c4a3df60b3989f62d"
       },
       {
         "key": "/::#onboarding-close",
@@ -7449,7 +7487,7 @@
         "label": "file",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "61da316c96136e576b2873d4b18af1f69d077f77452a72be4924c9ce55d4969b"
+        "fingerprint": "bdb5bb6f82bd7cbab63493415cc371324691203fa31746e111756c1470dd0181"
       },
       {
         "key": "/::#onboarding-reference-cv",
@@ -7470,7 +7508,7 @@
         "label": "Guardar y consolidar mi banco",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "b6404db0ae89b0cf4c26c260e404e1b5d1ac34bd98b6a0049d5dd551dd9d2527"
+        "fingerprint": "e8fd458788472166eb9a60140e53d9e5a6b0ab3f9c8295825e4df2f8156e6bed"
       },
       {
         "key": "/::#onboarding-preview-open",
@@ -7545,12 +7583,12 @@
     ]
   },
   "tests": {
-    "sourceHash": "42069fc554737397e65221e04c834c4258889c6bf289e22019bb714850e86905",
+    "sourceHash": "79c4385571c52a553ed1bafe8885ae5bb670a93d585ebf2b1077cb89b35a73dd",
     "passed": true,
-    "checkedAt": "2026-10-18T13:43:30.945954+00:00",
-    "pythonTests": 511,
-    "javascriptTests": 309,
-    "coveragePercent": 82.63,
+    "checkedAt": "2026-10-19T07:15:26.966272+00:00",
+    "pythonTests": 533,
+    "javascriptTests": 316,
+    "coveragePercent": 82.73,
     "network": "blocked",
     "scope": "Suite local; no acredita cada acción ni servicios desplegados."
   }
