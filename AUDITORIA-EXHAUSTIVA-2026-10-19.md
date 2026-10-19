@@ -2,6 +2,8 @@
 
 Fecha: 19 de octubre de 2026. Proyecto: CV a la medida.
 
+**Publicación posterior autorizada:** las correcciones se desplegaron el 19 de octubre de 2026. Firebase confirmó la actualización de `api`, `telegram_worker` y ambos sitios Hosting. Versión pública: `20261019T071754Z-26463771`; commit del despliegue: `5969974`. Verificación estática posterior satisfactoria en ambos dominios.
+
 **Resultado:** los tres defectos del diagnóstico anterior están corregidos y cuentan con pruebas permanentes. La verificación local integral pasa. La revisión ampliada no detectó nuevos bloqueantes en los escenarios ejecutados. Esto no certifica las integraciones reales ni todos los dispositivos.
 
 ## 1. Estado de los defectos anteriores
@@ -107,7 +109,7 @@ No quedaron defectos bloqueantes reproducidos sin corregir en esta batería. Sig
 - Carga con las latencias, permisos, capacidad y servicios reales del alojamiento publicado.
 - Accesibilidad completa y métricas de experiencia de campo.
 
-El servidor `127.0.0.1:8765` usa el modo local y no equivale al entorno Firebase/Vertex. No se cambió la configuración de producción, no se reiniciaron consumos reales y no se realizó un despliegue.
+El servidor `127.0.0.1:8765` usa el modo local y no equivale al entorno Firebase/Vertex. La revisión se realizó antes del despliegue autorizado que se registra arriba. No se reiniciaron consumos reales; la publicación no acredita las integraciones ni los dispositivos físicos pendientes de validación.
 
 ## 8. Evidencia reproducible
 
@@ -118,3 +120,11 @@ El servidor `127.0.0.1:8765` usa el modo local y no equivale al entorno Firebase
 - Capturas: `bienvenida-movil.png` y `guardado-movil.png`, en la misma carpeta de evidencia.
 
 Los cambios previos del proyecto se conservaron. Los hallazgos originales y su evidencia anterior permanecen en `AUDITORIA-MULTIUSUARIO-2026-10-19.md`, marcado como histórico.
+
+## 9. Comprobación de la publicación
+
+- `Deploy.ps1` terminó correctamente, incluida la revisión de dependencias, las 849 pruebas, la publicación y la sincronización de `main` con GitHub.
+- Ambos dominios, `https://cvalamedida.web.app` y `https://cv-a-la-medida-jhonn.web.app`, respondieron HTTP 200 y sirvieron la versión pública indicada arriba.
+- Los siete módulos principales comprobados (`required-sync`, `subscription-notices`, `telegram`, `onboarding`, `drive`, `background` y `app`) coinciden byte por byte con las fuentes locales publicadas.
+- La comprobación posterior consultó únicamente archivos públicos estáticos; no ejecutó pruebas sobre datos o integraciones de producción.
+- Evidencia local: `tmp/deploy-correcciones-2026-10-19.log` y `tmp/publicacion-verificada-2026-10-19.json`.
