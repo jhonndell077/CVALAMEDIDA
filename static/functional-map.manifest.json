@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-10-19T07:18:02.420Z",
+  "generatedAt": "2026-10-19T08:50:59.238Z",
   "baseline": {
     "buildId": "20261016T223144Z-bb10ff7c",
     "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
@@ -1129,8 +1129,8 @@
   },
   "previous": {
     "analysisVersion": 2,
-    "buildId": "20261018T134458Z-3773e680",
-    "sourceHash": "42069fc554737397e65221e04c834c4258889c6bf289e22019bb714850e86905",
+    "buildId": "20261019T071754Z-26463771",
+    "sourceHash": "79c4385571c52a553ed1bafe8885ae5bb670a93d585ebf2b1077cb89b35a73dd",
     "controls": [
       {
         "key": "/drive-auth.html::#authorize",
@@ -1571,35 +1571,35 @@
         "label": "Sincronizar todo",
         "page": "/",
         "group": "main",
-        "fingerprint": "04654c58702667548282ba5b5697e17c53475282e8e663bf81cc7923c24640d9"
+        "fingerprint": "e1d78ca946333ea4380efe9978fbf3112b059ad2d058e76daef89e6600b9baea"
       },
       {
         "key": "/::#google-sign-in",
         "label": "1. Iniciar sesión con Google",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "d10b446bdf3c1aa3bfde53afe13ba68853815b2a4b9e744f7d907f27956f1d20"
+        "fingerprint": "18734041e5a36532a74c4df939044c938b0450473afee4fd57b23fed2155b4f0"
       },
       {
         "key": "/::#verify-session-gmail",
         "label": "2. Verificar inicio de sesión y sincronización con Gmail",
         "page": "/",
-        "group": "auth-panel",
-        "fingerprint": "4c0a6fc3cb6669835b0c73cd00968cababbcc58469efa40a3223222b208cdee5"
+        "group": "required-sync",
+        "fingerprint": "f8c60fd41adbb6740854e99ecfe1ec35e1d5a4e35e1d3db23003708ef54d5e00"
       },
       {
         "key": "/::#verify-drive",
         "label": "3. Verificar sincronización con Google Drive",
         "page": "/",
-        "group": "auth-panel",
-        "fingerprint": "7264402014c11ce3b453edfb9382f22d2ebf2efd8deae9ee89dda1ded5a816f9"
+        "group": "required-sync",
+        "fingerprint": "bb6380e6aad74d3325c51476b131ad3c8c4c06033e7f896b45a91e835fc8ec86"
       },
       {
         "key": "/::#sync-telegram-optional",
         "label": "4. Sincronizar Telegram (opcional)",
         "page": "/",
-        "group": "auth-panel",
-        "fingerprint": "31de102339f37d2aa80fb9a3d988416d04b0ac1af01f9bc044efb6eee5f11ad7"
+        "group": "required-sync",
+        "fingerprint": "069b481f082fcfbf0acee4bc0fbaeb5fa79d4de95ff22bc12244e4942f70d908"
       },
       {
         "key": "/::#google-sign-out",
@@ -1627,7 +1627,7 @@
         "label": "Vincular mi Telegram y Drive",
         "page": "/",
         "group": "telegram-panel",
-        "fingerprint": "ba5bee16e50d457f9ee7f8a91459158e459443edec0e38571379ff05693177c6"
+        "fingerprint": "76eacfd701c7fc6de3496cf4e0b276b4cd820dfc5bb947670d6225ca820d1830"
       },
       {
         "key": "/::#telegram-open-bot",
@@ -1641,7 +1641,7 @@
         "label": "Ya pulsé Iniciar: revisar vinculación",
         "page": "/",
         "group": "telegram-panel",
-        "fingerprint": "9fae889c80fc0f1a7036acaa444e29a04e9c50e271a835dc0aa7c26fdf95a8aa"
+        "fingerprint": "b18e4820ce015519dedddde4d8592298b5e1cfee0cabc89d4dd910012b34d24c"
       },
       {
         "key": "/::#telegram-confirm-link",
@@ -1669,7 +1669,7 @@
         "label": "Seleccionar mis carpetas manualmente",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "92dddd44fb92445a20f182400c4928f7e10833e2c3bda92070e3784d5473b1b3"
+        "fingerprint": "3145558797a4c771ab9ff4c27fc97c902f03446b9ee327c4a059aa3103ed6827"
       },
       {
         "key": "/::#open-onboarding",
@@ -1914,7 +1914,7 @@
         "label": "Crear y enviar mi CV →",
         "page": "/",
         "group": "analysis-panel",
-        "fingerprint": "fd57b1681fd2b597cd76dc59daa0bdf1c748e407a523f0cb58b8fd37ffd703f5"
+        "fingerprint": "61dbc74490a076a51559c1c22a685ad74e1cf9416d912451cd65598c90a1d7ba"
       },
       {
         "key": "/::#back-to-analysis",
@@ -1928,14 +1928,14 @@
         "label": "Descargar PDF",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "791722ef4377b06a3ead04c1864dc1791350dedc6f4df819d3b60c703008e942"
+        "fingerprint": "141f2c9cd8c7cd45247eb75e598a5805d6d078fc027f4a28365c1fbfd961a36d"
       },
       {
         "key": "/::#download-docx",
         "label": "Descargar Word",
         "page": "/",
         "group": "cv-panel",
-        "fingerprint": "e4120aa33600dd1dc584e7f60c5b13aba38085b05ad28e8ace1867a11c890f9e"
+        "fingerprint": "4aa88d3a8751bfe1a4693b29f3a2e7293bd6657659e70cde596396563af74f72"
       },
       {
         "key": "/::#application-email",
@@ -1970,7 +1970,7 @@
         "label": "◉ Abrir WhatsApp",
         "page": "/",
         "group": "section",
-        "fingerprint": "ff8198ffb682e6c373cab675574dc134146731f9c66ab2274fc3e864568407ce"
+        "fingerprint": "fc8da91a1af8cf8a8bb541a44402141a43a8e4cf11ee7e2417072e383bb7d309"
       },
       {
         "key": "/::#application-history-details>summary:nth-of-type(1)",
@@ -1984,14 +1984,14 @@
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "cd59465d017ff137a773a5605064fbf7b0f914417dfee79f1a6617f9108df31d"
+        "fingerprint": "8c4ce65bcc99886f76995f9d5dcffe101593b0b73264b12b27f7f34fd5e2d036"
       },
       {
         "key": "/::#load-more-applications",
         "label": "Cargar más postulaciones",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "4d370453581b756e2bed5286100837d9cd3070cc476678eff8bbf477793e93db"
+        "fingerprint": "eacec9d448beea28e463d8006d08f241b899c749a974651c4a3df60b3989f62d"
       },
       {
         "key": "/::#onboarding-close",
@@ -2033,7 +2033,7 @@
         "label": "file",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "61da316c96136e576b2873d4b18af1f69d077f77452a72be4924c9ce55d4969b"
+        "fingerprint": "bdb5bb6f82bd7cbab63493415cc371324691203fa31746e111756c1470dd0181"
       },
       {
         "key": "/::#onboarding-reference-cv",
@@ -2054,7 +2054,7 @@
         "label": "Guardar y consolidar mi banco",
         "page": "/",
         "group": "onboarding-form",
-        "fingerprint": "b6404db0ae89b0cf4c26c260e404e1b5d1ac34bd98b6a0049d5dd551dd9d2527"
+        "fingerprint": "e8fd458788472166eb9a60140e53d9e5a6b0ab3f9c8295825e4df2f8156e6bed"
       },
       {
         "key": "/::#onboarding-preview-open",
@@ -2277,7 +2277,7 @@
   },
   "current": {
     "analysisVersion": 2,
-    "sourceHash": "79c4385571c52a553ed1bafe8885ae5bb670a93d585ebf2b1077cb89b35a73dd",
+    "sourceHash": "ad3e19af0b8496e13c41565778fc7e07f478092e9afead574beca6a598c63e81",
     "pages": [
       {
         "path": "/drive-auth.html",
@@ -2290,7 +2290,7 @@
       {
         "path": "/",
         "label": "CV a la medida",
-        "controls": 141,
+        "controls": 147,
         "scripts": [
           "static/functional-telemetry.js",
           "static/loading.js",
@@ -2304,6 +2304,7 @@
           "static/profile-dialog.js",
           "static/data-panel.js",
           "static/employment-window.js",
+          "static/workspace-navigation.js",
           "static/ui-navigation.js",
           "static/subscription-notices.js",
           "static/client-supervisor.js",
@@ -2382,6 +2383,35 @@
         ],
         "relatedTestCount": 13,
         "fingerprint": "63144b266e79781894922a69d41527fab62aa9367c72a823147710655ef94bed"
+      },
+      {
+        "key": "/::#workspace-menu",
+        "page": "/",
+        "selector": "#workspace-menu",
+        "id": "workspace-menu",
+        "tag": "button",
+        "label": "Abrir menú",
+        "group": "header",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [
+          {
+            "event": "click",
+            "source": "static/workspace-navigation.js",
+            "line": 43,
+            "confidence": "selector estático",
+            "fingerprint": "d2e7e7beef2c9a628e96a07c6d4dcd3c3cc893b41448ae8a3a6550e27c8f598b",
+            "endpoints": [],
+            "destinations": [],
+            "loading": [],
+            "loadingLabels": [],
+            "unresolved": 0
+          }
+        ],
+        "guards": [],
+        "relatedTestCount": 1,
+        "fingerprint": "cafc83da36b9e20020241634a0738b20bcc7ac8d7933e8342c069f8f0d8ff661"
       },
       {
         "key": "/::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(1)",
@@ -4120,8 +4150,8 @@
             "source": "static/telegram.js"
           }
         ],
-        "relatedTestCount": 2,
-        "fingerprint": "76eacfd701c7fc6de3496cf4e0b276b4cd820dfc5bb947670d6225ca820d1830"
+        "relatedTestCount": 3,
+        "fingerprint": "f84dbe04241b3c56edfa44e0de0bddff787b08f548d88733bad190b94b585909"
       },
       {
         "key": "/::#telegram-open-bot",
@@ -4296,8 +4326,8 @@
             "source": "static/app.js"
           }
         ],
-        "relatedTestCount": 0,
-        "fingerprint": "3145558797a4c771ab9ff4c27fc97c902f03446b9ee327c4a059aa3103ed6827"
+        "relatedTestCount": 1,
+        "fingerprint": "2674a8932e324e235aaff069c0371c7bc78fb463e80ed4643824ac7ef09b3447"
       },
       {
         "key": "/::#open-onboarding",
@@ -4338,8 +4368,8 @@
             "source": "static/onboarding.js"
           }
         ],
-        "relatedTestCount": 1,
-        "fingerprint": "01e7a2c8cac4f46d22d49520e39174c97a5edaa8447a924f4dbc3e4c6fa9d418"
+        "relatedTestCount": 2,
+        "fingerprint": "b46cec1d289eb11263ac71f623b2d422a66831be7e657e8d4910cba4c93ea794"
       },
       {
         "key": "/::#bank-review>summary:nth-of-type(1)",
@@ -4911,8 +4941,8 @@
           }
         ],
         "guards": [],
-        "relatedTestCount": 0,
-        "fingerprint": "8129ffeb385b413f1b4b015c3e8b3f07d8b32bdeef8a8aba058414bebed991ca"
+        "relatedTestCount": 1,
+        "fingerprint": "efb5a787f17f1539ba10875c432919933c25655db53284fa7fad05dd18844e93"
       },
       {
         "key": "/::#remove-job-text",
@@ -5105,8 +5135,8 @@
             "source": "static/app.js"
           }
         ],
-        "relatedTestCount": 1,
-        "fingerprint": "5c1e77ce9c5a61e801829431642f000867ff59469535f8de7816a056284bf4f7"
+        "relatedTestCount": 2,
+        "fingerprint": "1c590935b562254438c67d2a679eddede69b149cdd69fc618aea6ffea2b0c66d"
       },
       {
         "key": "/::#how-to-use",
@@ -5508,8 +5538,8 @@
           }
         ],
         "guards": [],
-        "relatedTestCount": 4,
-        "fingerprint": "8c4ce65bcc99886f76995f9d5dcffe101593b0b73264b12b27f7f34fd5e2d036"
+        "relatedTestCount": 5,
+        "fingerprint": "27e91096caaf134fdb0ee062254eb89f41d2fc4f2452df64d4039ff6e6719f63"
       },
       {
         "key": "/::#load-more-applications",
@@ -6088,6 +6118,151 @@
         "fingerprint": "3e304afde1891cc5a3ce857bd17c8280eac83827d24a9732879392c011ecf503"
       },
       {
+        "key": "/::#workspace-sidebar>header:nth-of-type(1)>button:nth-of-type(1)",
+        "page": "/",
+        "selector": "#workspace-sidebar>header:nth-of-type(1)>button:nth-of-type(1)",
+        "id": null,
+        "tag": "button",
+        "label": "Cerrar menú",
+        "group": "header",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [
+          {
+            "event": "click",
+            "source": "static/workspace-navigation.js",
+            "line": 51,
+            "confidence": "selector estático",
+            "fingerprint": "7a2d19bd126bf52481088a94e6084c6b769c37652fa07084ac2e1917964c4ace",
+            "endpoints": [],
+            "destinations": [],
+            "loading": [],
+            "loadingLabels": [],
+            "unresolved": 0
+          }
+        ],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "0fd9cfbef7c9cb4df93174a41f4cc4b5bb8ded7176a08cc32a54e3d6192be97c"
+      },
+      {
+        "key": "/::#open-vacancy",
+        "page": "/",
+        "selector": "#open-vacancy",
+        "id": "open-vacancy",
+        "tag": "button",
+        "label": "Analizar vacante →",
+        "group": "nav",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [
+          {
+            "event": "click",
+            "source": "static/workspace-navigation.js",
+            "line": 44,
+            "confidence": "selector estático",
+            "fingerprint": "854a8d908d6102ddf5c3596607d2532ef9e5630c2837fa3ba5c25c82cf17c988",
+            "endpoints": [],
+            "destinations": [],
+            "loading": [],
+            "loadingLabels": [],
+            "unresolved": 0
+          }
+        ],
+        "guards": [],
+        "relatedTestCount": 1,
+        "fingerprint": "8b1dcdb66b1f64b315877be40773992003ed9e39fa93da159c1807df262cc0d7"
+      },
+      {
+        "key": "/::#open-history",
+        "page": "/",
+        "selector": "#open-history",
+        "id": "open-history",
+        "tag": "button",
+        "label": "Historial",
+        "group": "nav",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [
+          {
+            "event": "click",
+            "source": "static/workspace-navigation.js",
+            "line": 45,
+            "confidence": "selector estático",
+            "fingerprint": "5a27973523db5f2b2d45597cfa1adf7ccc0e2952b55fd4ea76c3189ce1338125",
+            "endpoints": [],
+            "destinations": [],
+            "loading": [],
+            "loadingLabels": [],
+            "unresolved": 0
+          }
+        ],
+        "guards": [],
+        "relatedTestCount": 1,
+        "fingerprint": "32c8a9ce68a7775b1cc3792451d0e45db4612b61f8be232a2d693673660c5128"
+      },
+      {
+        "key": "/::#vacancy-window>header:nth-of-type(1)>button:nth-of-type(1)",
+        "page": "/",
+        "selector": "#vacancy-window>header:nth-of-type(1)>button:nth-of-type(1)",
+        "id": null,
+        "tag": "button",
+        "label": "Cerrar vacante",
+        "group": "header",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [
+          {
+            "event": "click",
+            "source": "static/workspace-navigation.js",
+            "line": 51,
+            "confidence": "selector estático",
+            "fingerprint": "7a2d19bd126bf52481088a94e6084c6b769c37652fa07084ac2e1917964c4ace",
+            "endpoints": [],
+            "destinations": [],
+            "loading": [],
+            "loadingLabels": [],
+            "unresolved": 0
+          }
+        ],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "ccf816753b800b91631cc4b92007abdba02146ab033e2dfcfd6cbb7cdd37dcd5"
+      },
+      {
+        "key": "/::#history-window>header:nth-of-type(1)>button:nth-of-type(1)",
+        "page": "/",
+        "selector": "#history-window>header:nth-of-type(1)>button:nth-of-type(1)",
+        "id": null,
+        "tag": "button",
+        "label": "Cerrar historial",
+        "group": "header",
+        "initialDisabled": false,
+        "initialHidden": false,
+        "href": null,
+        "handlers": [
+          {
+            "event": "click",
+            "source": "static/workspace-navigation.js",
+            "line": 51,
+            "confidence": "selector estático",
+            "fingerprint": "7a2d19bd126bf52481088a94e6084c6b769c37652fa07084ac2e1917964c4ace",
+            "endpoints": [],
+            "destinations": [],
+            "loading": [],
+            "loadingLabels": [],
+            "unresolved": 0
+          }
+        ],
+        "guards": [],
+        "relatedTestCount": 0,
+        "fingerprint": "25a488b9d8733dbc53a50d5144721eca7ae2c8d4407ff3784a09bb3eb80e2b5f"
+      },
+      {
         "key": "/manual.html::html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(1)",
         "page": "/manual.html",
         "selector": "html:nth-of-type(0)>body:nth-of-type(1)>header:nth-of-type(1)>a:nth-of-type(1)",
@@ -6640,6 +6815,34 @@
         "confidence": "destino dinámico/global"
       },
       {
+        "event": "cancel",
+        "target": null,
+        "line": 52,
+        "source": "static/workspace-navigation.js",
+        "confidence": "destino dinámico/global"
+      },
+      {
+        "event": "click",
+        "target": null,
+        "line": 53,
+        "source": "static/workspace-navigation.js",
+        "confidence": "destino dinámico/global"
+      },
+      {
+        "event": "close",
+        "target": null,
+        "line": 58,
+        "source": "static/workspace-navigation.js",
+        "confidence": "destino dinámico/global"
+      },
+      {
+        "event": "cv-app-error",
+        "target": null,
+        "line": 71,
+        "source": "static/workspace-navigation.js",
+        "confidence": "destino dinámico/global"
+      },
+      {
         "event": "click",
         "target": null,
         "line": 18,
@@ -6971,128 +7174,108 @@
     ],
     "warnings": [],
     "parser": "acorn 8.16.0",
-    "buildId": "20261019T071754Z-26463771"
+    "buildId": "20261019T085037Z-23275215"
   },
   "changesSincePrevious": {
-    "added": [],
+    "added": [
+      {
+        "key": "/::#workspace-menu",
+        "label": "Abrir menú",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "cafc83da36b9e20020241634a0738b20bcc7ac8d7933e8342c069f8f0d8ff661"
+      },
+      {
+        "key": "/::#workspace-sidebar>header:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Cerrar menú",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "0fd9cfbef7c9cb4df93174a41f4cc4b5bb8ded7176a08cc32a54e3d6192be97c"
+      },
+      {
+        "key": "/::#open-vacancy",
+        "label": "Analizar vacante →",
+        "page": "/",
+        "group": "nav",
+        "fingerprint": "8b1dcdb66b1f64b315877be40773992003ed9e39fa93da159c1807df262cc0d7"
+      },
+      {
+        "key": "/::#open-history",
+        "label": "Historial",
+        "page": "/",
+        "group": "nav",
+        "fingerprint": "32c8a9ce68a7775b1cc3792451d0e45db4612b61f8be232a2d693673660c5128"
+      },
+      {
+        "key": "/::#vacancy-window>header:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Cerrar vacante",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "ccf816753b800b91631cc4b92007abdba02146ab033e2dfcfd6cbb7cdd37dcd5"
+      },
+      {
+        "key": "/::#history-window>header:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Cerrar historial",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "25a488b9d8733dbc53a50d5144721eca7ae2c8d4407ff3784a09bb3eb80e2b5f"
+      }
+    ],
     "removed": [],
     "changed": [
-      {
-        "key": "/::#sync-bank",
-        "label": "Sincronizar todo",
-        "page": "/",
-        "group": "main",
-        "fingerprint": "e1d78ca946333ea4380efe9978fbf3112b059ad2d058e76daef89e6600b9baea"
-      },
-      {
-        "key": "/::#google-sign-in",
-        "label": "1. Iniciar sesión con Google",
-        "page": "/",
-        "group": "auth-panel",
-        "fingerprint": "18734041e5a36532a74c4df939044c938b0450473afee4fd57b23fed2155b4f0"
-      },
-      {
-        "key": "/::#verify-session-gmail",
-        "label": "2. Verificar inicio de sesión y sincronización con Gmail",
-        "page": "/",
-        "group": "required-sync",
-        "fingerprint": "f8c60fd41adbb6740854e99ecfe1ec35e1d5a4e35e1d3db23003708ef54d5e00"
-      },
-      {
-        "key": "/::#verify-drive",
-        "label": "3. Verificar sincronización con Google Drive",
-        "page": "/",
-        "group": "required-sync",
-        "fingerprint": "bb6380e6aad74d3325c51476b131ad3c8c4c06033e7f896b45a91e835fc8ec86"
-      },
-      {
-        "key": "/::#sync-telegram-optional",
-        "label": "4. Sincronizar Telegram (opcional)",
-        "page": "/",
-        "group": "required-sync",
-        "fingerprint": "069b481f082fcfbf0acee4bc0fbaeb5fa79d4de95ff22bc12244e4942f70d908"
-      },
       {
         "key": "/::#telegram-link",
         "label": "Vincular mi Telegram y Drive",
         "page": "/",
         "group": "telegram-panel",
-        "fingerprint": "76eacfd701c7fc6de3496cf4e0b276b4cd820dfc5bb947670d6225ca820d1830"
-      },
-      {
-        "key": "/::#telegram-check-link",
-        "label": "Ya pulsé Iniciar: revisar vinculación",
-        "page": "/",
-        "group": "telegram-panel",
-        "fingerprint": "b18e4820ce015519dedddde4d8592298b5e1cfee0cabc89d4dd910012b34d24c"
+        "fingerprint": "f84dbe04241b3c56edfa44e0de0bddff787b08f548d88733bad190b94b585909"
       },
       {
         "key": "/::#select-account-folders",
         "label": "Seleccionar mis carpetas manualmente",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "3145558797a4c771ab9ff4c27fc97c902f03446b9ee327c4a059aa3103ed6827"
+        "fingerprint": "2674a8932e324e235aaff069c0371c7bc78fb463e80ed4643824ac7ef09b3447"
       },
       {
-        "key": "/::#create-button",
-        "label": "Crear y enviar mi CV →",
+        "key": "/::#open-onboarding",
+        "label": "Completar mis datos para el CV",
         "page": "/",
-        "group": "analysis-panel",
-        "fingerprint": "61dbc74490a076a51559c1c22a685ad74e1cf9416d912451cd65598c90a1d7ba"
+        "group": "bank-panel",
+        "fingerprint": "b46cec1d289eb11263ac71f623b2d422a66831be7e657e8d4910cba4c93ea794"
       },
       {
-        "key": "/::#download-pdf",
-        "label": "Descargar PDF",
+        "key": "/::#job-text",
+        "label": "job-text",
         "page": "/",
-        "group": "cv-panel",
-        "fingerprint": "141f2c9cd8c7cd45247eb75e598a5805d6d078fc027f4a28365c1fbfd961a36d"
+        "group": "job-panel",
+        "fingerprint": "efb5a787f17f1539ba10875c432919933c25655db53284fa7fad05dd18844e93"
       },
       {
-        "key": "/::#download-docx",
-        "label": "Descargar Word",
+        "key": "/::#analyze-button",
+        "label": "Analizar vacante →",
         "page": "/",
-        "group": "cv-panel",
-        "fingerprint": "4aa88d3a8751bfe1a4693b29f3a2e7293bd6657659e70cde596396563af74f72"
-      },
-      {
-        "key": "/::#send-whatsapp",
-        "label": "◉ Abrir WhatsApp",
-        "page": "/",
-        "group": "section",
-        "fingerprint": "fc8da91a1af8cf8a8bb541a44402141a43a8e4cf11ee7e2417072e383bb7d309"
+        "group": "job-panel",
+        "fingerprint": "1c590935b562254438c67d2a679eddede69b149cdd69fc618aea6ffea2b0c66d"
       },
       {
         "key": "/::#refresh-application-history",
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "8c4ce65bcc99886f76995f9d5dcffe101593b0b73264b12b27f7f34fd5e2d036"
-      },
-      {
-        "key": "/::#load-more-applications",
-        "label": "Cargar más postulaciones",
-        "page": "/",
-        "group": "application-history-panel",
-        "fingerprint": "eacec9d448beea28e463d8006d08f241b899c749a974651c4a3df60b3989f62d"
-      },
-      {
-        "key": "/::#onboarding-photo",
-        "label": "file",
-        "page": "/",
-        "group": "onboarding-form",
-        "fingerprint": "bdb5bb6f82bd7cbab63493415cc371324691203fa31746e111756c1470dd0181"
-      },
-      {
-        "key": "/::#onboarding-save",
-        "label": "Guardar y consolidar mi banco",
-        "page": "/",
-        "group": "onboarding-form",
-        "fingerprint": "e8fd458788472166eb9a60140e53d9e5a6b0ab3f9c8295825e4df2f8156e6bed"
+        "fingerprint": "27e91096caaf134fdb0ee062254eb89f41d2fc4f2452df64d4039ff6e6719f63"
       }
     ]
   },
   "changesSinceBaseline": {
     "added": [
+      {
+        "key": "/::#workspace-menu",
+        "label": "Abrir menú",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "cafc83da36b9e20020241634a0738b20bcc7ac8d7933e8342c069f8f0d8ff661"
+      },
       {
         "key": "/::#verify-session-gmail",
         "label": "2. Verificar inicio de sesión y sincronización con Gmail",
@@ -7120,6 +7303,41 @@
         "page": "/",
         "group": "bank-panel",
         "fingerprint": "b48488b7d594bd05c7a4e62b79b7aa618eceda75ef262cf4fa55af62f30ab365"
+      },
+      {
+        "key": "/::#workspace-sidebar>header:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Cerrar menú",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "0fd9cfbef7c9cb4df93174a41f4cc4b5bb8ded7176a08cc32a54e3d6192be97c"
+      },
+      {
+        "key": "/::#open-vacancy",
+        "label": "Analizar vacante →",
+        "page": "/",
+        "group": "nav",
+        "fingerprint": "8b1dcdb66b1f64b315877be40773992003ed9e39fa93da159c1807df262cc0d7"
+      },
+      {
+        "key": "/::#open-history",
+        "label": "Historial",
+        "page": "/",
+        "group": "nav",
+        "fingerprint": "32c8a9ce68a7775b1cc3792451d0e45db4612b61f8be232a2d693673660c5128"
+      },
+      {
+        "key": "/::#vacancy-window>header:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Cerrar vacante",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "ccf816753b800b91631cc4b92007abdba02146ab033e2dfcfd6cbb7cdd37dcd5"
+      },
+      {
+        "key": "/::#history-window>header:nth-of-type(1)>button:nth-of-type(1)",
+        "label": "Cerrar historial",
+        "page": "/",
+        "group": "header",
+        "fingerprint": "25a488b9d8733dbc53a50d5144721eca7ae2c8d4407ff3784a09bb3eb80e2b5f"
       }
     ],
     "removed": [
@@ -7305,7 +7523,7 @@
         "label": "Vincular mi Telegram y Drive",
         "page": "/",
         "group": "telegram-panel",
-        "fingerprint": "76eacfd701c7fc6de3496cf4e0b276b4cd820dfc5bb947670d6225ca820d1830"
+        "fingerprint": "f84dbe04241b3c56edfa44e0de0bddff787b08f548d88733bad190b94b585909"
       },
       {
         "key": "/::#telegram-check-link",
@@ -7319,14 +7537,14 @@
         "label": "Seleccionar mis carpetas manualmente",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "3145558797a4c771ab9ff4c27fc97c902f03446b9ee327c4a059aa3103ed6827"
+        "fingerprint": "2674a8932e324e235aaff069c0371c7bc78fb463e80ed4643824ac7ef09b3447"
       },
       {
         "key": "/::#open-onboarding",
         "label": "Completar mis datos para el CV",
         "page": "/",
         "group": "bank-panel",
-        "fingerprint": "01e7a2c8cac4f46d22d49520e39174c97a5edaa8447a924f4dbc3e4c6fa9d418"
+        "fingerprint": "b46cec1d289eb11263ac71f623b2d422a66831be7e657e8d4910cba4c93ea794"
       },
       {
         "key": "/::#new-information",
@@ -7375,7 +7593,7 @@
         "label": "job-text",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "8129ffeb385b413f1b4b015c3e8b3f07d8b32bdeef8a8aba058414bebed991ca"
+        "fingerprint": "efb5a787f17f1539ba10875c432919933c25655db53284fa7fad05dd18844e93"
       },
       {
         "key": "/::#remove-job-text",
@@ -7410,7 +7628,7 @@
         "label": "Analizar vacante →",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "5c1e77ce9c5a61e801829431642f000867ff59469535f8de7816a056284bf4f7"
+        "fingerprint": "1c590935b562254438c67d2a679eddede69b149cdd69fc618aea6ffea2b0c66d"
       },
       {
         "key": "/::#retry-bootstrap",
@@ -7466,7 +7684,7 @@
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "8c4ce65bcc99886f76995f9d5dcffe101593b0b73264b12b27f7f34fd5e2d036"
+        "fingerprint": "27e91096caaf134fdb0ee062254eb89f41d2fc4f2452df64d4039ff6e6719f63"
       },
       {
         "key": "/::#load-more-applications",
@@ -7583,11 +7801,11 @@
     ]
   },
   "tests": {
-    "sourceHash": "79c4385571c52a553ed1bafe8885ae5bb670a93d585ebf2b1077cb89b35a73dd",
+    "sourceHash": "ad3e19af0b8496e13c41565778fc7e07f478092e9afead574beca6a598c63e81",
     "passed": true,
-    "checkedAt": "2026-10-19T07:15:26.966272+00:00",
+    "checkedAt": "2026-10-19T08:48:57.299403+00:00",
     "pythonTests": 533,
-    "javascriptTests": 316,
+    "javascriptTests": 322,
     "coveragePercent": 82.73,
     "network": "blocked",
     "scope": "Suite local; no acredita cada acción ni servicios desplegados."
