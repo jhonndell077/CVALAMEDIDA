@@ -460,13 +460,15 @@ function bankSyncBlocked(bank) {
     (bank?.warnings || []).some(warning => warning.severity !== 'notice') ||
     (bank?.documents || []).some(doc => doc.active !== false && doc.status === 'revision'));
 }
-async function startBankSynchronization({throwOnError = false} = {}) {
+async function startBankSynchronization({throwOnError = false, inline = false} = {}) {
   const owner = state.user?.uid, epoch = state.authEpoch;
   if (synchronizationRunning && synchronizationRunning.owner === owner && synchronizationRunning.epoch === epoch) {
+    if (inline && synchronizationRunning.promise) return synchronizationRunning.promise;
     if (throwOnError) throw new Error('Hay una sincronización en curso. Espera a que termine y reintenta.');
     return;
   }
-  if (!requireSession('sincronizar tu banco')) return;
+  if (!inline && !requireSession('sincronizar tu banco')) return;
+  if (inline && state.authRequired && !state.user) throw new Error('Inicia sesión con Google para cargar tus datos.');
   const current = () => owner === state.user?.uid && epoch === state.authEpoch;
   const operationId = crypto.randomUUID();
   const run = synchronizationRunning = {owner, epoch};
@@ -476,7 +478,7 @@ async function startBankSynchronization({throwOnError = false} = {}) {
     // Start OAuth from the real user gesture before opening the loading modal.
     const accountVerification = state.authRequired || Boolean(state.user);
     const connection = window.cvDrive.connect({requireGmail: accountVerification, operationId});
-    return await window.cvLoading.run("Sincronizando tu banco en Google Drive", async update => {
+    const work = async update => {
     update(2, accountVerification ? 'Comprobando la conexión de Gmail y Drive' : 'Comprobando Drive en modo local');
     await connection;
     if (!current()) throw new Error('La cuenta cambió durante la sincronización.');
@@ -503,10 +505,13 @@ async function startBankSynchronization({throwOnError = false} = {}) {
       window.cvRequiredSync.account({initial_sync_completed:true});
     }
     update(99, bank?.warnings?.length ? 'Banco sincronizado con observaciones informativas' : 'Banco de datos sincronizado');
-    await window.cvOnboarding?.check();
+    if (!inline) await window.cvOnboarding?.check();
     return {completed:true};
-  }); }
-  catch (error) { if (current()) showError(error.message); if (throwOnError) throw error; }
+  };
+    run.promise = inline ? work(() => {}) : window.cvLoading.run("Sincronizando tu banco en Google Drive", work);
+    return await run.promise;
+  }
+  catch (error) { if (current() && !inline) showError(error.message); if (throwOnError) throw error; }
   finally { if (synchronizationRunning === run) synchronizationRunning = false; if (current()) $("#sync-bank").disabled = false; }
 }
 window.cvSynchronizeBank = startBankSynchronization;
@@ -1110,9 +1115,30 @@ async function saveProfileChangesTransaction() {
   }
 }
 
+// Open the current account's data without requiring a second Synchronize click.
+let dataOpenOperation = null;
+function openDataProfile() {
+  const owner = state.user?.uid, epoch = state.authEpoch;
+  if (state.authRequired && !state.user) {
+    $('#google-sign-in').click();
+    return Promise.reject(new Error('Completa el inicio de sesión con Google para cargar tus datos.'));
+  }
+  if (state.profileDraft && !$('#profile-panel').hidden) return Promise.resolve();
+  if (dataOpenOperation?.owner === owner && dataOpenOperation.epoch === epoch) return dataOpenOperation.promise;
+  // Start authorization synchronously in the click's user activation.
+  const promise = state.bankEnabled && !window.cvDrive.isConnected()
+    ? startBankSynchronization({throwOnError: true, inline: true})
+    : loadProfileSummaryWork();
+  const operation = dataOpenOperation = {owner, epoch, promise};
+  const clean = () => { if (dataOpenOperation === operation) dataOpenOperation = null; };
+  promise.then(clean, clean);
+  return promise;
+}
+
 // A single close transaction joins persistence and pending bank work.
 let dataClosePromise = null;
 window.cvDataPanel = {
+  open() { return openDataProfile(); },
   beforeClose() {
     if (dataClosePromise) return dataClosePromise;
     const owner = state.user?.uid, epoch = state.authEpoch;
@@ -2174,7 +2200,7 @@ window.addEventListener("cv-drive-connected", async () => {
       if (!response.ok) throw new Error(bank.error || 'No se pudo leer el banco.');
       renderBankStatus(bank);
       if (bank.pending) await synchronizeBank();
-      if (uid === state.user?.uid) { await loadProfileSummaryWork(); await window.cvOnboarding?.check(); }
+      if (uid === state.user?.uid) { await loadProfileSummaryWork(); if (!$('#data-dialog').open) await window.cvOnboarding?.check(); }
     } catch (error) { showError(error.message); }
   }
 });

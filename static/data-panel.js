@@ -55,6 +55,7 @@
     button.setAttribute('aria-expanded', 'true');
     closeButton.focus({preventScroll: true});
     motion(true);
+    ensureProfile();
   });
   closeButton.addEventListener('click', close);
   dialog.addEventListener('keydown', event => {
@@ -82,22 +83,75 @@
     outside = false;
   });
   let signedIn = false;
+  let generation = 0;
+  let opening = false;
+  const content = document.querySelector('#data-content');
   const connectionError = document.createElement('p');
   connectionError.id = 'data-connection-error';
   connectionError.className = 'error';
   connectionError.setAttribute('role', 'alert');
   connectionError.hidden = true;
-  document.querySelector('#data-content').prepend(connectionError);
-  function availability() {
-    unavailable.hidden = !panel.hidden;
-    unavailable.textContent = signedIn
-      ? 'Tu sesión está iniciada. Para cargar o crear tu banco de datos, pulsa Sincronizar y autoriza el acceso a tu Google Drive. Iniciar sesión y conectar Drive son pasos distintos.'
-      : 'Inicia sesión con Google para consultar tus datos. Después pulsa Sincronizar para conectar tu banco en Drive.';
+  content.prepend(connectionError);
+  const retry = document.createElement('button');
+  retry.id = 'data-retry';
+  retry.type = 'button';
+  retry.className = 'button button-secondary';
+  retry.textContent = 'Cargar mis datos';
+  unavailable.after(retry);
+  const preview = document.createElement('section');
+  preview.id = 'data-preview';
+  preview.setAttribute('aria-label', 'Banco profesional');
+  const heading = document.createElement('h2');
+  heading.textContent = 'Mi árbol de información';
+  preview.append(heading);
+  const grid = document.createElement('div');
+  grid.className = 'profile-tree';
+  for (const title of ['Datos personales', 'Experiencias', 'Habilidades', 'Estudios', 'Cursos realizados', 'Proyectos', 'Referencias', 'Datos pendientes de documentar']) {
+    const card = document.createElement('div');
+    card.className = 'profile-node';
+    card.textContent = title;
+    card.style.padding = '20px';
+    grid.append(card);
   }
+  preview.append(grid);
+  unavailable.before(preview);
+  function availability() {
+    const missing = panel.hidden;
+    preview.hidden = !missing;
+    unavailable.hidden = !missing;
+    retry.hidden = !missing || opening;
+    unavailable.textContent = opening ? 'Cargando tus datos…' : 'Tu banco se carga aquí al conectar tu cuenta.';
+    content.setAttribute('aria-busy', String(opening));
+  }
+  function ensureProfile() {
+    if (opening || !panel.hidden) return;
+    const epoch = generation;
+    opening = true;
+    connectionError.hidden = true;
+    availability();
+    let task;
+    try {
+      if (!window.cvDataPanel?.open) throw new Error('La aplicación se está preparando. Pulsa Cargar mis datos para reintentar.');
+      task = window.cvDataPanel.open();
+    } catch (error) { task = Promise.reject(error); }
+    Promise.resolve(task).catch(error => {
+      if (epoch !== generation) return;
+      connectionError.textContent = error.message || 'No se pudieron cargar tus datos. Reintenta la conexión.';
+      connectionError.hidden = false;
+    }).finally(() => {
+      if (epoch !== generation) return;
+      opening = false;
+      availability();
+    });
+  }
+  retry.addEventListener('click', ensureProfile);
   window.addEventListener('cv-session-state', event => {
+    generation++;
+    opening = false;
     signedIn = Boolean(event.detail?.signedIn);
     connectionError.textContent = ''; connectionError.hidden = true;
     availability();
+    if (signedIn && dialog.open) ensureProfile();
   });
   window.addEventListener('cv-app-error', event => {
     connectionError.textContent = event.detail?.message || '';

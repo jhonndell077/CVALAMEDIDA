@@ -53,7 +53,8 @@ test('cloud arrows rotate independently of the cloud and respect reduced motion'
 test('signed-in disconnected user sees Drive instructions and sync errors inside Datos',()=>{
  const {document,emit}=setup();
  emit('cv-session-state',{signedIn:true});
- assert.match(document.querySelector('#data-unavailable').textContent,/Tu sesión está iniciada/);
+ assert.doesNotMatch(document.querySelector('#data-unavailable').textContent,/Tu sesión está iniciada/);
+ assert.equal(document.querySelector('#data-preview').hidden,false);
  emit('cv-app-error',{message:'Google bloqueó la ventana de autorización.'});
  const error=document.querySelector('#data-connection-error');
  assert.equal(error.hidden,false);assert.match(error.textContent,/Google bloqueó/);
@@ -71,4 +72,29 @@ test('floating sync calls public action directly without clicking hidden or iner
  original.click=()=>{throw Error('Hidden button must not receive synthetic click')};
  document.querySelector('#data-toggle').click();document.querySelector('#data-sync').click();
  assert.equal(started,1);
+});
+
+
+test('Datos starts loading immediately, deduplicates clicks and exposes retry on failure', async()=>{
+ const {document,dialog,root}=setup();let reject,loads=0;
+ root.cvDataPanel={open(){loads++;return new Promise((resolve,r)=>{reject=r})},beforeClose:async()=>true};
+ document.querySelector('#data-toggle').click();
+ assert.equal(dialog.open,true);assert.equal(loads,1);
+ assert.equal(document.querySelector('#data-content').getAttribute('aria-busy'),'true');
+ reject(Error('Sin conexion'));await new Promise(r=>setImmediate(r));
+ assert.equal(document.querySelector('#data-retry').hidden,false);
+ assert.match(document.querySelector('#data-connection-error').textContent,/Sin conexion/);
+ root.cvDataPanel.open=async()=>{loads++;document.querySelector('#profile-panel').hidden=false};
+ document.querySelector('#data-retry').click();await new Promise(r=>setImmediate(r));
+ assert.equal(loads,2);assert.equal(dialog.open,true);
+ assert.equal(document.querySelector('#data-preview').hidden,true);
+});
+
+test('late load errors from the previous session are ignored',async()=>{
+ const {document,root,emit}=setup();let reject;
+ root.cvDataPanel={open:()=>new Promise((resolve,r)=>reject=r)};
+ document.querySelector('#data-toggle').click();
+ emit('cv-session-state',{signedIn:false});reject(Error('Old user error'));
+ await new Promise(r=>setImmediate(r));
+ assert.equal(document.querySelector('#data-connection-error').hidden,true);
 });
