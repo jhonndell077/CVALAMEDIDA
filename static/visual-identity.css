@@ -1,0 +1,127 @@
+/* Shared identity. Document previews and printed output keep their own palette. */
+:root {
+  --cv-background: #041714;
+  --cv-surface: #0b241d;
+  --cv-raised: #123128;
+  --cv-field: #071d17;
+  --cv-text: #edf4ed;
+  --cv-muted: #afc4b7;
+  --cv-accent: #cce3a5;
+  --cv-border: #8fb09b47;
+  --cv-error: #ffb4ae;
+  --cv-success: #a6e4b8;
+  --cv-warning: #f1d28f;
+  --cv-radius: 20px;
+  --cv-font: "Segoe UI", Arial, sans-serif;
+}
+@media screen {
+  html:has(> body[data-cv-surface]) { background: var(--cv-background); color-scheme: dark; }
+  body[data-cv-surface] { min-height: 100dvh; font-family: var(--cv-font); background: var(--cv-background); color: var(--cv-text); color-scheme: dark; }
+  body[data-cv-surface]:not([data-cv-surface="manual"]) {
+    --ink: var(--cv-text); --muted: var(--cv-muted); --green: var(--cv-accent); --green-dark: var(--cv-accent);
+    --line: var(--cv-border); --soft: var(--cv-raised); --paper: var(--cv-background); --surface: var(--cv-surface);
+    --panel: var(--cv-surface); --accent: var(--cv-accent); --bad: var(--cv-error); --red: var(--cv-error); --warn: var(--cv-warning);
+  }
+  body[data-cv-surface]::before { background: radial-gradient(ellipse at 50% 0, #1a634332, transparent 65%); }
+  body[data-cv-surface] :is(a, button, input, select, textarea, summary):focus-visible { outline: 3px solid var(--cv-accent); outline-offset: 4px; }
+  body[data-cv-surface]:not([data-cv-surface="manual"]) a { color: var(--cv-accent); }
+  body[data-cv-surface]:not([data-cv-surface="manual"]) :is(h1, h2, h3) { font-weight: 500; letter-spacing: -.035em; }
+  body[data-cv-surface] .cv-galaxy-decoration, body[data-cv-surface] .cv-button-wave { display: none; }
+  body[data-cv-surface] .identity-header { width: min(1180px, calc(100% - 32px)); margin: 18px auto 0; padding: 8px 20px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border: 1px solid var(--cv-border); border-radius: 40px; background: #071d19e8; }
+  body[data-cv-surface] .identity-header a { font-size: 12px; text-decoration: none; }
+  body[data-cv-surface] .identity-brand { display: flex; padding: 3px 10px; background: #f5f6ed; border-radius: 12px; }
+  body[data-cv-surface] .identity-brand img { display: block; width: clamp(130px, 18vw, 176px); height: auto; }
+  body[data-cv-surface]:not([data-cv-surface="manual"]) :is(button, .button) {
+    --galaxy-bg: var(--cv-raised); --galaxy-ink: var(--cv-text);
+    background: var(--cv-raised); color: var(--cv-text); border-color: var(--cv-border);
+    border-radius: 24px; box-shadow: none; font-family: var(--cv-font); min-height: 44px;
+  }
+  body[data-cv-surface]:not([data-cv-surface="manual"]) :is(button, .button):not(:disabled):not(:where(.profile-remove, .danger-action)):hover {
+    background: #1a4031; color: var(--cv-text); --galaxy-bg: #1a4031; --galaxy-ink: var(--cv-text);
+    box-shadow: 0 0 0 1px #cce3a559; filter: none;
+  }
+  body[data-cv-surface]:not([data-cv-surface="manual"]) :is(.button-primary, .presentation-cta, button[type="submit"]) {
+    --galaxy-bg: var(--cv-accent); --galaxy-ink: #173c29;
+    background: var(--cv-accent); color: #173c29; border-color: var(--cv-accent);
+  }
+  body[data-cv-surface]:not([data-cv-surface="manual"]) :is(.button-primary, .presentation-cta, button[type="submit"]):not(:disabled):hover {
+    --galaxy-bg: #deedbd; --galaxy-ink: #173c29; background: #deedbd; color: #173c29;
+  }
+  body[data-cv-surface="app"] :is(.panel, .analysis-card, .profile-node, .profile-entry, .repeat-row, .new-information-form, .data-unavailable, .application-send, .application-history-entry, .knowledge-document, .vacancy-detail, .summary-item, #employment-sources-summary) {
+    background: var(--cv-surface); color: var(--cv-text); border-color: var(--cv-border); box-shadow: none;
+  }
+  body[data-cv-surface="app"] .shell > .panel { border-top: 1px solid var(--cv-border); border-radius: var(--cv-radius); }
+  body[data-cv-surface="app"] :is(#workspace-sidebar, #vacancy-window, #history-window, #data-dialog, #profile-category-dialog, #onboarding-dialog, #onboarding-cv-dialog, #employment-window, #employment-results-dialog, #employment-contact-dialog, #required-sync, .subscription-plans, .loading-window) {
+    background: var(--cv-surface); color: var(--cv-text); border-color: var(--cv-border); box-shadow: 0 24px 80px #0006;
+  }
+  body[data-cv-surface="app"] :is(.workspace-window-header, .data-header, .profile-category-header, .onboarding-header, .onboarding-actions, .employment-window-header, .employment-results-header) {
+    background: var(--cv-surface); color: var(--cv-text); border-color: var(--cv-border);
+  }
+  body[data-cv-surface="app"] :is(.profile-node > summary, .profile-node[open] > summary) { background: var(--cv-raised); color: var(--cv-text); border-left-color: #92b879; }
+  body[data-cv-surface="app"] .profile-card-icon { background: var(--cv-field); color: var(--cv-accent); }
+  body[data-cv-surface="app"] :is(.profile-card-count, .tag, .template-chip) { background: var(--cv-raised); color: var(--cv-accent); }
+  body[data-cv-surface="app"] :is(.evidence-type.direct, .background-process.process-done) { background: #143423; color: var(--cv-success); }
+  body[data-cv-surface="app"] :is(.evidence-type.transfer, .gap-box) { background: #3b321e; color: var(--cv-warning); }
+  body[data-cv-surface="app"] .evidence-type.gap { background: #3b211f; color: var(--cv-error); }
+  body[data-cv-surface="app"] :is(.eyebrow, .workspace-section-label) { color: var(--cv-accent); }
+  body[data-cv-surface="app"] :is(.microcopy, .file-name, #model-help, #bank-status, #telegram-status, .profile-help) { color: var(--cv-muted); }
+  body[data-cv-surface="app"] :is(#job-panel, #onboarding-dialog, #data-dialog, #profile-category-dialog, #employment-window, #employment-results-dialog, #employment-contact-dialog, #analysis-panel, #cv-panel) :is(input, textarea, select) {
+    color-scheme: dark; background: var(--cv-field); color: var(--cv-text); border-color: #91b29b80; border-radius: 10px;
+  }
+  body[data-cv-surface="app"] :is(input, textarea)::placeholder { color: #a0b6a8; opacity: 1; }
+  body[data-cv-surface="app"] :is(#onboarding-dialog fieldset, .repeat-row, .privacy-note) { border-color: var(--cv-border); }
+  body[data-cv-surface="app"] .privacy-note { background: var(--cv-raised); color: var(--cv-muted); }
+  body[data-cv-surface="app"] .privacy-note b { color: var(--cv-text); }
+  body[data-cv-surface="app"] :is(.subscription-notice, .update-banner, .process-completed-toast) { background: var(--cv-raised); color: var(--cv-text); border-color: var(--cv-border); }
+  body[data-cv-surface="app"] .subscription-plan-list article { border-color: var(--cv-border); }
+  body[data-cv-surface="app"] :is(.error-message, .profile-remove) { background: #3b211f; color: var(--cv-error); border-color: #c5757080; --galaxy-bg: #3b211f; --galaxy-ink: var(--cv-error); }
+  body[data-cv-surface="app"] :is(.process-failed, [role="alert"]) { color: var(--cv-error); }
+  body[data-cv-surface="app"] :is(.success-banner, .bank-save-confirmation) { background: #143423; color: var(--cv-success); border-color: #80b587; }
+  body[data-cv-surface="app"] :is(#information-status, .background-process.process-done p) { color: var(--cv-success); }
+  body[data-cv-surface="app"] .employment-calendar-day[aria-pressed="true"] { --galaxy-bg: var(--cv-accent); --galaxy-ink: #173c29; background: var(--cv-accent); color: #173c29; }
+  body[data-cv-surface="app"] .employment-calendar-day.has-publications:not([aria-pressed="true"]) { --galaxy-bg: #1d4430; --galaxy-ink: var(--cv-text); background: #1d4430; color: var(--cv-text); }
+  body[data-cv-surface="app"] .presentation-demo { --ink: #203c30; --muted: #67796c; --line: #dfe5d9; --green: #315d46; }
+  body[data-cv-surface="app"] .leaflet-container { color-scheme: light; --ink: #18251f; --green: #315d46; --cv-accent: #315d46; color: #18251f; }
+  body[data-cv-surface="app"] .presentation-demo :is(h2, h3) { color: #203c30; }
+  body[data-cv-surface="app"] .presentation-tab { --galaxy-bg: transparent; --galaxy-ink: #64756b; background: transparent; color: #64756b; }
+  body[data-cv-surface="app"] .presentation-tab[aria-selected="true"] { --galaxy-bg: #e5edda; --galaxy-ink: #224b37; background: #e5edda; color: #224b37; }
+  body[data-cv-surface="app"] :is(.draft-preview, #onboarding-cv-preview) {
+    color-scheme: light; --ink: #18251f; --muted: #67736d; --green: #315d46; --green-dark: #264a38; --line: #e2e8df; --accent: #518ecb;
+    background: #fff; color: #29302b;
+  }
+  body[data-cv-surface="app"] :is(.draft-preview, #onboarding-cv-preview) :is(h1, h2, h3) { color: #29302b; }
+  body[data-cv-surface="app"] dialog::backdrop { background: #031510b8; backdrop-filter: blur(5px); }
+  body[data-cv-surface="app"] #workspace-services .panel, body[data-cv-surface="app"] .workspace-window-content > .panel { background: transparent; }
+  body[data-cv-surface="app"] :is(.workspace-close, #onboarding-close) { background: var(--cv-raised); color: var(--cv-text); border-color: var(--cv-border); }
+  body[data-cv-surface="app"] .data-sync { --galaxy-bg: var(--cv-raised); --galaxy-ink: #a6e4b8; background: var(--cv-raised); }
+  body[data-cv-surface="document"], body[data-cv-surface="oauth"] { min-height: 100dvh; }
+  body[data-cv-surface="document"] .shell, body[data-cv-surface="oauth"] .shell { max-width: 980px; margin: 32px auto; }
+  body[data-cv-surface="document"] .panel, body[data-cv-surface="oauth"] .panel { padding: clamp(24px, 5vw, 55px); background: var(--cv-surface); color: var(--cv-text); border: 1px solid var(--cv-border); border-radius: var(--cv-radius); box-shadow: none; }
+  body[data-cv-surface="document"] p, body[data-cv-surface="oauth"] p { color: var(--cv-muted); line-height: 1.8; }
+  body[data-cv-surface="admin"] { background: radial-gradient(ellipse at 50% 0, #1a634332, transparent 65%), var(--cv-background); }
+  body[data-cv-surface="admin"] :is(section, article, dialog, .usage-account, #config-global, .account-review, .account-supervisor, .workspace-navigation, .evidence-toolbar, .dialog-toolbar, .plan-benefits, .catalog-editor fieldset, #plans-content fieldset, details, #simulation-flow li) { background: var(--cv-surface); border-color: var(--cv-border); color: var(--cv-text); border-radius: var(--cv-radius); }
+  body[data-cv-surface="admin"] :is(.workspace-navigation p, .dialog-toolbar > span, p, dt, td small, small, .diagram-node small) { color: var(--cv-muted); }
+  body[data-cv-surface="admin"] :is(.eyebrow, .navigation-actions button span) { color: var(--cv-accent); }
+  body[data-cv-surface="admin"] :is(input, select, textarea, .catalog-editor textarea) { background: var(--cv-field); color: var(--cv-text); border-color: var(--cv-border); }
+  body[data-cv-surface="admin"] :is(.navigation-actions button, #plans-content button[type="submit"]) { background: var(--cv-raised); color: var(--cv-text); border-color: var(--cv-border); }
+  body[data-cv-surface="admin"] :is(th, td, .catalog-editor, .navigation-actions) { border-color: var(--cv-border); }
+  body[data-cv-surface="admin"] :is(#config-status, dialog [data-dialog-status]) { background: var(--cv-raised); color: var(--cv-text); border-left-color: var(--cv-accent); }
+  body[data-cv-surface="admin"] .diagram-node { background: var(--cv-raised); color: var(--cv-text); border-radius: 16px; }
+  body[data-cv-surface="admin"] .diagram-node.selected { background: #254833; border-color: var(--cv-accent); }
+  body[data-cv-surface="admin"] .viewport { background: radial-gradient(#8fb09b30 1px, transparent 1px); background-size: 22px 22px; border-color: var(--cv-border); }
+  body[data-cv-surface="admin"] :is(.badge, .usage-track) { background: var(--cv-raised); }
+  body[data-cv-surface="admin"] :is(.scroll, .table-scroll) { border-color: var(--cv-border); }
+  body[data-cv-surface="admin"] :is(.error, .alert:not(.warning):not(.resolved)) { color: var(--cv-error); }
+  body[data-cv-surface="admin"] :is(.warning, .simulation) { color: var(--cv-warning); }
+  body[data-cv-surface="admin"] :is(.ok, .alert.resolved) { color: var(--cv-success); }
+  body[data-cv-surface="admin"] .danger-action, body[data-cv-surface="admin"] .danger-action:not(:disabled):hover { background: #3b211f; color: var(--cv-error); border-color: #c5757080; }
+  body[data-cv-surface="admin"] svg [data-state="error"] rect { fill: #3b211f; stroke: var(--cv-error); }
+  body[data-cv-surface="admin"] svg [data-state="disabled"] rect { fill: #3b321e; stroke: var(--cv-warning); }
+  body[data-cv-surface="admin"] dialog::backdrop { background: #031510b8; }
+  @media (max-width: 600px) {
+    body[data-cv-surface="document"] .shell, body[data-cv-surface="oauth"] .shell { width: calc(100% - 24px); margin: 12px auto; }
+    body[data-cv-surface] .identity-header { padding: 8px 12px; gap: 12px; }
+    body[data-cv-surface] .identity-header > a:last-child { font-size: 10px; text-align: right; }
+  }
+  @media (prefers-reduced-motion: reduce) { body[data-cv-surface] *, body[data-cv-surface] *::before, body[data-cv-surface] *::after { scroll-behavior: auto !important; } }
+}

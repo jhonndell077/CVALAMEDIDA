@@ -30,6 +30,24 @@ const state = {
 };
 
 const $ = (selector) => document.querySelector(selector);
+function startPresentation() {
+  // Firebase is authoritative: state.user can briefly retain the previous session.
+  if (state.authRequired && !state.auth?.currentUser) {
+    const panel = $('#auth-panel');
+    const signIn = $('#google-sign-in');
+    panel.hidden = false;
+    if (state.auth) {
+      signIn.click(); // Keep the existing popup handler inside the user's click.
+    } else {
+      $('#auth-help').textContent = 'Estamos preparando el inicio de sesión con Google. Si la conexión falla, pulsa Reintentar inicio.';
+      panel.scrollIntoView?.({block: 'center', behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 'instant' : 'smooth'});
+      signIn.focus();
+    }
+    return;
+  }
+  $('#open-vacancy').click();
+}
+window.cvStartPresentation = startPresentation;
 const jobPanel = $("#job-panel");
 const analysisPanel = $("#analysis-panel");
 const cvPanel = $("#cv-panel");

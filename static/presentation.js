@@ -1,6 +1,9 @@
 (() => {
   document.querySelectorAll('[data-presentation-start]').forEach(button => {
-    button.addEventListener('click', () => document.getElementById('open-vacancy')?.click());
+    button.addEventListener('click', () => {
+      if (window.cvStartPresentation) window.cvStartPresentation();
+      else document.getElementById('open-vacancy')?.click();
+    });
   });
   const tabs = [...document.querySelectorAll('[data-presentation-tab]')];
   function select(tab) {
