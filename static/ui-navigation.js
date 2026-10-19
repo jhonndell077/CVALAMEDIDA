@@ -4,6 +4,7 @@
   function revealStep() {
     if (!pendingStep || document.body.classList.contains('is-loading')) return;
     const panel = document.getElementById(panels[pendingStep - 1]);
+    window.cvWorkspace?.showStep(pendingStep);
     pendingStep = 0;
     if (!panel || panel.hidden || document.querySelector('dialog[open]')) return;
     const heading = panel.querySelector('h2') || panel;

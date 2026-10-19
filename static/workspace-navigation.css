@@ -1,0 +1,33 @@
+.workspace-menu { flex: 0 0 46px; width: 46px; height: 46px; display: grid; place-items: center; padding: 0; border: 1px solid #cbd8ca; border-radius: 15px; background: #ffffffa6; color: var(--green); cursor: pointer; transition: background .2s, box-shadow .2s; }
+body:has(#workspace-sidebar[open], #vacancy-window[open], #history-window[open]) { overflow: hidden; }
+.workspace-menu:hover { background: #eaf0e3; box-shadow: 0 4px 16px #315d4615; }
+.workspace-menu > span { display: grid; gap: 5px; }
+.workspace-menu .cv-button-label > span { display: grid; gap: 5px; }
+.workspace-menu i { display: block; width: 20px; height: 2px; border-radius: 2px; background: currentColor; }
+.workspace-menu .cv-galaxy-decoration, .workspace-close .cv-galaxy-decoration { display: none; }
+.topbar { gap: 18px; }
+.workspace-sidebar, .workspace-window { color: var(--ink); background: #fffdf7; border: 1px solid #dce5d7; box-shadow: 0 24px 90px #16392340; padding: 0; }
+.workspace-sidebar::backdrop, .workspace-window::backdrop { background: #152c2375; backdrop-filter: blur(5px); animation: workspace-veil .25s ease both; }
+.workspace-sidebar { position: fixed; inset: 0 auto 0 0; margin: 0; width: min(410px, calc(100vw - 18px)); max-width: none; height: 100dvh; max-height: 100dvh; border-radius: 0 26px 26px 0; }
+.workspace-sidebar[open] { animation: workspace-slide .32s cubic-bezier(.22,1,.36,1) both; }
+.workspace-window { width: min(960px, calc(100vw - 32px)); max-height: 90dvh; border-radius: 26px; }
+.workspace-window[open] { animation: workspace-rise .28s cubic-bezier(.22,1,.36,1) both; }
+.workspace-window-header { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 24px 26px; background: #fffdf7f5; border-bottom: 1px solid var(--line); }
+.workspace-window-header h2 { margin: 3px 0 0; font-size: 23px; }
+.workspace-close { flex: 0 0 42px; width: 42px; height: 42px; padding: 0; border-radius: 50%; border: 1px solid #d5dfd0; background: #f1f5ec; color: var(--green); font-size: 28px; cursor: pointer; }
+.workspace-sidebar-content { padding: 28px 24px; }
+.workspace-shortcuts { display: grid; gap: 12px; }
+.workspace-shortcuts .button { width: 100%; justify-content: space-between; text-align: left; }
+.workspace-section-label { margin: 32px 0 12px; color: var(--muted); font-size: 11px; letter-spacing: .12em; font-weight: 700; }
+#workspace-services .panel { margin: 0; padding: 16px 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+#workspace-services .panel > .eyebrow, #workspace-services .panel > h2, #workspace-services .panel > p:not([role]) { display: none; }
+#workspace-services .telegram-actions { display: grid; gap: 10px; }
+#workspace-services .button { width: 100%; margin: 0 0 10px; text-align: left; justify-content: flex-start; }
+#workspace-services p, #workspace-services details { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+#workspace-services #bank-status { margin-top: 0; }
+.workspace-window-content > .panel { width: 100%; margin: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+@keyframes workspace-slide { from { opacity: 0; transform: translateX(-100%); } to { opacity: 1; transform: translateX(0); } }
+@keyframes workspace-rise { from { opacity: 0; transform: translateY(20px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes workspace-veil { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 600px) { .topbar { gap: 10px; } .workspace-menu { flex-basis: 42px; width: 42px; height: 42px; } .topbar .brand { flex: 1; } .topbar .privacy-pill { width: 100%; justify-content: center; } .workspace-window { width: calc(100vw - 16px); max-height: 94dvh; border-radius: 20px; } .workspace-window-header { padding: 16px; } .workspace-window-content > .panel { padding: 20px 16px; } }
+@media (prefers-reduced-motion: reduce) { .workspace-sidebar[open], .workspace-window[open], .workspace-sidebar::backdrop, .workspace-window::backdrop { animation: none; } .workspace-menu { transition: none; } }

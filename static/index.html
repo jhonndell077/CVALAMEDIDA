@@ -16,10 +16,12 @@
     <link rel="stylesheet" href="/subscription-notices.css">
     <link rel="stylesheet" href="/employment.css">
     <link rel="stylesheet" href="/card-motion.css">
+    <link rel="stylesheet" href="/workspace-navigation.css">
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   </head>
   <body>
     <header class="topbar">
+      <button id="workspace-menu" class="workspace-menu" type="button" aria-label="Abrir menú" aria-haspopup="dialog" aria-controls="workspace-sidebar" aria-expanded="false"><span aria-hidden="true"><i></i><i></i><i></i></span></button>
       <a class="brand" href="/" aria-label="CV a la medida">
         <img class="brand-logo" src="/logo-cv-a-la-medida.png" alt="CV a la medida" width="2172" height="724">
       </a>
@@ -507,6 +509,17 @@
     <script src="/data-panel.js" defer></script>
     <dialog id="employment-window" aria-labelledby="employment-window-title" data-own-motion><header class="employment-window-header"><h2 id="employment-window-title">Empleo Inteligente</h2><button id="employment-window-close" type="button" class="button button-secondary">Cerrar</button></header><div class="employment-window-content"></div></dialog>
     <script src="/employment-window.js" defer></script>
+    <dialog id="workspace-sidebar" class="workspace-sidebar" aria-labelledby="workspace-sidebar-title" data-own-motion>
+      <header class="workspace-window-header"><div><span class="eyebrow">TU ESPACIO</span><h2 id="workspace-sidebar-title">A tu medida</h2></div><button class="workspace-close" data-workspace-close type="button" aria-label="Cerrar menú">×</button></header>
+      <div class="workspace-sidebar-content">
+        <nav class="workspace-shortcuts" aria-label="Herramientas de tu CV"><button id="open-vacancy" class="button button-primary" type="button" aria-haspopup="dialog" aria-controls="vacancy-window">Analizar vacante <span aria-hidden="true">→</span></button><button id="open-history" class="button button-secondary" type="button" aria-haspopup="dialog" aria-controls="history-window">Historial</button></nav>
+        <div class="workspace-section-label">CONEXIONES Y DATOS</div>
+        <div id="workspace-services"></div>
+      </div>
+    </dialog>
+    <dialog id="vacancy-window" class="workspace-window" aria-labelledby="vacancy-window-title" data-own-motion><header class="workspace-window-header"><h2 id="vacancy-window-title">Analizar vacante</h2><button class="workspace-close" data-workspace-close type="button" aria-label="Cerrar vacante">×</button></header><div class="workspace-window-content"></div></dialog>
+    <dialog id="history-window" class="workspace-window" aria-labelledby="history-window-title" data-own-motion><header class="workspace-window-header"><h2 id="history-window-title">Historial</h2><button class="workspace-close" data-workspace-close type="button" aria-label="Cerrar historial">×</button></header><div class="workspace-window-content"></div></dialog>
+    <script src="/workspace-navigation.js" defer></script>
     <script src="/ui-navigation.js" defer></script>
     <script src="/subscription-notices.js" defer></script>
     <script src="/client-supervisor.js" defer></script>
