@@ -37,6 +37,17 @@ class Store:
 
 
 class PeriodAdmissionTests(unittest.TestCase):
+    def test_free_operations_preserve_usage_and_work_after_quota_exhaustion(self):
+        store = Store()
+        for index in range(3):
+            store.admit(f'cv-{index}', 'alice')
+            store.done(f'cv-{index}')
+        for index in range(12):
+            self.assertTrue(store.admit(f'sync-{index}', 'alice', charge=False))
+            store.done(f'sync-{index}')
+        with self.assertRaises(job_runtime.AdmissionLimit):
+            store.admit('next-cv', 'alice')
+
     def setUp(self):
         self.policy = patch.dict(os.environ, {'CV_DAILY_JOB_LIMIT': '3', 'CV_MONTHLY_JOB_LIMIT': '5'})
         self.policy.start()

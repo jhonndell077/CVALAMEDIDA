@@ -5,16 +5,29 @@ const jobId='web-12345678-1234-1234-1234-123456789abc';
 function setup(records=[], job={state:'done',progress:100,path:'/api/draft',result:{draft:{position:'Test'}}}){
  const {window,document}=parseHTML('<section id="background-panel"><div id="background-processes"></div></section><button id="enable-notifications"></button><p id="notifications-status"></p><div id="process-completed-toast" hidden></div>');
  const timers=new Map(),storage=new Map();let timerId=0;
- const localStorage={getItem:key=>storage.get(key)||JSON.stringify(records),setItem:(key,value)=>storage.set(key,value)};
+ const localStorage={getItem:key=>storage.get(key)||JSON.stringify(records),setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)};
  const context={window,document,navigator:{},location:{href:'https://example.com'},URL,CustomEvent:window.CustomEvent,localStorage,
   setTimeout:(fn,delay)=>{timers.set(++timerId,{fn,delay});return timerId},clearTimeout:id=>timers.delete(id)};
  window.cvLoading={backgroundSession:()=>null,start:()=>Object.assign(()=>{},{update(){}})};
  vm.runInNewContext(fs.readFileSync('static/background.js','utf8'),context);
- const settings={enabled:true,user:()=>({uid:'alice'}),request:async()=>job};
+ context.crypto={randomUUID:()=>jobId.slice(4)};
+ const settings={enabled:true,user:()=>({uid:'alice'}),request:async path=>path==='/api/background/jobs'?{job_id:jobId}:job};
+ const start=()=>window.cvBackground.run('/api/draft',{});
  const emit=(type,detail)=>window.dispatchEvent(new window.CustomEvent(type,{detail}));
- return {window,document,timers,storage,settings,emit,context,toast:document.querySelector('#process-completed-toast')};
+ return {window,document,timers,storage,settings,emit,context,start,toast:document.querySelector('#process-completed-toast')};
 }
 const settle=()=>new Promise(setImmediate);
+
+test('failed bank process preserves document review details for the owner',async()=>{
+ const bank={pending:0,warnings:[{file_id:'fixture-file',name:'Documento de prueba',message:'No se pudo leer',severity:'blocking'}]};
+ const q=setup([],{state:'failed',progress:92,path:'/api/bank/sync',error:'Revisa el documento',result:bank});
+ await q.window.cvBackground.initialize(q.settings);
+ await assert.rejects(q.window.cvBackground.run('/api/bank/sync',{}),error=>error.bankStatus===bank);
+ const details=q.document.querySelector('#background-processes details');
+ assert.ok(details.open);assert.match(details.textContent,/Documento de prueba/);assert.match(details.textContent,/No se pudo leer/);
+ assert.equal(details.querySelector('a').getAttribute('href'),'https://drive.google.com/file/d/fixture-file/view');
+ assert.equal(q.toast.hidden,true);
+});
 test('a local background load marks its row and shows a temporary completion toast',async()=>{
  const q=setup();await q.window.cvBackground.initialize(q.settings);
  q.emit('cv-loading-background',{id:1,message:'Cargando perfil'});
@@ -30,13 +43,7 @@ test('failed background load cannot show the green completion state',async()=>{
  q.emit('cv-loading-background',{id:2,message:'Guardando'});q.emit('cv-loading-finished',{id:2,success:false});
  assert.equal(q.toast.hidden,true);assert.equal(q.document.querySelector('.process-done'),null);assert.ok(q.document.querySelector('.process-failed'));
 });
-test('a completed pending server job is marked and announced once on recovery',async()=>{
- const q=setup([{id:jobId,path:'/api/draft',state:'queued',backgrounded:true}]);
- await q.window.cvBackground.initialize(q.settings);await settle();
- assert.equal(q.toast.hidden,false);assert.ok(q.document.querySelector('.process-done'));
- const saved=JSON.parse(q.storage.get('cv-processes-alice'));assert.equal(saved[0].announced,true);
- const count=q.timers.size;await q.window.cvBackground.initialize(q.settings);await settle();assert.equal(q.timers.size,count);
-});
+
 test('historical completed jobs are marked without repeating the toast',async()=>{
  const q=setup([{id:jobId,path:'/api/draft',state:'done',announced:true}]);
  await q.window.cvBackground.initialize(q.settings);await settle();assert.equal(q.document.querySelector('.process-done'),null);assert.equal(q.toast.hidden,true);
@@ -52,13 +59,7 @@ test('changing accounts clears a queued toast and ignores the old loading sessio
  await q.window.cvBackground.initialize({...q.settings,user:()=>({uid:'bob'})});
  q.emit('cv-loading-finished',{id:4,success:true});assert.equal(q.toast.hidden,true);assert.equal(q.document.querySelector('#background-processes').children.length,0);
 });
-test('a recovered completion waits until visible loading reaches 100',async()=>{
- const q=setup([{id:jobId,path:'/api/draft',state:'queued'}]);let ready=false;
- q.window.cvLoading.notificationReady=()=>ready;
- await q.window.cvBackground.initialize(q.settings);await settle();
- assert.equal(q.toast.hidden,true);assert.ok(q.document.querySelector('.process-done'));
- ready=true;[...q.timers.values()].find(timer=>timer.delay===250).fn();assert.equal(q.toast.hidden,false);
-});
+
 test('a local background placeholder is replaced by its server job and announces once',async()=>{
  const q=setup();await q.window.cvBackground.initialize(q.settings);
  q.window.cvLoading.backgroundSession=()=>5;
@@ -72,7 +73,7 @@ test('a local background placeholder is replaced by its server job and announces
  assert.equal(q.toast.hidden,true);
  q.window.cvLoading.currentSession=()=>null;
  q.emit('cv-loading-finished',{id:5,success:true});assert.equal(q.toast.hidden,false);
- assert.equal(JSON.parse(q.storage.get('cv-processes-alice'))[0].announced,true);
+ assert.equal(q.storage.has('cv-processes-alice'),false,'current result is not persisted as login history');
 });
 test('the real loading button and successful completion drive the toast and process row',async()=>{
  const q=setup();await q.window.cvBackground.initialize(q.settings);
@@ -122,33 +123,55 @@ test('toast uses the top layer above dialogs and closes after five seconds',asyn
  q.emit('cv-loading-background',{id:10,message:'Sincronizando'});q.emit('cv-loading-finished',{id:10,success:true});assert.equal(shown,1);
  [...q.timers.values()].find(timer=>timer.delay===5000).fn();assert.equal(hidden,1);assert.equal(q.toast.hidden,true);
 });
-test('installed app keeps its row and recovers after more than six connection failures',async()=>{
- const q=setup([{id:jobId,path:'/api/draft',state:'queued',backgrounded:true}]);let attempts=0;
- q.settings.request=async()=>{if(++attempts<=7)throw new Error('Offline fixture');return {state:'done',progress:100,path:'/api/draft',result:{draft:{}}}};
+
+
+
+
+
+for(const state of ['queued','done','failed'])test(`login discards saved ${state} jobs including unannounced background results`,async()=>{
+ const q=setup([{id:jobId,path:'/api/draft',state,backgrounded:true,pendingNotice:true,actionId:'old:1'}]);let calls=0;
+ q.settings.request=async()=>{calls++;throw new Error('History must not be fetched')};
  await q.window.cvBackground.initialize(q.settings);await settle();
- assert.equal(q.document.querySelector('#background-processes').children.length,1);assert.equal(q.toast.hidden,true);
- for(let i=0;i<7;i++){
-  const timer=[...q.timers.values()].find(timer=>[2000,10000].includes(timer.delay));assert.ok(timer,'recovery remains scheduled');timer.fn();await settle();
- }
- assert.equal(attempts,8);assert.ok(q.document.querySelector('.process-done'));assert.equal(q.toast.hidden,false);
+ assert.equal(calls,0);assert.equal(q.document.querySelector('#background-processes').children.length,0);assert.equal(q.toast.hidden,true);
+ assert.equal(q.storage.has('cv-processes-alice'),false);
 });
-test('pageshow replaces a frozen request instead of reusing its stalled watcher',async()=>{
- const q=setup([{id:jobId,path:'/api/draft',state:'queued',backgrounded:true}]);let calls=0;
- q.settings.request=async()=>{if(++calls===1)return new Promise(()=>{});return {state:'done',progress:100,path:'/api/draft',result:{draft:{}}}};
- await q.window.cvBackground.initialize(q.settings);await settle();assert.equal(calls,1);
- q.window.dispatchEvent(new q.window.Event('pageshow'));await settle();
- assert.equal(calls,2);assert.ok(q.document.querySelector('.process-done'));assert.equal(q.toast.hidden,false);
-});
-test('missing saved job gets an explicit visible state instead of an empty panel',async()=>{
- const q=setup([{id:jobId,path:'/api/draft',state:'queued'}]);let calls=0;
- q.settings.request=async()=>{calls++;throw Object.assign(new Error('No existe'),{status:404})};
+
+test('current result survives token refresh, opens explicitly, and disappears at next login',async()=>{
+ const q=setup();const events=[];q.window.addEventListener('cv-background-result',event=>events.push(event.detail));
+ await q.window.cvBackground.initialize(q.settings);await q.start();
  await q.window.cvBackground.initialize(q.settings);await settle();
- assert.equal(calls,1);assert.ok(q.document.querySelector('.process-failed'));assert.match(q.document.querySelector('#background-processes').textContent,/ya no está disponible/);assert.equal(q.toast.hidden,true);
+ assert.equal(events.length,0);assert.equal(q.document.querySelector('#background-processes').children.length,1);
+ q.document.querySelector('#background-processes button').click();assert.equal(events.length,1);
+ await q.window.cvBackground.initialize({enabled:false,user:()=>null});
+ await q.window.cvBackground.initialize(q.settings);await settle();
+ assert.equal(q.document.querySelector('#background-processes').children.length,0);
 });
-test('a completed notice survives termination of the installed app before it was visible',async()=>{
- const q=setup([{id:jobId,path:'/api/draft',state:'queued',backgrounded:true}]);q.document.hidden=true;
- await q.window.cvBackground.initialize(q.settings);await settle();assert.equal(q.toast.hidden,true);
- const records=JSON.parse(q.storage.get('cv-processes-alice'));assert.equal(records[0].pendingNotice,true);assert.notEqual(records[0].announced,true);
- const reopened=setup(records);await reopened.window.cvBackground.initialize(reopened.settings);await settle();assert.equal(reopened.toast.hidden,false);
- assert.equal(JSON.parse(reopened.storage.get('cv-processes-alice'))[0].pendingNotice,false);
+
+test('old push and job link cannot import a previous generation',async()=>{
+ const q=setup();let callback,calls=0;
+ q.context.navigator.serviceWorker={register:async()=>({}),addEventListener:(name,fn)=>callback=fn};
+ // Build a new runtime with the service worker available from initialization.
+ vm.runInNewContext(fs.readFileSync('static/background.js','utf8'),q.context);
+ q.settings.request=async()=>{calls++;throw new Error('Old job requested')};
+ q.context.location.href=`https://example.com/?job=${jobId}`;
+ await q.window.cvBackground.initialize(q.settings);
+ callback({data:{type:'cv-process-finished',job_id:jobId}});await settle();
+ assert.equal(calls,0);assert.equal(q.document.querySelector('#background-processes').children.length,0);
+});
+
+test('pageshow reconnects a stalled job explicitly started in this session',async()=>{
+ const q=setup();let calls=0;
+ q.settings.request=async path=>{if(path==='/api/background/jobs')return {job_id:jobId};if(++calls===1)return new Promise(()=>{});return {state:'done',progress:100,path:'/api/draft',result:{draft:{}}}};
+ await q.window.cvBackground.initialize(q.settings);const pending=q.start();await settle();assert.equal(calls,1);
+ q.window.dispatchEvent(new q.window.Event('pageshow'));await pending;
+ assert.equal(calls,2);assert.ok(q.document.querySelector('.process-done'));
+});
+
+test('a delayed submission cannot repopulate the panel after logout and same-account login',async()=>{
+ const q=setup();let release,calls=0;
+ q.settings.request=async path=>{calls++;return new Promise(resolve=>release=resolve)};
+ await q.window.cvBackground.initialize(q.settings);const pending=q.start();
+ await q.window.cvBackground.initialize({enabled:false,user:()=>null});await q.window.cvBackground.initialize(q.settings);
+ release({job_id:jobId});await assert.rejects(pending,/La sesi/);
+ assert.equal(calls,1);assert.equal(q.document.querySelector('#background-processes').children.length,0);
 });

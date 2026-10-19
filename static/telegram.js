@@ -1,6 +1,6 @@
 window.cvTelegram = (() => {
   let user = null, authHeaders, client, loading = false, generation = 0;
-  let pairLink = '', pairExpires = 0, driveConnected = false, authorization = null, authorizationOperation = '';
+  let pairLink = '', pairExpires = 0, driveConnected = false, authorization = null, authorizationOperation = '', multiAccount = false;
   const panel = () => document.querySelector("#telegram-panel");
   const button = () => document.querySelector("#telegram-authorize-drive");
   const status = () => document.querySelector("#telegram-status");
@@ -62,15 +62,16 @@ window.cvTelegram = (() => {
     const data = await json("/api/telegram/status");
     if (sessionGeneration !== generation || !user) return;
     driveConnected = Boolean(data.drive_connected);
-    button().hidden = driveConnected;
+    multiAccount = Boolean(data.multi_account);
+    button().hidden = Boolean(data.multi_account || driveConnected);
     const link = document.querySelector("#telegram-open-bot");
     const activeLink=data.bot_url || (Date.now()<pairExpires ? pairLink : '');
-    link.hidden = !activeLink;
+    link.hidden = !data.linked || !driveConnected || !activeLink;
     if (activeLink) link.href = activeLink; else link.removeAttribute('href');
-    document.querySelector('#telegram-link').hidden=!data.multi_account || data.linked;
+    document.querySelector('#telegram-link').hidden=!data.multi_account || Boolean(data.linked && driveConnected);
     document.querySelector('#telegram-disconnect').hidden=!data.multi_account || !data.linked;
-    document.querySelector('#telegram-check-link').hidden=!data.multi_account || data.linked;
-    document.querySelector('#telegram-confirm-link').hidden=!data.pending || data.linked;
+    document.querySelector('#telegram-check-link').hidden=true;
+    document.querySelector('#telegram-confirm-link').hidden=true;
     status().textContent = data.drive_connected ? "Drive conectado para trabajar desde Telegram. " + data.message : data.message;
     if (data.pending) status().textContent=`Telegram pendiente: ${data.pending.telegram_name || 'Sin nombre'} ${data.pending.telegram_username ? '@'+data.pending.telegram_username : ''} (ID ${data.pending.telegram_id}). Confirma únicamente si es tu cuenta.`;
     button().textContent = data.drive_connected ? "Volver a autorizar Drive para Telegram" : "Autorizar Drive para Telegram";
@@ -120,18 +121,35 @@ window.cvTelegram = (() => {
   for (const [id,path] of [['telegram-link','/api/telegram/link'],['telegram-confirm-link','/api/telegram/link/confirm'],['telegram-disconnect','/api/telegram/disconnect']]) {
     document.querySelector('#'+id).addEventListener('click',async()=>{
       const started=generation, control=document.querySelector('#'+id);
+      if (control.disabled || !user) return;
+      // Google needs the user activation for its popup. After OAuth, navigate
+      // this tab to Telegram instead of attempting a second blocked popup.
+      const botWindow = id === 'telegram-link' && driveConnected ? window.open('', '_blank') : null;
+      if (botWindow) botWindow.opener = null;
       control.disabled=true; error().hidden=true;
       try {
         if (id !== 'telegram-disconnect' && !driveConnected) {
           await synchronize();
-          if (started !== generation) return;
+          if (started !== generation) { botWindow?.close(); return; }
+        }
+        if (id === 'telegram-link') {
+          const account = await json('/api/telegram/status');
+          if (account.linked) {
+            if (botWindow && account.bot_url) botWindow.location.replace(account.bot_url);
+            else botWindow?.close();
+            await refresh(started); return;
+          }
         }
         const data=await json(path,{});
-        if (data.bot_url) { pairLink=data.bot_url; pairExpires=Date.now()+data.expires_in*1000; }
+        if (data.bot_url) {
+          pairLink=data.bot_url; pairExpires=Date.now()+data.expires_in*1000;
+          if (botWindow) botWindow.location.replace(data.bot_url);
+          else window.location.assign(data.bot_url);
+        }
         else { pairLink=''; pairExpires=0; }
         await refresh(started);
-        if (started===generation && data.bot_url) status().textContent='Abre tu espacio en el bot, pulsa Iniciar y vuelve aquí para revisar y confirmar la vinculación. El enlace vence en 10 minutos.';
-      } catch (problem) { if (started===generation) fail(problem.message); }
+        if (started===generation && data.bot_url) status().textContent='Pulsa Iniciar en Telegram para completar la vinculación. No necesitas volver aquí. El enlace vence en 10 minutos.';
+      } catch (problem) { botWindow?.close(); if (started===generation) fail(problem.message); }
       finally { if (started===generation) control.disabled=false; }
     });
   }
@@ -145,7 +163,8 @@ window.cvTelegram = (() => {
     catch (problem) {
       if (problem.status === 409) {
         driveConnected = false;
-        button().hidden = false;
+        button().hidden = multiAccount;
+        document.querySelector('#telegram-link').hidden = !multiAccount;
         button().disabled = !client || !user;
         button().textContent = 'Autorizar Drive para Telegram';
         status().textContent = 'Google necesita renovar los permisos. Pulsa Autorizar Drive para Telegram.';
@@ -184,5 +203,6 @@ window.cvTelegram = (() => {
     return pending.promise;
   }
   button().addEventListener('click', () => synchronize().catch(problem => fail(problem.message)));
-  return {initialize, synchronize, restore};
+  window.addEventListener?.('focus', () => { if (user) refresh(generation).catch(() => {}); });
+  return {initialize, synchronize, restore, link: () => document.querySelector('#telegram-link').click()};
 })();

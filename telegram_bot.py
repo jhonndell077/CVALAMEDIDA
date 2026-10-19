@@ -342,6 +342,15 @@ def archive_pdf(core, config, identifier, filename, content):
 
 
 def process_job(core, config, identifier, store):
+    try:
+        return _process_owned_job(core, config, identifier, store)
+    finally:
+        job, _ = store.read(identifier)
+        if job and job.get('state') in {'failed', 'rejected'} and not job.get('drive_url'):
+            runtime.refund_usage(store, identifier, job.get('owner_uid', ''))
+
+
+def _process_owned_job(core, config, identifier, store):
     job,_=store.read(identifier)
     if not job or job.get('state') in {'done','failed','delivery_started','awaiting_selection','rejected'}: return
     if job.get('lease_until',0)>time.time(): raise runtime.JobError('La vacante sigue en proceso.')
@@ -669,8 +678,9 @@ def register_routes(app, core):
             pairing=re.fullmatch(r'/start(?:@[A-Za-z0-9_]+)?\s+([A-Za-z0-9_-]{43})',(raw.get('text') or '').strip())
             if pairing:
                 try:
-                    accounts.stage_link(core,pairing[1],raw,store)
-                    say({**config,'owner_id':telegram_id},'Vuelve a la app y confirma que esta es tu cuenta de Telegram. Hasta que confirmes, el bot no tendrá acceso a tu banco.',raw.get('message_id'))
+                    pair = accounts.stage_link(core,pairing[1],raw,store)
+                    accounts.confirm_link(core, pair, store)
+                    say({**config,'owner_id':telegram_id},'Telegram vinculado a ' + pair['email'] + '. Ya puedes enviar una vacante para crear tu CV.',raw.get('message_id'))
                 except core.AppError as error:
                     if linked:
                         offer_disconnect(str(error).replace('Desvincúlalo desde esa cuenta.', 'Pulsa Desvincular para cambiar de cuenta.'))
@@ -734,7 +744,7 @@ def register_routes(app, core):
                 return jsonify(ok=True)
             if not job:
                 try:
-                    admitted = store.admit(identifier, config.get('owner_uid', ''))
+                    admitted = store.admit(identifier, config.get('owner_uid', ''), charge=False)
                 except runtime.AdmissionLimit as error:
                     acknowledge(config, query['id'], str(error))
                     return jsonify(ok=True)

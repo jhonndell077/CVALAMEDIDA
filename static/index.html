@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
   <head>
-    <meta name="cv-build" content="20261018T020703Z-b41a77e4">
+    <meta name="cv-build" content="20261018T134458Z-3773e680">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#f8f5eb">
@@ -180,13 +180,21 @@
         <h2>Inicia sesión para usar tu perfil</h2>
         <p id="auth-help">Conecta tu cuenta comprobada para consultar tu perfil, guardar CV en Drive y enviarlos por Gmail. Los permisos concedidos se reutilizan.</p>
         <p id="auth-user" hidden></p>
-        <button id="google-sign-in" class="button button-primary" type="button">Continuar con Google</button>
+        <button id="google-sign-in" class="button button-primary" type="button">1. Iniciar sesión con Google</button>
+        <dialog id="required-sync" aria-label="Configura tu cuenta" hidden>
+          <p>Completa los pasos 2 y 3 para entrar al formulario del currículum.</p>
+          <button id="verify-session-gmail" class="button button-secondary" type="button">2. Verificar inicio de sesión y sincronización con Gmail</button>
+          <p id="verify-session-status" role="status" aria-live="polite">Pendiente</p>
+          <button id="verify-drive" class="button button-secondary" type="button" disabled>3. Verificar sincronización con Google Drive</button>
+          <p id="verify-drive-status" role="status" aria-live="polite">Pendiente: completa el paso 2.</p>
+          <button id="sync-telegram-optional" class="button button-secondary" type="button">4. Sincronizar Telegram (opcional)</button>
+        </dialog>
         <button id="google-sign-out" class="text-button" type="button" hidden>Cerrar sesión</button>
       </section>
 
       <section class="panel" id="background-panel" hidden>
         <h2>Tus procesos</h2>
-        <p>Una vez guardada la solicitud, el servidor sigue trabajando aunque salgas de la app. Al volver, recuperamos tus resultados.</p>
+        <p>Aquí puedes seguir los procesos que inicies en esta sesión y abrir sus resultados. Al iniciar una nueva sesión, el panel comienza vacío y solo se sincronizan tus datos.</p>
         <button id="enable-notifications" class="button button-secondary" type="button" disabled>Activar notificaciones</button>
         <p id="notifications-status" role="status"></p>
         <div id="background-processes" aria-live="polite"></div>
@@ -196,7 +204,7 @@
         <div class="eyebrow">TU ASISTENTE PRIVADO</div>
         <h2 id="telegram-title">CV a la medida en Telegram</h2>
         <p>El mismo bot atiende a cada usuario en su conversación privada y utiliza únicamente el Banco de Datos y CV Generados de su cuenta de Google.</p>
-        <p class="microcopy">Telegram es opcional. Pulsa Vincular mi Telegram y Drive: si falta el permiso de Google, se solicitar&#225; en ese mismo paso. Luego abre el bot, pulsa Iniciar y confirma aqu&#237; tu cuenta. Si ya est&#225; vinculada y falta Drive, pulsa Autorizar Drive para Telegram.</p>
+        <p class="microcopy">Telegram es opcional. Pulsa Vincular mi Telegram y Drive, autoriza Google si se solicita y pulsa Iniciar en el bot. La vinculación se completa desde Telegram.</p>
         <div class="telegram-actions">
           <button id="telegram-authorize-drive" hidden class="button button-secondary" type="button" disabled>Autorizar Drive para Telegram</button>
           <button id="telegram-link" class="button button-secondary" type="button" hidden>Vincular mi Telegram y Drive</button>
@@ -217,7 +225,7 @@
         <p>Al sincronizar, la app muestra los archivos actuales del banco y utiliza sus datos legibles. Si retiras un documento, desaparece de la lista y sus datos extraídos dejan de formar parte del perfil. Los datos registrados en perfil_base.json también pertenecen al banco.</p>
         <button id="select-account-folders" class="button button-secondary" type="button" hidden>Seleccionar mis carpetas manualmente</button>
         <button id="open-onboarding" class="button button-secondary" type="button" hidden>Completar mis datos para el CV</button>
-        <details><summary>Documentos y avisos de lectura</summary><div id="bank-documents"></div><div id="bank-warnings"></div></details>
+        <details id="bank-review"><summary>Documentos y avisos de lectura</summary><div id="bank-documents"></div><div id="bank-warnings"></div></details>
       </section>
 
       <section class="panel" id="drive-panel" hidden>
@@ -502,6 +510,7 @@
     <script src="/ui-navigation.js" defer></script>
     <script src="/subscription-notices.js" defer></script>
     <script src="/client-supervisor.js" defer></script>
+    <script src="/required-sync.js" defer></script>
     <script src="/app.js" defer></script>
     <script src="/vendor/leaflet/leaflet.js" defer></script>
     <script src="/employment.js" defer></script>

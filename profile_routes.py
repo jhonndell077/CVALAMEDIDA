@@ -29,13 +29,43 @@ def register_routes(core):
 
     core.account_status = account_status
 
+    @core.app.post('/api/account/initial-sync')
+    def complete_initial_sync():
+        identity = core.user_accounts.CURRENT.get()
+        if not identity or not isinstance(identity.get('uid'), str) or not identity['uid']:
+            raise core.AppError('Inicia sesión para verificar tu cuenta.', 401)
+        store = job_runtime.JobStore()
+        key = core.user_accounts.account_key(identity['uid'])
+        record, generation = store.read(key)
+        if not record or record.get('uid') != identity['uid']:
+            raise core.AppError('Prepara el banco de esta cuenta antes de continuar.', 409)
+        import synchronization_checks
+        synchronization_checks.verify(core, core.app.view_functions['google_grant'])
+        status = core.load_drive_bank()
+        import bank_sync_status
+        if bank_sync_status.summarize(status)['state'] != 'ready':
+            raise core.AppError('Completa la sincronización y revisa los avisos del banco antes de continuar.', 409)
+        record = {**record, 'initial_sync_completed': True}
+        store.write(key, record, generation)
+        response = core.jsonify(completed=True)
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+
     @core.app.post('/api/account/setup')
     def setup_account():
         if not core.user_accounts.CURRENT.get(): raise core.AppError('Inicia sesión para preparar tu cuenta.', 401)
         identity = core.user_accounts.CURRENT.get()
         selection = core.request.get_json(silent=True) or {}
         if set(selection) - {'bank_id', 'archive_id'}: raise core.AppError('Selección de carpetas inválida.')
-        record = core.user_accounts.prepare(core, identity, core.request.headers.get('X-Drive-Access-Token', ''), selection or None)
+        try:
+            record = core.user_accounts.prepare(core, identity, core.request.headers.get('X-Drive-Access-Token', ''), selection or None)
+        except core.AppError as error:
+            if not getattr(error, 'setup_busy', False):
+                raise
+            response = core.jsonify(error=str(error), code='account_setup_in_progress')
+            response.status_code = 409
+            response.headers['Retry-After'] = '1'
+            return response
         return core.jsonify(core.user_accounts.public(record))
 
     core.setup_account = setup_account

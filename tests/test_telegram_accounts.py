@@ -177,11 +177,11 @@ class TelegramAccountsTests(unittest.TestCase):
             response=app.app.test_client().post('/telegram/webhook',json=update,headers={'X-Telegram-Bot-Api-Secret-Token':'secret-test'})
             return response,queue.call_args_list,sent.call_args_list
 
-    def test_signed_start_only_stages_link_and_groups_are_ignored(self):
+    def test_signed_start_completes_link_and_groups_are_ignored(self):
         store=MemoryStore();token=accounts.create_link(app,ALICE,store)
         result,queued,sent=self.webhook(store,{'update_id':1,'message':message(321,'/start '+token)})
         self.assertEqual(result.status_code,200); self.assertFalse(queued)
-        self.assertIsNone(accounts.binding(store,321));self.assertTrue(sent)
+        self.assertEqual(accounts.binding(store,321)['uid'], ALICE['uid']);self.assertTrue(sent)
         grouped=message(654,'/start '+token);grouped['chat']['type']='group'
         result,queued,sent=self.webhook(store,{'update_id':2,'message':grouped})
         self.assertFalse(queued);self.assertFalse(sent)

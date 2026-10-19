@@ -140,3 +140,18 @@ def reserve(queue, identifier, timestamp, policy=None):
     usage['monthly'] = usage.get('monthly', 0) + 1
     usage.setdefault('receipts', {})[receipt] = timestamp
     return usage
+
+
+def refund(queue, identifier):
+    """Undo a failed generation once, in the periods where it was reserved."""
+    usage = copy.deepcopy((queue or {}).get('usage', {}))
+    receipt = hashlib.sha256(identifier.encode()).hexdigest()
+    reserved_at = usage.get('receipts', {}).pop(receipt, None)
+    if reserved_at is None:
+        return None
+    reserved = datetime.fromtimestamp(reserved_at, timezone.utc)
+    if usage.get('month') == reserved.strftime('%Y-%m'):
+        usage['monthly'] = max(0, usage.get('monthly', 0) - 1)
+        if usage.get('day') == reserved.strftime('%Y-%m-%d'):
+            usage['daily'] = max(0, usage.get('daily', 0) - 1)
+    return usage

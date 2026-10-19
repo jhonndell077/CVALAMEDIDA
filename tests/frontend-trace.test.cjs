@@ -27,6 +27,9 @@ test('basic provider requests no Drive or Gmail scopes while authorization reque
  const provider=part('  const googleProvider =','  window.cvDrive.setAuthorizationHandler');
  vm.runInNewContext(provider+'\nglobalThis.basic=googleProvider();globalThis.drive=googleProvider(true);',context);
  assert.equal(context.basic.scopes.length,0);assert.equal(context.drive.scopes.length,3);
+ context.state.multiAccount=false;context.state.bankEnabled=true;
+ vm.runInNewContext('globalThis.legacy=googleProvider(true);',context);
+ assert.ok(context.legacy.scopes.includes('https://www.googleapis.com/auth/drive.readonly'));
  const login=part('  $("#google-sign-in").addEventListener','  $("#google-sign-out").addEventListener');
  assert.doesNotMatch(login,/verifiedGoogleCredential|acceptCredential/);
 });

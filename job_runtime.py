@@ -95,16 +95,25 @@ class JobStore:
         self.bucket.blob(f"jobs/{identifier}.json").upload_from_string(json.dumps(data),
             content_type="application/json", if_generation_match=generation)
 
-    def admit(self, identifier, owner_uid=''):
+    def admit(self, identifier, owner_uid='', *, charge=True, probe=False):
         # Storage generation preconditions keep the ten-slot limit atomic across instances.
         queue_key = admission_policy.queue_key(owner_uid)
         for _ in range(5):
             queue, generation = self.read(queue_key)
+            queue = queue or {}
             if (queue or {}).get('maintenance'):
                 raise JobError('La cuenta está bloqueada para una acción administrativa. Contacta al administrador.')
             pending = []
             for item in (queue or {}).get("pending", []):
                 job, _ = self.read(item["id"])
+                abandoned = (not job and time.time() - item['created_at'] > 1800) or (
+                    job and item['id'].startswith('direct-') and job.get('state') == 'processing'
+                    and job.get('lease_until', 0) < time.time())
+                failed = job and job.get('state') in {'failed', 'rejected'} and not job.get('drive_url') and not job.get('result')
+                if abandoned or failed:
+                    refunded = admission_policy.refund(queue, item['id'])
+                    if refunded is not None:
+                        queue = {**queue, 'usage': refunded}
                 if job and job.get("state") in {"done", "failed", "rejected"}:
                     continue
                 if job and job.get('state') == 'delivery_started' and job.get('lease_until', 0) < time.time():
@@ -119,17 +128,20 @@ class JobStore:
             if len(pending) >= 10:
                 return False
             try:
-                policy = admission_policy.effective_limits(self, owner_uid)
-                usage = admission_policy.reserve(queue or {}, identifier, time.time(), policy)
+                policy = admission_policy.effective_limits(self, owner_uid) if charge else None
+                usage = (admission_policy.reserve(queue or {}, identifier, time.time(), policy)
+                         if charge else (queue or {}).get('usage', {}))
             except admission_policy.QuotaExceeded as error:
                 raise AdmissionLimit(error.period, error.retry_after) from None
             except ValueError:
                 raise JobError('La política de admisión no está disponible.') from None
             if usage is None:
                 return True
+            if probe:
+                return True
             pending.append({"id": identifier, "created_at": time.time()})
             try:
-                self.write(queue_key, {"pending": pending, "usage": usage}, generation)
+                self.write(queue_key, {**(queue or {}), "pending": pending, "usage": usage}, generation)
                 return True
             except PreconditionFailed:
                 continue
@@ -154,6 +166,28 @@ class JobStore:
         blob = self.bucket.blob(f"temporary/{identifier}.artifact")
         blob.reload()
         return blob.download_as_bytes(if_generation_match=blob.generation), blob.content_type
+
+
+def refund_usage(store, identifier, owner_uid='', *, release=False):
+    """CAS-protected, idempotent rollback; never resets another job's usage."""
+    key = admission_policy.queue_key(owner_uid)
+    for _ in range(10):
+        queue, generation = store.read(key)
+        usage = admission_policy.refund(queue, identifier)
+        pending = [item for item in (queue or {}).get('pending', []) if item['id'] != identifier]
+        if usage is None and (not release or pending == (queue or {}).get('pending', [])):
+            return
+        updated = {**queue}
+        if usage is not None:
+            updated['usage'] = usage
+        if release:
+            updated['pending'] = pending
+        try:
+            store.write(key, updated, generation)
+            return
+        except PreconditionFailed:
+            continue
+    raise JobError('No se pudo liberar la reserva de generación. Reintenta la consulta.')
 
 
 def enqueue(identifier, config, task_identifier=None, kind=None):

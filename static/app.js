@@ -374,14 +374,17 @@ function renderBankStatus(data) {
   }
   const warnings = $("#bank-warnings");
   warnings.replaceChildren();
-  for (const warning of data.warnings || []) addText(warnings, "p", `${warning.name}: ${warning.message}`);
+  for (const warning of data.warnings || []) addText(warnings, "p", `${warning.severity === 'notice' ? 'Observación' : 'Requiere revisión'} · ${warning.name || 'Banco'}: ${warning.message}`);
+  const review = $('#bank-review');
+  if (review && bankSyncBlocked(data)) review.open = true;
   const unread = (data.documents || []).filter(doc => doc.active && doc.status === "revision").length;
   $("#bank-status").textContent = data.pending
     ? `${data.pending} documento(s) pendiente(s) de lectura.`
-    : `Banco actualizado · ${data.counts.courses} cursos · ${data.counts.education} estudios · ${data.counts.experiences} experiencias.${unread ? ` ${unread} archivo(s) no pudieron leerse; revisa los avisos.` : ""}`;
+    : bankSyncBlocked(data) ? 'Banco leído; hay documentos que requieren revisión. Consulta el detalle de abajo.'
+    : `Banco sincronizado · ${data.counts?.courses || 0} cursos · ${data.counts?.education || 0} estudios · ${data.counts?.experiences || 0} experiencias.${data.warnings?.length ? ' Hay observaciones informativas; consulta el detalle.' : ''}${unread ? ` ${unread} archivo(s) no pudieron leerse; revisa los avisos.` : ""}`;
 }
 
-async function synchronizeBank(onProgress) {
+async function synchronizeBank(onProgress, operationId) {
   if (!state.bankEnabled) return;
   if (state.bankSyncPromise) return state.bankSyncPromise;
   const bankOwner = state.user?.uid, bankEpoch = state.authEpoch;
@@ -392,7 +395,7 @@ async function synchronizeBank(onProgress) {
     let previousSignature = null;
     try {
       if (window.cvBackground.enabled()) {
-        const data = await window.cvBackground.run('/api/bank/sync', {}, {}, onProgress);
+        const data = await window.cvBackground.run('/api/bank/sync', {}, operationId ? {'X-CV-Operation-ID':operationId} : {}, onProgress);
         if (!bankIsCurrent()) throw new Error('La cuenta cambió durante la sincronización.');
         renderBankStatus(data);
         return data;
@@ -406,7 +409,9 @@ async function synchronizeBank(onProgress) {
           state.idToken = token;
         }
         if (!bankIsCurrent()) throw new Error('La cuenta cambió durante la sincronización.');
-        const data = await requestJson("/api/bank/sync", {});
+        const data = operationId
+          ? await directRequestJson('/api/bank/sync', {}, {'X-CV-Operation-ID':operationId})
+          : await requestJson('/api/bank/sync', {});
         if (!bankIsCurrent()) throw new Error('La cuenta cambió durante la sincronización.');
         renderBankStatus(data);
         if (!data.pending) return data;
@@ -415,7 +420,10 @@ async function synchronizeBank(onProgress) {
         previousSignature = signature;
       }
     } catch (error) {
-      if (bankIsCurrent()) $("#bank-status").textContent = error.message;
+      if (bankIsCurrent()) {
+        if (error.bankStatus) renderBankStatus(error.bankStatus);
+        $("#bank-status").textContent = error.message;
+      }
       throw error;
     } finally {
       if (bankIsCurrent()) {
@@ -429,28 +437,59 @@ async function synchronizeBank(onProgress) {
 }
 
 let synchronizationRunning = false;
-async function startBankSynchronization() {
-  if (synchronizationRunning) return;
+function bankSyncBlocked(bank) {
+  return Boolean(bank?.pending || bank?.sync?.state === 'pending' || bank?.sync?.state === 'blocked' || bank?.sync?.blockingCount > 0 ||
+    (bank?.warnings || []).some(warning => warning.severity !== 'notice') ||
+    (bank?.documents || []).some(doc => doc.active !== false && doc.status === 'revision'));
+}
+async function startBankSynchronization({throwOnError = false} = {}) {
+  const owner = state.user?.uid, epoch = state.authEpoch;
+  if (synchronizationRunning && synchronizationRunning.owner === owner && synchronizationRunning.epoch === epoch) {
+    if (throwOnError) throw new Error('Hay una sincronización en curso. Espera a que termine y reintenta.');
+    return;
+  }
   if (!requireSession('sincronizar tu banco')) return;
-  synchronizationRunning = true;
+  const current = () => owner === state.user?.uid && epoch === state.authEpoch;
+  const operationId = crypto.randomUUID();
+  const run = synchronizationRunning = {owner, epoch};
   $("#sync-bank").disabled = true;
   clearError();
   try {
     // Start OAuth from the real user gesture before opening the loading modal.
-    const connection = window.cvDrive.connect();
-    await window.cvLoading.run("Sincronizando tu banco en Google Drive", async update => {
-    update(2, 'Comprobando la conexión de Gmail y Drive');
+    const accountVerification = state.authRequired || Boolean(state.user);
+    const connection = window.cvDrive.connect({requireGmail: accountVerification, operationId});
+    return await window.cvLoading.run("Sincronizando tu banco en Google Drive", async update => {
+    update(2, accountVerification ? 'Comprobando la conexión de Gmail y Drive' : 'Comprobando Drive en modo local');
     await connection;
+    if (!current()) throw new Error('La cuenta cambió durante la sincronización.');
     if (!window.cvDrive.isConnected()) throw new Error("Faltan permisos de Drive. Pulsa Sincronizar todo y acepta los permisos.");
+    if (accountVerification) {
+      const verification = await directRequestJson('/api/account/connections/verify', {}, {
+        ...window.cvDrive.headers(), 'X-CV-Operation-ID':operationId,
+      });
+      if (verification.ok !== true) throw new Error('No se confirmaron todos los accesos necesarios. Vuelve a sincronizar.');
+    } else {
+      await window.cvDrive.verify();
+    }
     update(15, 'Conexión comprobada; sincronizando el banco');
-    await synchronizeBank((progress, stage, durable) => update(15 + Math.floor(progress * 0.75), stage, durable));
+    const bank = await synchronizeBank((progress, stage, durable) => update(15 + Math.floor(progress * 0.75), stage, durable), operationId);
+    if (!current()) throw new Error('La cuenta cambió durante la sincronización.');
+    if (bankSyncBlocked(bank)) throw new Error('La sincronización necesita revisión: hay documentos pendientes o bloqueados. Consulta Documentos y avisos de lectura.');
     update(92, 'Banco sincronizado; actualizando tu perfil');
     await loadProfileSummaryWork();
-    update(99, 'Banco de datos sincronizado');
+    if (!current()) throw new Error('La cuenta cambió durante la sincronización.');
+    if (state.multiAccount && window.cvRequiredSync && !window.cvRequiredSync.ready()) {
+      const saved = await directRequestJson('/api/account/initial-sync', {}, {...window.cvDrive.headers(), 'X-CV-Operation-ID':operationId});
+      if (saved.completed !== true) throw new Error('No se pudo guardar la verificación inicial. Reintenta la sincronización.');
+      if (!current()) throw new Error('La cuenta cambió durante la sincronización.');
+      window.cvRequiredSync.account({initial_sync_completed:true});
+    }
+    update(99, bank?.warnings?.length ? 'Banco sincronizado con observaciones informativas' : 'Banco de datos sincronizado');
     await window.cvOnboarding?.check();
+    return {completed:true};
   }); }
-  catch (error) { showError(error.message); }
-  finally { synchronizationRunning = false; $("#sync-bank").disabled = false; }
+  catch (error) { if (current()) showError(error.message); if (throwOnError) throw error; }
+  finally { if (synchronizationRunning === run) synchronizationRunning = false; if (current()) $("#sync-bank").disabled = false; }
 }
 window.cvSynchronizeBank = startBankSynchronization;
 $("#sync-bank").addEventListener("click", startBankSynchronization);
@@ -1139,6 +1178,7 @@ async function updateGoogleUserWork(user) {
     if (state.photoUrl) URL.revokeObjectURL(state.photoUrl); state.photoUrl = null;
   }
   state.user = user;
+  window.cvRequiredSync?.session(user);
   window.cvClientSupervisor?.initialize(user);
   if (typeof CustomEvent !== "undefined") window.dispatchEvent?.(new CustomEvent("cv-session-state", {detail: {signedIn: Boolean(user)}}));
   window.cvSubscription?.initialize(user)?.catch(() => {});
@@ -1160,7 +1200,7 @@ async function updateGoogleUserWork(user) {
     refreshToken: async () => { const owner=state.user; if (owner) { const token=await owner.getIdToken(); if (owner.uid===state.user?.uid) state.idToken=token; } },
     profile: () => state.profile,
     consolidate: async () => { await synchronizeBank(); await loadProfileSummaryWork(); },
-    completed: count => { $('#bank-status').textContent = count ? 'Datos guardados y banco consolidado. Puedes seguir agregando archivos en tus carpetas.' : 'Puedes completar tus datos m\u00e1s adelante.'; },
+    completed: (count, result = {}) => { $('#bank-status').textContent = count ? (result.consolidated ? 'Datos guardados y banco consolidado. Puedes seguir agregando archivos en tus carpetas.' : 'Datos guardados. Consolidación pendiente; pulsa Sincronizar para reintentar.') : 'Puedes completar tus datos m\u00e1s adelante.'; },
   }).catch(error => showError(error.message));
   $("#google-sign-in").hidden = Boolean(user);
   $("#google-sign-out").hidden = !user;
@@ -1183,6 +1223,7 @@ async function updateGoogleUserWork(user) {
         if (!response.ok) throw new Error(account.error || 'No se pudo consultar tu cuenta.');
         if (user.uid !== state.user?.uid) return;
         state.accountReady = account.ready;
+        window.cvRequiredSync?.account(account);
         window.cvDrive.setAccount({...account, email:user.email});
         $('#select-account-folders').hidden = false;
         if (!account.ready || !window.cvDrive.isConnected()) {
@@ -1235,7 +1276,7 @@ async function initializeGoogleAuth() {
   const googleProvider = (authorizeDrive = false) => {
     const provider = new window.firebase.auth.GoogleAuthProvider();
     if (authorizeDrive && state.driveEnabled) provider.addScope("https://www.googleapis.com/auth/drive.file");
-    if (authorizeDrive && state.multiAccount) provider.addScope('https://www.googleapis.com/auth/drive.readonly');
+    if (authorizeDrive && (state.multiAccount || state.bankEnabled)) provider.addScope('https://www.googleapis.com/auth/drive.readonly');
     if (authorizeDrive) provider.addScope("https://www.googleapis.com/auth/gmail.send");
     provider.setCustomParameters(state.user ? {login_hint:state.user.email, include_granted_scopes:'true'} : {prompt:'select_account', include_granted_scopes:'true'});
     return provider;
@@ -1293,6 +1334,23 @@ async function bootstrap() {
     document.querySelector('.employment-nav')?.toggleAttribute('hidden', health.employment_enabled !== true);
     if (health.employment_enabled === true && window.location?.hash === '#employment-panel') window.cvEmploymentWindow?.open();
     state.authRequired = health.auth_required === true;
+    window.cvRequiredSync?.configure({
+      required: state.authRequired && health.multi_account === true,
+      verifySession: async user => {
+        const owner = user.uid, epoch = state.authEpoch;
+        const token = await user.getIdToken(true);
+        if (owner !== state.user?.uid || epoch !== state.authEpoch) throw new Error('La cuenta cambió.');
+        state.idToken = token;
+        const grant = await directRequestJson('/api/google/grant', {}, window.cvDrive.headers());
+        if (!String(grant.scope || '').split(/\s+/).includes('https://www.googleapis.com/auth/gmail.send')) throw new Error('Google no concedió el permiso de Gmail.');
+      },
+      completed: async () => {
+        await loadProfileSummary();
+        await window.cvOnboarding?.check();
+      },
+      synchronize: () => startBankSynchronization({throwOnError: true}),
+      persist: () => directRequestJson('/api/account/initial-sync', {}, window.cvDrive.headers()),
+    });
     state.multiAccount = health.multi_account === true;
     state.profileEditable = health.profile_editable === true;
     state.bankEnabled = health.bank?.provider === "drive";
@@ -1425,6 +1483,7 @@ modelSelect.addEventListener("change", () => {
 });
 
 $("#analyze-button").addEventListener("click", async (event) => {
+  if (window.cvRequiredSync && !window.cvRequiredSync.ready()) { showError('Completa las verificaciones de Gmail y Google Drive antes de continuar.'); return; }
   if (state.vacancySelecting) return;
   if (!requireSession('analizar una vacante')) return;
   const button = event.currentTarget;
@@ -2088,7 +2147,6 @@ $("#refresh-application-history").addEventListener("click", refreshApplications)
 $('#load-more-applications').addEventListener('click', () => refreshApplications(true));
 window.addEventListener('cv-account-ready', event => { state.accountReady = event.detail.ready; });
 window.addEventListener("cv-drive-connected", async () => {
-  refreshApplications();
   if (state.multiAccount) {
     const uid = state.user?.uid;
     try {

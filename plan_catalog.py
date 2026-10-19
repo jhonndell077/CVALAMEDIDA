@@ -98,7 +98,7 @@ def register_routes(core):
             store = job_runtime.JobStore()
             document, version = admission_policy.read_policy_document(store, uid)
             plan = (document or {}).get('plan')
-            global_limits, _ = admission_policy.read_policy(store)
+            global_limits, global_version = admission_policy.read_policy(store)
             global_limits = global_limits or dict(zip(('daily', 'monthly'), admission_policy.limits()))
             limits = ({key: document[key] for key in ('daily', 'monthly')} if document and (not plan or plan['name'] != 'basic') else global_limits)
             catalog, generation = load(store, global_limits)
@@ -106,6 +106,7 @@ def register_routes(core):
             queue, _ = store.read(admission_policy.queue_key(uid))
             usage = admission_policy.usage_summary(queue, time.time(), limits)
             response = core.jsonify(plan=plan, limits=limits, usage=usage,
+                changeVersion=hashlib.sha256(json.dumps([str(version), str(global_version), limits], sort_keys=True).encode()).hexdigest(),
                 benefits=(entry or {}).get('benefits', []), planLabel=(entry or {}).get('label', 'Personalizado'),
                 assignmentVersion=(plan.get('assignmentId') or hashlib.sha256(json.dumps({key: value for key, value in plan.items() if key != 'customLimits'}, sort_keys=True).encode()).hexdigest()) if plan and plan['name'] != 'basic' else None,
                 planCatalog=[item for item in catalog if item['published']], catalogGeneration=str(generation),

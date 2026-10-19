@@ -98,6 +98,11 @@ def register_routes(core):
         result.headers['Cache-Control'] = 'no-store'
         return result
 
+    @core.app.post('/api/account/connections/verify')
+    def verify_synchronization_connections():
+        import synchronization_checks
+        return synchronization_checks.verify(core, google_grant)
+
     @core.app.route("/api/applications", methods=["GET", "POST"])
     def applications_history() -> Any:
         token = core.request.headers.get("X-Drive-Access-Token", "")

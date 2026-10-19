@@ -4,19 +4,19 @@ const vm=require('node:vm'),fs=require('node:fs');
 test('one authorization connects Telegram, Drive and Gmail; reuse and cancellation settle',async()=>{
   const elements=new Map();
   const element=id=>{if(!elements.has(id))elements.set(id,{listeners:{},addEventListener(type,handler){this.listeners[type]=handler;},removeAttribute(){}});return elements.get(id);};
-  let oauth, requests=0, connected=false, accepted=0, confirmed=0, links=0;
+  let oauth, requests=0, connected=false, accepted=0, confirmed=0, links=0, linked=true;
   const window={google:{accounts:{oauth2:{}}},cvLoading:{start:()=>()=>{}},
     cvDrive:{isConnected:()=>connected,acceptCredential:async token=>{assert.equal(token,'shared');connected=true;accepted++;}},
     cvGmail:{isConnected:()=>connected}};
   const context=vm.createContext({window,Date,Error,Promise,JSON,document:{querySelector:element},
     google:{accounts:{oauth2:{initCodeClient:settings=>{oauth=settings;return {requestCode(){requests++;}};}}}},
     fetch:async path=>({ok:true,json:async()=>{
-      if(path.endsWith('/disconnect')) { connected=false; return {}; }
-      if(path.endsWith('/link')) { links++; return {}; }
+      if(path.endsWith('/disconnect')) { connected=false; linked=false; return {}; }
+      if(path.endsWith('/link')) { links++; linked=true; return {}; }
       if(path.endsWith('/session'))return {access_token:'shared',scope:'https://www.googleapis.com/auth/gmail.send',expires_in:3600};
       if(path.endsWith('/authorize'))return {access_token:'shared'};
       if(path.endsWith('/confirm')){confirmed++;return {};}
-      return {client_id:'test',drive_connected:connected,message:'Listo',linked:true};
+      return {client_id:'test',drive_connected:connected,message:'Listo',linked};
     }})});
   vm.runInContext(fs.readFileSync('static/telegram.js','utf8'),context);
   await window.cvTelegram.initialize({uid:'alice',email:'test@example.com',getIdToken:async()=>'id'},()=>({}));

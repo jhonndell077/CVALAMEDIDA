@@ -10,6 +10,7 @@ import job_runtime as bot
 import web_notifications as notifications
 import user_accounts
 import distributed_diagnostics as traces
+import bank_sync_status
 
 PATHS = {'/api/draft': 'draft', '/api/profile/information': 'information',
          '/api/export/pdf': 'export', '/api/export/docx': 'export',
@@ -23,10 +24,13 @@ def enforce_request_quota(core):
         return
     store = bot.JobStore()
     identifier = 'direct-' + str(uuid.uuid4())
-    if not store.admit(identifier, user_accounts.owner()):
+    if not store.admit(identifier, user_accounts.owner(), charge=request.path == '/api/draft'):
         raise core.AppError('Tienes diez procesos pendientes. Espera a que termine uno para continuar.', 429)
-    store.write(identifier, {'state': 'processing', 'created_at': time.time(), 'lease_until': time.time() + 600}, 0)
     g.cv_request_slot = (store, identifier)
+    g.cv_request_owner = user_accounts.owner()
+    g.cv_request_success = False
+    store.write(identifier, {'state': 'processing', 'owner_uid': user_accounts.owner(),
+                            'created_at': time.time(), 'lease_until': time.time() + 600}, 0)
 
 
 def release_request_quota():
@@ -35,9 +39,15 @@ def release_request_quota():
         return
     g.cv_request_slot = None
     store, identifier = slot
-    job, generation = store.read(identifier)
-    if job:
-        store.write(identifier, {'state': 'done', 'completed_at': time.time()}, generation)
+    success = getattr(g, 'cv_request_success', False)
+    try:
+        job, generation = store.read(identifier)
+        if job:
+            store.write(identifier, {**job, 'state': 'done' if success else 'failed',
+                                     'completed_at': time.time(), 'lease_until': 0}, generation)
+    finally:
+        if not success:
+            bot.refund_usage(store, identifier, g.cv_request_owner, release=True)
 
 
 def valid_id(identifier):
@@ -48,6 +58,8 @@ def process_job(core, identifier, store):
     job, _ = store.read(identifier)
     if job and job.get('owner_uid'):
         if job.get('state') in {'done', 'failed'}:
+            if job.get('state') == 'failed' and job.get('operation') == 'draft':
+                bot.refund_usage(store, identifier, job.get('owner_uid', ''))
             return
         try:
             headers = notifications.unprotect(store, job.get('credentials'), identifier)
@@ -61,6 +73,8 @@ def process_job(core, identifier, store):
             job.pop('payload', None)
             job.update(state='failed', error=str(error), stage='Conecta nuevamente tu cuenta de Drive', lease_until=0)
             store.write(identifier, job, generation)
+            if job.get('operation') == 'draft':
+                bot.refund_usage(store, identifier, job.get('owner_uid', ''))
             try: notifications.notify(store, identifier, job)
             except Exception: core.app.logger.warning('No se pudo entregar la notificación del proceso.')
             return
@@ -87,6 +101,7 @@ def _process_job(core, identifier, store):
         _, current = store.read(identifier)
         store.write(identifier, job, current)
 
+    status = None
     try:
         if uncertain:
             raise core.AppError('El servidor perdió la confirmación de la operación. Revisa Drive o Enviados antes de repetirla.', 409)
@@ -116,6 +131,9 @@ def _process_job(core, identifier, store):
                     bot.enqueue(identifier, bot.configuration(), task_identifier=f'{identifier}-{step}', kind='web_analysis')
                     return
             if operation == 'bank_sync':
+                status = bank_sync_status.with_summary(status)
+                if status['sync']['state'] != 'ready':
+                    raise core.AppError('La sincronización necesita revisión: hay documentos pendientes o bloqueados. Consulta el detalle de documentos.', 409)
                 result = status
             else:
                 result = None
@@ -162,6 +180,13 @@ def _process_job(core, identifier, store):
     except core.AppError as error:
         job.pop('payload', None)
         job.pop('credentials', None)
+        if job.get('operation') == 'bank_sync' and status is not None:
+            job['result'] = bank_sync_status.with_summary(status)
+            summary = job['result']['sync']
+            if summary['blockingCount']:
+                job['errorCode'] = 'bank_review_required'
+            elif summary['pending']:
+                job['errorCode'] = 'bank_sync_pending'
         checkpoint(job.get('progress', 1), 'El proceso necesita atención', state='failed', error=str(error), lease_until=0)
     except Exception:
         # Durable failure avoids repeating external writes after an uncertain outcome.
@@ -169,6 +194,8 @@ def _process_job(core, identifier, store):
         job.pop('credentials', None)
         checkpoint(job.get('progress', 1), 'El proceso necesita atención', state='failed',
                    error='No se pudo confirmar el resultado. Revisa el estado del proceso antes de repetirlo.', lease_until=0)
+    if job.get('state') == 'failed' and job.get('operation') == 'draft':
+        bot.refund_usage(store, identifier, job.get('owner_uid', ''))
     try:
         notifications.notify(store, identifier, job)
     except Exception:
@@ -176,6 +203,12 @@ def _process_job(core, identifier, store):
 
 
 def register_routes(app, core):
+    @app.after_request
+    def remember_request_outcome(response):
+        if getattr(g, 'cv_request_slot', None):
+            g.cv_request_success = 200 <= response.status_code < 300
+        return response
+
     @app.post('/api/background/jobs')
     def submit_background_job():
         data = request.get_json(silent=True) or {}
@@ -196,13 +229,16 @@ def register_routes(app, core):
         if job and job.get('request_digest') != digest:
             raise core.AppError('Este identificador ya corresponde a otra solicitud.', 409)
         if not job:
-            if not store.admit(identifier, user_accounts.owner()):
+            if not store.admit(identifier, user_accounts.owner(), charge=data['path'] == '/api/draft', probe=True):
                 raise core.AppError('Tienes diez procesos pendientes. Espera a que termine uno para continuar.', 429)
             headers = {key: request.headers[key] for key in ('X-Drive-Access-Token', 'X-Gmail-Access-Token') if request.headers.get(key)}
+            credentials = notifications.protect(store, headers, identifier)
+            if not store.admit(identifier, user_accounts.owner(), charge=data['path'] == '/api/draft'):
+                raise core.AppError('Tienes diez procesos pendientes. Espera a que termine uno para continuar.', 429)
             job = {'operation': PATHS[data['path']], 'path': data['path'], 'payload': data['payload'],
                    'state': 'queued', 'created_at': time.time(), 'progress': 1, 'stage': 'Solicitud guardada en la cola',
                    'request_digest': digest, **traces.capture(),
-                   'credentials': notifications.protect(store, headers, identifier)}
+                   'credentials': credentials}
             if user_accounts.owner():
                 identity = user_accounts.CURRENT.get()
                 job.update(owner_uid=identity['uid'], owner_email=identity['email'], owner_name=identity.get('name',''))

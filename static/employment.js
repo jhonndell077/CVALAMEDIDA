@@ -27,6 +27,7 @@
   if (!root.document) return;
   const $ = selector => root.document.querySelector(selector);
   let user = null, headers = null, session = 0, confirmed = null, anchor = null;
+  const currentApplications = new Set();
   let marker = {x: 300, y: 160}, dragging = false, addressDirty = false;
   let liveMap=null, liveMarker=null, liveCircle=null, savedCircle=null;
   const panel = $('#employment-panel');
@@ -54,12 +55,12 @@
     const ticket = session;
     if (!user || !headers) throw new Error('Inicia sesión para continuar.');
     const requestHeaders = await headers(path);
-    if (ticket !== session) throw new Error('La sesión cambió.');
+    if (ticket !== session) throw new Error('La sesi\u00f3n cambi\u00f3.');
     const response = await root.fetch('/api/employment/' + path, {method,
       headers: {...requestHeaders, 'Content-Type': 'application/json'},
       ...(payload === undefined ? {} : {body: JSON.stringify(payload)}), cache: 'no-store'});
     const data = await response.json();
-    if (ticket !== session) throw new Error('La sesión cambió.');
+    if (ticket !== session) throw new Error('La sesi\u00f3n cambi\u00f3.');
     if (!response.ok) throw new Error(data.error || 'No se pudo completar la operación.');
     return data;
   }
@@ -123,8 +124,10 @@
     $('#employment-confirmed').textContent = data ? `Ubicación confirmada · distancia máxima ${data.radius_m / 1000} km` : 'Usa tu ubicación para comenzar.';
   }
   api.initialize = async function (nextUser, getHeaders) {
+    if (user && nextUser?.uid === user.uid) { user = nextUser; headers = getHeaders; return; }
     root.dispatchEvent(new root.CustomEvent('cv-employment-session'));
     session++; user = nextUser; headers = getHeaders; confirmed = null; populate(null);
+    currentApplications.clear();
     $('#employment-results').replaceChildren(); $('#employment-applications')?.replaceChildren();
     latestPublications=null; publicationDay=''; calendarMonth='';
     currentSearch=null;
@@ -147,7 +150,6 @@
     const ticket = session;
     try {const data = await request('location'); if (ticket !== session) return; confirmed = data.location; populate(confirmed); status('Escribe un cargo o pulsa Ver últimas publicadas. Tu ubicación es opcional.');
       const scope = await request('authorization'); if (scope.authorization) $('#employment-authorization-status').textContent = `Simulación autorizada hasta ${scope.authorization.expires_at}. Límite diario ${scope.authorization.daily_limit}.`;
-      await renderApplications();
     }
     catch (error) {if (ticket === session) status(error.message);}
   };
@@ -240,11 +242,18 @@
       status('Ubicación eliminada; permisos revocados.');}
     catch (error) {status(error.message);}
   });
+  async function prepareCurrentApplication(path, payload) {
+    const ticket = session;
+    const item = await request(path, 'POST', payload);
+    if (ticket !== session) throw new Error('La sesi\u00f3n cambi\u00f3.');
+    if (item.id) currentApplications.add(item.id);
+    await renderApplications();
+  }
   async function renderApplications() {
     const container = $('#employment-applications');
     if (!container) return;
     const data = await request('applications'); container.replaceChildren();
-    for (const item of data.applications) {const card = root.document.createElement('article');
+    for (const item of data.applications.filter(item => currentApplications.has(item.id))) {const card = root.document.createElement('article');
       const label = root.document.createElement('p'); label.textContent = `${item.position || 'Candidatura'}${item.company ? ' · '+item.company : ''} · ${item.status} · ${item.result || 'Revisa antes de aprobar.'}`; card.append(label);
       if (item.url) {const link=root.document.createElement('a'); link.href=item.url; link.target='_blank'; link.rel='noopener noreferrer'; link.textContent='Continuar en la fuente original'; card.append(link);}
       if (item.status === 'PENDIENTE DE APROBACIÓN') {const check = root.document.createElement('input'); check.type = 'checkbox';
@@ -497,9 +506,9 @@
         const documents = root.document.createElement('button'); documents.type = 'button'; documents.textContent = 'Adaptar con el generador de CV';
         documents.addEventListener('click', async () => {try {useGenerator(await request(`offers/${offer.id}/details`));} catch(error) {searchStatus(error.message);}});
         const prepare = root.document.createElement('button'); prepare.type = 'button'; prepare.textContent = 'Preparar candidatura';
-        prepare.addEventListener('click', async () => {try {await request('applications','POST',{offer_id:offer.id}); await renderApplications();} catch (error) {searchStatus(error.message);}});
+        prepare.addEventListener('click', async () => {try {await prepareCurrentApplication('applications',{offer_id:offer.id});} catch (error) {searchStatus(error.message);}});
         const automatic = root.document.createElement('button'); automatic.type = 'button'; automatic.hidden=true; automatic.textContent = 'Simular con autorización automática';
-        automatic.addEventListener('click', async () => {try {await request('automatic-simulation','POST',{offer_id:offer.id}); await renderApplications();} catch (error) {searchStatus(error.message);}});
+        automatic.addEventListener('click', async () => {try {await prepareCurrentApplication('automatic-simulation',{offer_id:offer.id});} catch (error) {searchStatus(error.message);}});
         card.append(title,info,description,link,documents,prepare,automatic); container.append(card);}
       const reviewable=data.unverified.filter(offer=>offer.geography.location_eligible).length;
       searchStatus(`${data.offers.length+reviewable} ofertas compatibles con la ubicación (${reviewable} requieren revisar requisitos); ${data.excluded.length} excluidas; ${data.unverified.length-reviewable} con datos sin verificar.`);
@@ -547,12 +556,11 @@
           review.append(check,' Revisé país, horario y desplazamientos y confirmo que cumplo esos requisitos.'); card.append(review);
           const prepare=root.document.createElement('button'); prepare.type='button'; prepare.className='button button-primary'; prepare.textContent='Preparar candidatura supervisada';
           prepare.addEventListener('click',async()=>{if (!check.checked) {searchStatus('Revisa los desplazamientos antes de preparar la candidatura.'); return;}
-            try {await request('applications','POST',{offer_id:offer.id,reviewed_no_travel:true}); await renderApplications(); searchStatus('Candidatura preparada para tu aprobación.');}
+            try {await prepareCurrentApplication('applications',{offer_id:offer.id,reviewed_no_travel:true}); searchStatus('Candidatura preparada para tu aprobación.');}
             catch(error) {searchStatus(error.message);}}); card.append(prepare);
         }
         container.append(card);
       }
-      await renderApplications();
     } catch (error) {searchStatus(error.message);}
     finally {searching = false; buttons.forEach(button => {button.disabled = false;});}
   }

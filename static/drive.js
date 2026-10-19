@@ -54,7 +54,7 @@ window.cvDrive = (() => {
       dialog.setVisible(true);
     });
   }
-  async function check(selection = {}) {
+  async function check(selection = {}, retry = 0) {
     const started = generation;
     const path = config.multi_account ? '/api/account/setup' : '/api/drive/check';
     let response;
@@ -67,6 +67,12 @@ window.cvDrive = (() => {
     }
     const data = await response.json().catch(() => ({}));
     if (started !== generation) throw new Error('La sesión cambió. Conecta el Drive de la cuenta actual.');
+    if (response.status === 409 && data.code === 'account_setup_in_progress' && retry < 8) {
+      status().textContent = 'Otra sesión está preparando tu banco. Esperando para reutilizar sus carpetas…';
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (started !== generation) throw new Error('La sesión cambió. Conecta el Drive de la cuenta actual.');
+      return check(selection, retry + 1);
+    }
     if (!response.ok) throw Object.assign(new Error(data.error || "No se pudo comprobar la carpeta de Drive."), { status: response.status });
     if (config.multi_account) {
       config.folder_id = data.archive_id;
@@ -116,7 +122,7 @@ window.cvDrive = (() => {
     if (connection) return connection;
     if (authorizationHandler) {
       const started = generation;
-      const operationId = typeof crypto !== 'undefined' ? crypto.randomUUID() : undefined;
+      const operationId = options.operationId || (typeof crypto !== 'undefined' ? crypto.randomUUID() : undefined);
       activeOperationId = operationId;
       const report = code => { if (started === generation && typeof CustomEvent !== 'undefined') window.dispatchEvent(new CustomEvent('cv-client-diagnostic', {detail:{service:'drive-api',stage:'oauth-authorization',code,operationId}})); };
       report('authorization_pending');
@@ -234,5 +240,5 @@ window.cvDrive = (() => {
     if (account.bank_id) document.querySelector('#bank-folder').href = `https://drive.google.com/drive/folders/${account.bank_id}`;
     if (account.archive_id) document.querySelector('#drive-folder').href = `https://drive.google.com/drive/folders/${account.archive_id}`;
   }
-  return { initialize, headers, headersIfConnected, reset, connect, isConnected, acceptCredential, setAuthorizationHandler, chooseFolders, setAccount };
+  return { initialize, headers, headersIfConnected, reset, connect, isConnected, acceptCredential, setAuthorizationHandler, chooseFolders, setAccount, verify: check };
 })();

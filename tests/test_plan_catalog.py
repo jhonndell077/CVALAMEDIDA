@@ -54,6 +54,18 @@ class CatalogTests(unittest.TestCase):
     def own(self,uid='alice',query=''):
         return self.client.get('/api/subscription'+query,headers={'X-Fixture-User':uid})
 
+    def test_return_to_inherited_basic_has_a_new_change_version(self):
+        first = self.own().json
+        key = admission_policy.policy_key('alice')
+        self.store.write(key, {'daily':20, 'monthly':200}, 0)
+        upgraded = self.own().json
+        _, version = self.store.read(key)
+        self.store.write(key, {'inherit':True}, version)
+        restored = self.own().json
+        self.assertEqual(first['limits'], restored['limits'])
+        self.assertNotEqual(first['changeVersion'], upgraded['changeVersion'])
+        self.assertNotEqual(first['changeVersion'], restored['changeVersion'])
+
     def test_catalog_cas_and_global_basic_derived(self):
         self.store.write(admission_policy.policy_key(),{'daily':4,'monthly':40},0)
         response = self.save()

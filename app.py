@@ -1292,6 +1292,13 @@ def load_drive_bank(process: bool = False, force: bool = False) -> dict:
         refresh_profile_indexes()
         account_state.BANK_READ_STATUS = status
         account_state.BANK_READ_AT = time.monotonic()
+        if process and has_request_context():
+            import bank_sync_status
+            evidence = bank_sync_status.event(status)
+            if evidence:
+                architecture_diagnostics.record_stage(sys.modules[__name__], component='bank', service='drive-api',
+                    endpoint=request.url_rule.rule if request.url_rule else request.path, stage='bank-sync',
+                    result=evidence[0], code=evidence[1])
         return status
     except BankError as error:
         raise AppError(str(error), error.status_code) from error
@@ -1402,7 +1409,7 @@ def static_asset(asset_name: str) -> Any:
         "vendor/leaflet/LICENSE","vendor/leaflet/images/marker-icon.png","vendor/leaflet/images/marker-icon-2x.png","vendor/leaflet/images/marker-shadow.png"}
     if asset_name in employment_assets:
         return send_from_directory(app.static_folder or "static",asset_name)
-    if asset_name not in {"client-supervisor.js", "subscription-notices.js", "subscription-notices.css", "app.js", "background.js", "sw.js", "drive.js", "gmail.js", "loading.js", "styles.css", "card-motion.js", "card-motion.css", "app-version.js", "version.json", "logo-cv-a-la-medida.png", "app-background.png", "app-icon.png", "manifest.webmanifest", "telegram.js", "onboarding.js", "repeaters.js",
+    if asset_name not in {"required-sync.js", "client-supervisor.js", "subscription-notices.js", "subscription-notices.css", "app.js", "background.js", "sw.js", "drive.js", "gmail.js", "loading.js", "styles.css", "card-motion.js", "card-motion.css", "app-version.js", "version.json", "logo-cv-a-la-medida.png", "app-background.png", "app-icon.png", "manifest.webmanifest", "telegram.js", "onboarding.js", "repeaters.js",
                          "profile-dialog.js", "data-panel.js", "employment-window.js", "ui-navigation.js",
                          "drive-auth.html", "drive-auth.js", "drive-config.json", "privacy.html", "manual.html", "manual.css", "manual.js",
                          "manual-assets/flujo-datos.svg", "manual-assets/paso-vacante.jpg", "manual-assets/canales-envio.svg"}:

@@ -19,6 +19,32 @@ function environment() {
   vm.runInContext(fs.readFileSync('static/drive.js','utf8'),context);
   return {context,drive:context.window.cvDrive,elements,events};
 }
+
+test('a concurrent first login retries setup without another Google authorization',async()=>{
+ const {context,drive}=environment();let calls=0;
+ context.setTimeout=resolve=>resolve();
+ context.fetch=async()=>++calls===1 ? {ok:false,status:409,json:async()=>({code:'account_setup_in_progress'})} :
+  {ok:true,status:200,json:async()=>({ready:true,bank_id:'shared-bank',archive_id:'shared-cv'})};
+ await drive.initialize({provider:'drive',multi_account:true},()=>({}));
+ await drive.acceptCredential('synthetic');
+ assert.equal(calls,2);assert.equal(drive.isConnected(),true);
+});
+test('a logout during setup backoff cancels the old account before another request',async()=>{
+ const {context,drive}=environment();let resume,calls=0;
+ context.setTimeout=resolve=>{resume=resolve;};
+ context.fetch=async()=>{calls++;return {ok:false,status:409,json:async()=>({code:'account_setup_in_progress'})};};
+ await drive.initialize({provider:'drive',multi_account:true},()=>({}));
+ const pending=drive.acceptCredential('synthetic');
+ await new Promise(resolve=>setImmediate(resolve));drive.reset();resume();
+ await assert.rejects(pending,/sesión cambió/);assert.equal(calls,1);assert.equal(drive.isConnected(),false);
+});
+test('setup busy retries are bounded instead of looping forever',async()=>{
+ const {context,drive}=environment();let calls=0;
+ context.setTimeout=resolve=>resolve();
+ context.fetch=async()=>{calls++;return {ok:false,status:409,json:async()=>({code:'account_setup_in_progress',error:'Preparación pendiente'})};};
+ await drive.initialize({provider:'drive',multi_account:true},()=>({}));
+ await assert.rejects(drive.acceptCredential('synthetic'),/Preparación pendiente/);assert.equal(calls,9);
+});
 test('Drive requires confirmed setup and rejects responses after account switches',async()=>{
   const {context,drive,elements,events}=environment();
   await drive.initialize({provider:'drive',multi_account:true},()=>({Authorization:'Bearer alice'}));

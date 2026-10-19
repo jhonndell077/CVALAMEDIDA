@@ -73,6 +73,7 @@ EDGES = [{'from': n['id'], 'to': target} for n in NODES for target in n['service
 EDGES += [{'from': a, 'to': b} for a, b in [('user', 'google'), ('google', 'bank'), ('bank', 'drive'), ('bank', 'telegram'), ('bank', 'pdf'), ('drive', 'diagnostics'), ('telegram', 'diagnostics'), ('pdf', 'diagnostics'), ('api', 'vertex'), ('api', 'tasks'), ('api', 'storage'), ('api', 'gmail'), ('api', 'push')]]
 ROUTES = {endpoint: n['id'] for n in NODES if n['kind'] == 'functional' for endpoint in n['endpoints']}
 ROUTES.update({'/api/analyze': 'pdf', '/api/analyze/jobs': 'pdf', '/api/background/jobs': 'pdf', '/api/google/grant': 'google', '/api/profile': 'bank', '/api/diagnostics/client': 'google', '/api/account': 'google', '/api/account/setup': 'bank', '/api/account/onboarding': 'bank', '/api/account/onboarding/import': 'bank', '/api/account/onboarding/dismiss': 'bank'})
+ROUTES['/api/account/connections/verify'] = 'google'
 
 
 class EventStore:
@@ -127,6 +128,8 @@ def record_stage(core, *, component, service, endpoint, stage, result, code=None
                      at=datetime.now(timezone.utc).isoformat(), durationMs=None,
                      result=result, code=None, reason=None, accountKey=verified_account_key(core), stage=stage, confirmed=confirmed is True and stage != 'browser-request', dependencies=[])
         if isinstance(code, int) and not isinstance(code, bool) and 100 <= code <= 599:
+            event['code'] = code
+        elif isinstance(code, str) and code in diagnostic_store.BANK_SYNC_CODES and stage == 'bank-sync' and component == 'bank' and service == 'drive-api':
             event['code'] = code
         elif stage in {'oauth-authorization', 'browser-signin', 'browser-request'} and confirmed is False and isinstance(code, str) and code in diagnostic_store.CLIENT_CODES:
             event['code'] = code

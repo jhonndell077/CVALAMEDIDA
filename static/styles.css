@@ -84,7 +84,7 @@ select { padding: 9px 11px; border: 1px solid #d9e1d7; border-radius: 8px; color
 .privacy-note b { color: #40583e; }
 .lock-icon { color: var(--green); font-size: 16px; line-height: 1; }
 .button { min-height: 44px; display: inline-flex; justify-content: center; align-items: center; gap: 12px; padding: 0 20px; border: 0; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 12px; transition: transform .15s, background .15s, opacity .15s; }
-.button:hover { transform: translateY(-1px); }
+.button:hover { filter: brightness(1.03); }
 .button:disabled { cursor: wait; opacity: .65; transform: none; }
 .button-primary { margin-top: 19px; color: white; background: var(--green); }
 .button-primary:hover { background: var(--green-dark); }

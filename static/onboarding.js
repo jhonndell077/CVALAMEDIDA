@@ -21,6 +21,7 @@ window.cvOnboarding = (() => {
     if (dialog.open) dialog.close();
     form.reset(); window.cvRepeaters.reset(form); clearPreview(); error.hidden = true; status.textContent = '';
     openButton.hidden = true;
+    document.querySelector('.bank-save-confirmation')?.remove();
     form.querySelectorAll('input,textarea,button').forEach(element => { element.disabled = false; });
   }
   function current(started) { return started === generation && Boolean(user); }
@@ -35,6 +36,7 @@ window.cvOnboarding = (() => {
     return data;
   }
   function show() {
+    if (window.cvRequiredSync && !window.cvRequiredSync.ready()) return;
     if (!user || busy || dialog.open) return;
     if (!draftStarted) {
     const candidate = options.profile()?.candidate || {};
@@ -121,13 +123,21 @@ window.cvOnboarding = (() => {
       if (!current(started)) return;
       status.textContent = 'Guardando los archivos en las carpetas de tu Banco de Datos...';
       const result = await request('/api/account/onboarding',{method:'POST',body});
-      if (result.sync_required) {
-        status.textContent = 'Datos guardados. Leyendo los archivos para consolidar tu perfil...';
-        await options.consolidate();
-      }
       if (!current(started)) return;
       dialog.close(); form.reset(); window.cvRepeaters.reset(form); clearPreview(); draftStarted = false;
-      options.completed(result.saved);
+      const confirmation = document.createElement('p');
+      confirmation.className = 'bank-save-confirmation'; confirmation.setAttribute('role', 'status');
+      confirmation.textContent = 'Tu banco se guardó correctamente.';
+      document.querySelector('.bank-save-confirmation')?.remove();
+      openButton.after(confirmation);
+      let consolidated = !result.sync_required;
+      if (result.sync_required) {
+        confirmation.textContent = 'Tu banco se guardó correctamente. Consolidando tu perfil…';
+        try { await options.consolidate(); consolidated = true; confirmation.textContent = 'Tu banco se guardó y consolidó correctamente.'; }
+        catch (failure) { confirmation.textContent = `Datos guardados. La consolidación está pendiente: ${failure.message} Pulsa Sincronizar para reintentar.`; }
+      }
+      if (!current(started)) return;
+      options.completed(result.saved, {consolidated});
     } catch (failure) {
       if (current(started)) { error.textContent = failure.message; error.hidden = false; status.textContent = 'Puedes revisar el banco o reintentar. Los campos del formulario se conservan.'; }
     } finally { if (current(started)) setBusy(false); }

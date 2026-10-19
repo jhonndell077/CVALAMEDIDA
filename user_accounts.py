@@ -3,12 +3,16 @@ import copy
 import hashlib
 import json
 import re
+import time
+import uuid
 from contextlib import contextmanager
 from contextvars import ContextVar
 from urllib.parse import urlencode
 import requests
+from google.api_core.exceptions import PreconditionFailed
 
 CURRENT = ContextVar('cv_account', default=None)
+SETUP_GUARD = ContextVar('cv_setup_guard', default=None)
 SECTIONS = ['Informacion personal', 'Informacion Laboral', 'Estudios', 'Referencias', 'Conocimiento o aprendizaje']
 GLOBALS = ('MASTER_PROFILE', 'EXPERIENCE_BY_ID', 'SKILL_BY_ID', 'COURSE_BY_ID', 'BANK_CONFIG',
            'ARCHIVE_CONFIG', 'BANK_CLIENT', 'BANK_PHOTO_PATH', 'BANK_READ_STATUS', 'BANK_READ_AT', 'BANK_PHOTO_DIGEST')
@@ -80,6 +84,9 @@ def assert_drive_identity(core, token, identity):
         raise core.AppError('La cuenta de Drive debe coincidir con la sesión de Google.', 403)
 
 def api(core, token, method, path, payload=None):
+    guard = SETUP_GUARD.get()
+    if guard:
+        guard()
     if method == 'GET':
         return core.drive_request('https://www.googleapis.com/drive/v3/' + path, token)
     response = requests.request(method, 'https://www.googleapis.com/drive/v3/' + path,
@@ -127,13 +134,62 @@ def json_file(core, token, name, parent, initial):
     metadata = json.dumps({'name':name, 'mimeType':'application/json', 'parents':[parent]}).encode()
     body = (f'--{boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'.encode() + metadata +
         f'\r\n--{boundary}\r\nContent-Type: application/json\r\n\r\n'.encode() + json.dumps(initial, ensure_ascii=False).encode() + f'\r\n--{boundary}--\r\n'.encode())
+    guard = SETUP_GUARD.get()
+    if guard:
+        guard()
     return core.drive_request('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
         token, body, 'multipart/related; boundary=' + boundary)['id']
+
+def _setup_busy(core):
+    error = core.AppError('Tu banco se está preparando desde otra sesión. Espera unos segundos y vuelve a sincronizar.', 409)
+    error.setup_busy = True
+    return error
+
 
 def prepare(core, identity, token, selection=None, store=None):
     import job_runtime
     store = store or job_runtime.JobStore()
     assert_drive_identity(core, token, identity)
+    # The lease precedes all Drive writes and is shared across server instances.
+    key = 'setup-' + account_key(identity['uid'])
+    holder = uuid.uuid4().hex
+    for attempt in range(11):
+        lease, version = store.read(key)
+        if lease and lease.get('expires_at', 0) > time.time():
+            if attempt == 10:
+                raise _setup_busy(core)
+            time.sleep(.05)
+            continue
+        try:
+            store.write(key, {'holder': holder, 'expires_at': time.time() + 180}, version)
+            break
+        except PreconditionFailed:
+            if attempt == 10:
+                raise _setup_busy(core) from None
+
+    def renew():
+        lease, version = store.read(key)
+        if not lease or lease.get('holder') != holder or lease.get('expires_at', 0) <= time.time():
+            raise core.AppError('La preparación del banco venció. Vuelve a sincronizar para continuar.', 409)
+        try:
+            store.write(key, {**lease, 'expires_at': time.time() + 180}, version)
+        except PreconditionFailed:
+            raise core.AppError('La preparación cambió en otra sesión. Vuelve a sincronizar.', 409) from None
+
+    marker = SETUP_GUARD.set(renew)
+    try:
+        return _prepare(core, identity, token, selection, store, renew)
+    finally:
+        SETUP_GUARD.reset(marker)
+        try:
+            lease, version = store.read(key)
+            if lease and lease.get('holder') == holder:
+                store.write(key, {**lease, 'expires_at': 0}, version)
+        except Exception:
+            core.app.logger.warning('La reserva de preparación se liberará al vencer.')
+
+
+def _prepare(core, identity, token, selection, store, renew):
     current, generation = store.read(account_key(identity['uid']))
     current = current or (CURRENT.get() or {}).get('record')
     if current and not selection:
@@ -151,12 +207,17 @@ def prepare(core, identity, token, selection=None, store=None):
             'index_file_id': json_file(core, token, 'indice_banco.json', bank_id, {'version':1,'documents':{}}),
             'readme_file_id': '', 'photo_file_name':'hoja_de_vida.jpeg', 'photo_optional':True}
     record = {'uid':identity['uid'], 'email':identity['email'], 'name':identity.get('name',''),
-        'bank':config, 'archive_id':archive_id, 'sections':sections, 'legacy': bool(current and current.get('legacy') and config == current['bank'])}
-    store.write(account_key(identity['uid']), record, generation)
+        'bank':config, 'archive_id':archive_id, 'sections':sections, 'legacy': bool(current and current.get('legacy') and config == current['bank']),
+        'initial_sync_completed': bool(current and current.get('initial_sync_completed', True))}
+    renew()
+    try:
+        store.write(account_key(identity['uid']), record, generation)
+    except PreconditionFailed:
+        raise core.AppError('La cuenta cambió durante la preparación. Vuelve a sincronizar para cargar su estado actual.', 409) from None
     return record
 
 def public(record):
-    return {'ready':bool(record), 'bank_id': (record or {}).get('bank', {}).get('folder_id',''),
+    return {'ready':bool(record), 'initial_sync_completed': bool(record and record.get('initial_sync_completed', True)), 'bank_id': (record or {}).get('bank', {}).get('folder_id',''),
         'archive_id':(record or {}).get('archive_id',''), 'sections':(record or {}).get('sections',{})}
 
 def require_owner(core, job):

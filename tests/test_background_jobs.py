@@ -38,6 +38,49 @@ def job(store, path='/api/analyze', **values):
 
 
 class BackgroundJobTests(unittest.TestCase):
+    def test_bank_notices_finish_and_keep_the_document_notes(self):
+        store = Store(); job(store, '/api/bank/sync')
+        status={'pending':0,'warnings':[{'code':'bank_document_note','severity':'notice','name':'Fixture','message':'Nota'}]}
+        with patch.object(app,'bank_enabled',return_value=True), patch.object(app,'load_drive_bank',return_value=status), patch.object(push,'notify'):
+            jobs.process_job(app, ID, store)
+        saved=store.read(ID)[0]
+        self.assertEqual(saved['state'],'done')
+        self.assertEqual(saved['result']['sync']['state'],'ready')
+        self.assertEqual(saved['result']['warnings'],status['warnings'])
+
+    def test_bank_warnings_never_mark_synchronization_complete(self):
+        store = Store(); job(store, '/api/bank/sync')
+        with patch.object(app, 'bank_enabled', return_value=True), patch.object(app, 'load_drive_bank',
+                return_value={'pending':0, 'warnings':[{'message':'Archivo requiere revisión'}]}), patch.object(push, 'notify'):
+            jobs.process_job(app, ID, store)
+        saved = store.read(ID)[0]
+        self.assertEqual(saved['state'], 'failed')
+        self.assertIn('revisión', saved['error'])
+        self.assertEqual(saved['result']['sync']['state'],'blocked')
+        self.assertEqual(saved['errorCode'],'bank_review_required')
+
+    def test_polling_old_completed_result_does_not_restart_work(self):
+        store = Store()
+        result = {'analysis': {'vacancy': {'position': 'Camarero'}}}
+        job(store, state='done', progress=100, result=result, created_at=time.time() - 86400)
+        with patch.object(job_runtime, 'JobStore', return_value=store), patch.object(job_runtime, 'enqueue') as enqueue, patch.object(app, 'analyze_with_model') as analyze:
+            with app.app.test_request_context('/api/background/jobs/' + ID, method='POST', json={}):
+                response = app.app.view_functions['background_job_status'](ID)
+            self.assertEqual(response.get_json()['result'], result)
+            enqueue.assert_not_called()
+            analyze.assert_not_called()
+        self.assertEqual(store.read(ID)[0]['state'], 'done')
+
+    def test_sync_never_applies_a_vacancy_or_generates_a_cv(self):
+        store = Store(); job(store, '/api/bank/sync')
+        with patch.object(app, 'bank_enabled', return_value=True), patch.object(app, 'load_drive_bank', return_value={'pending': 0, 'documents': []}) as load, patch.object(app, 'extract_vacancy') as extract, patch.object(app, 'analyze_with_model') as analyze, patch.object(app, 'make_draft') as draft, patch.object(push, 'notify'):
+            jobs.process_job(app, ID, store)
+            load.assert_any_call(process=True)
+            extract.assert_not_called()
+            analyze.assert_not_called()
+            draft.assert_not_called()
+        self.assertEqual(store.read(ID)[0]['state'], 'done')
+
     def test_information_save_does_not_process_unrelated_pending_documents(self):
         store=Store(); job(store,'/api/profile/information')
         with patch.object(app,'bank_enabled',return_value=True), patch.object(app,'load_drive_bank') as load, patch.dict(app.app.view_functions,{'add_profile_information':lambda:jsonify(message='Guardado',profile={'courses':[]})}), patch.object(push,'notify'):

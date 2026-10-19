@@ -89,3 +89,24 @@ test('GPS completa país sin sustituir el punto y permite remotos', async () => 
   context.point=()=>({...point});
   await assert.rejects(context.resolve(),/punto cambió/);
 });
+
+
+test('session initialization and searches do not load application history',()=>{
+ const source=fs.readFileSync('static/employment.js','utf8');
+ const initialize=source.slice(source.indexOf('  api.initialize ='),source.indexOf('  async function resolveCountry'));
+ assert.ok(initialize.includes('currentApplications.clear()'));
+ assert.ok(!initialize.includes('renderApplications()'));
+ const search=source.slice(source.indexOf('  async function searchJobs('));
+ assert.ok(!search.includes('await renderApplications()'));
+});
+
+test('application panel only renders candidacies explicitly selected in the current session',async()=>{
+ const source=fs.readFileSync('static/employment.js','utf8');
+ const code=source.slice(source.indexOf('  async function renderApplications()'),source.indexOf('  let latestPublications'));
+ const cards=[];const container={replaceChildren(){cards.length=0},append(card){cards.push(card)}};
+ const context=vm.createContext({$:()=>container,currentApplications:new Set(['current']),
+ request:async()=>({applications:[{id:'old',position:'Previous',status:'CANCELADA'},{id:'current',position:'Selected',status:'CANCELADA'}]}),
+ root:{document:{createElement:()=>({append(){}})}}});
+ vm.runInContext(code,context);await context.renderApplications();assert.equal(cards.length,1);
+ context.currentApplications.clear();await context.renderApplications();assert.equal(cards.length,0);
+});

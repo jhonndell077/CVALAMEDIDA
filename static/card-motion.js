@@ -41,13 +41,10 @@
     for(const animation of active.values())animation.cancel();
     active.clear();for(const ghost of ghosts)ghost.remove();ghosts.clear();
   }
-  doc.addEventListener('pointerdown',event=>{
-    const button=event.target.closest?.('button');
-    if(button && !button.disabled) animate(button,[{transform:'scale(1)'},{transform:'scale(.98)'}],{duration:tokens.fast});
-  },true);
+  // Keep hit targets fixed until pointerup so clicks cannot miss an edge.
   doc.addEventListener('click',event=>{
     const button=event.target.closest?.('button');
-    if(button && !button.disabled && enabled()) {
+    if(button && !button.disabled && enabled() && !button.closest('#data-actions')) {
       animate(button,[{transform:'scale(.98)'},{transform:'scale(1)'}],{duration:tokens.fast});
       const wave=doc.createElement('span');wave.className='cv-button-wave';wave.setAttribute('aria-hidden','true');
       const box=rect(button);

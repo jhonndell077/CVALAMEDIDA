@@ -51,6 +51,15 @@ class Bucket:
 
 
 class DiagnosticStoreTests(unittest.TestCase):
+    def test_bank_codes_survive_only_on_the_bank_sync_boundary_without_document_text(self):
+        store=ds.DiagnosticStore({'bank','pdf','drive-api'},{'/export'},bucket=Bucket())
+        store.append_batch([event(1,component='bank',stage='bank-sync',result='warning',code='bank_review_required',name='private-name',message='private-text'),
+                            event(2,component='pdf',stage='bank-sync',code='bank_review_required'),
+                            event(3,component='bank',stage='drive-readback',code='bank_review_required')])
+        rows=store.snapshot()
+        self.assertEqual([row['code'] for row in rows],['bank_review_required',None,None])
+        self.assertNotIn('private-name',str(rows));self.assertNotIn('private-text',str(rows))
+
     def setUp(self):
         self.bucket = Bucket()
         self.store = ds.DiagnosticStore({'pdf', 'drive-api'}, {'/export'}, bucket=self.bucket)

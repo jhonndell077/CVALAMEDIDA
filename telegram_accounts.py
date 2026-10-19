@@ -58,6 +58,7 @@ def stage_link(core, token, message, store):
     pair.update(telegram_id=telegram_id, telegram_name=(sender.get('first_name','')+' '+sender.get('last_name','')).strip()[:160],
                 telegram_username=sender.get('username','')[:64])
     store.write(identifier,pair,generation)
+    return pair
 
 def pending_link(store, uid):
     pointer,_=store.read(key('pending',uid))

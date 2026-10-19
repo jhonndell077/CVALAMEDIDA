@@ -81,3 +81,21 @@ test('reference import fills editable fields and preserves fields on read failur
  assert.equal(get('[name="name"]').value,'Ana editada');
  assert.equal(get('#onboarding-error').textContent,'Ilegible');
 });
+
+test('confirmed save closes the form while consolidation is pending and reports its outcome',async()=>{
+ const {controller,context,get,settings,window,form}=environment();
+ let finish;
+ settings.consolidate=()=>new Promise(resolve=>{finish=resolve;});
+ await controller.initialize({uid:'alice'},settings);
+ get('#onboarding-photo').files=[];
+ get('#onboarding-reference-cv').files=[];
+ context.fetch=async()=>({ok:true,json:async()=>({saved:2,sync_required:true})});
+ form.dispatchEvent(new window.Event('submit',{cancelable:true}));
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(get('#onboarding-dialog').open,false);
+ assert.match(get('.bank-save-confirmation').textContent,/guardó correctamente/);
+ finish(); await new Promise(resolve=>setImmediate(resolve));
+ assert.match(get('.bank-save-confirmation').textContent,/guardó y consolidó correctamente/);
+ controller.reset();
+ assert.equal(get('.bank-save-confirmation'),null);
+});

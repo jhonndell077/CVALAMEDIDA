@@ -8,25 +8,32 @@
   function clear() { notice?.remove(); notice = null; dialog?.remove(); dialog = null; }
   const label = plan => plan?.label || plan?.name || plan?.id || 'Básico';
   const planId = plan => plan?.id || plan?.name || 'basic';
-  const version = () => String(snapshot?.assignmentVersion || 'none');
-  function showNotice(text, key, plans) {
-    if (known(key)) return;
+  const version = () => JSON.stringify([snapshot?.changeVersion || snapshot?.assignmentVersion || 'basic', snapshot?.plan?.name || snapshot?.plan?.id || 'basic', snapshot?.limits]);
+  function showNotice(text, key, plans, changed = false) {
+    if (known(key) && !changed) return;
+    if (notice && !plans && !changed) return;
     notice?.remove();
     notice = node('aside', undefined, 'subscription-notice'); notice.setAttribute('role', 'status'); notice.setAttribute('aria-live', 'polite');
     notice.append(node('p', text));
     if (plans) { const button = node('button', 'Ver planes'); button.type = 'button'; button.addEventListener('click', openPlans); notice.append(button); }
     const close = node('button', 'Cerrar aviso', 'subscription-dismiss'); close.type = 'button'; close.setAttribute('aria-label', 'Cerrar aviso de plan');
     close.addEventListener('click', () => { remember(key); notice?.remove(); notice = null; }); notice.append(close);
-    document.body.append(notice); remember(key);
+    const setup = document.querySelector('#required-sync');
+    if (setup && !setup.hidden) setup.prepend(notice); else document.body.append(notice);
+    if (plans) remember(key); // Welcome is acknowledged only when it is dismissed.
   }
-  function welcome() {
+  function welcome(changed = false) {
     const plan = snapshot?.plan;
-    if (!user || !plan || !snapshot.assignmentVersion || ['basic', 'basico', 'básico', 'free'].includes(String(planId(plan)).toLowerCase())) return;
+    if (!user || !snapshot || (!snapshot.limits && !plan)) return;
     const catalog = snapshot.planCatalog || [];
-    const assigned = catalog.find(item => item.id === planId(plan)) || plan;
+    const assigned = catalog.find(item => item.id === planId(plan)) || plan || {};
     const benefits = (snapshot.benefits || assigned.benefits || []).map(String);
-    const details = benefits.length ? ` Disfruta de: ${benefits.join(' · ')}.` : snapshot.limits ? ` Tienes ${snapshot.limits.daily} operaciones al día y ${snapshot.limits.monthly} al mes.` : '';
-    showNotice(`Bienvenid@ ${user.displayName || ''}, tienes asignado el plan ${snapshot.planLabel || label(assigned)}.${details}`, `cv-plan:welcome:${user.uid}:${version()}`, false);
+    const limits = snapshot.limits || assigned;
+    const usage = snapshot.usage;
+    const details = ` Puedes generar ${limits.daily ?? 'por confirmar'} CV al día y ${limits.monthly ?? 'por confirmar'} al mes.` +
+      (usage ? ` Disponibles: ${usage.dailyRemaining} hoy y ${usage.monthlyRemaining} este mes.` : '') +
+      (benefits.length ? ` Disfruta de: ${benefits.join(' · ')}.` : '');
+    showNotice(`Bienvenid@ ${user.displayName || ''}, tienes asignado el plan ${snapshot.planLabel || label(assigned)}.${details}`, `cv-plan:welcome:${user.uid}:${version()}`, false, changed);
   }
   async function refresh() {
     if (!user) return null;
@@ -39,11 +46,15 @@
       const response = await fetch('/api/subscription', {headers: {Authorization: `Bearer ${token}`}});
       const data = await response.json();
       if (!current() || !response.ok) return null;
-      snapshot = data; welcome(); return data;
+      const previous = snapshot ? version() : null;
+      snapshot = data; welcome(previous !== null && previous !== version()); return data;
     })().catch(() => null).finally(() => { if (current()) loading = null; });
     loading = promise; return promise;
   }
-  async function initialize(next) { epoch++; clear(); user = next; snapshot = null; loading = null; if (next) await refresh(); }
+  async function initialize(next) {
+    if (next && user?.uid === next.uid) { user = next; return refresh(); }
+    epoch++; clear(); user = next; snapshot = null; loading = null; if (next) await refresh();
+  }
   async function observe(response, data) {
     if (!user || response?.status !== 429 || data?.code !== 'period_quota_exceeded') return;
     const owner = user.uid, expected = epoch;
@@ -71,5 +82,8 @@
     const close = node('button', 'Cerrar planes'); close.type = 'button'; close.addEventListener('click', () => { dialog?.close?.(); dialog?.remove(); dialog = null; }); dialog.append(close);
     document.body.append(dialog); if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
   }
-  window.cvSubscription = {initialize, observe, openPlans};
+  window.addEventListener?.('focus', () => { refresh(); });
+  const refreshTimer = window.setInterval?.(() => { if (user && !document.hidden) refresh(); }, 60000);
+  refreshTimer?.unref?.();
+  window.cvSubscription = {initialize, observe, openPlans, refresh};
 })();

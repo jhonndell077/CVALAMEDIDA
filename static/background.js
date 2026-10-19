@@ -1,4 +1,4 @@
-/* Browser storage contains job IDs only; the server owns execution and results. */
+/* Process results belong to the current signed-in page session only. */
 window.cvBackground = (() => {
   const titles = {'/api/analyze': 'Análisis de vacante', '/api/bank/sync': 'Sincronización del banco',
     '/api/draft': 'Generación de CV', '/api/profile/information': 'Guardar información',
@@ -44,7 +44,9 @@ window.cvBackground = (() => {
   }
   const enabled = () => Boolean(options?.enabled && options.user());
   function persist() {
-    try { localStorage.setItem(`cv-processes-${owner}`, JSON.stringify(records.slice(-20).map(({sessionId, ...record}) => record))); } catch { /* Work stays on the server. */ }
+    // Older versions persisted job IDs and replayed previous CVs at login.
+    // Keep live work in memory; the server still owns execution and results.
+    try { localStorage.removeItem(`cv-processes-${owner}`); } catch { /* Storage can be unavailable. */ }
   }
   function remember(record) {
     if (!records.some(item => item.id === record.id)) records.push(record);
@@ -72,6 +74,24 @@ window.cvBackground = (() => {
     const progress = document.createElement('progress'); progress.max = 100; progress.value = displayed.progress;
     progress.setAttribute('aria-label', title.textContent); row.append(title, progress, detail);
     if (job.state === 'failed') { detail.textContent = job.error || 'El proceso necesita atención.'; row.classList.add('process-failed'); }
+    if ((job.path || record.path) === '/api/bank/sync' && job.result?.warnings?.length) {
+      const review = document.createElement('details');
+      review.open = job.state === 'failed';
+      const summary = document.createElement('summary');
+      summary.textContent = job.state === 'failed' ? 'Documentos que requieren revisión' : 'Observaciones del banco';
+      review.append(summary);
+      for (const warning of job.result.warnings) {
+        const item = document.createElement('p');
+        item.textContent = `${warning.severity === 'notice' ? 'Observación' : 'Requiere revisión'} · ${warning.name || 'Banco'}: ${warning.message || 'Consulta el documento original.'}`;
+        if (typeof warning.file_id === 'string' && /^[A-Za-z0-9_-]+$/.test(warning.file_id)) {
+          const link = document.createElement('a');
+          link.href = 'https://drive.google.com/file/d/' + encodeURIComponent(warning.file_id) + '/view';
+          link.target = '_blank'; link.rel = 'noopener'; link.textContent = 'Abrir documento'; item.append(' ', link);
+        }
+        review.append(item);
+      }
+      row.append(review);
+    }
     for (const member of members) {
     const job = jobs.get(member.id) || {};
     const record = member;
@@ -146,7 +166,8 @@ window.cvBackground = (() => {
           for (const listener of progressListeners.get(record.id) || []) listener(progress, job.stage, true);
           if (job.state === 'done' || job.state === 'failed') {
             record.state = job.state; persist();
-            if (job.state === 'failed') throw Object.assign(new Error(job.error || 'No se pudo completar el proceso.'), {terminal: true});
+            if (job.state === 'failed') throw Object.assign(new Error(job.error || 'No se pudo completar el proceso.'), {terminal: true,
+              ...(record.path === '/api/bank/sync' && job.result ? {bankStatus:job.result} : {})});
             if (finish.complete) await finish.complete();
             if (!current()) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
             delivered.add(record.id);
@@ -184,9 +205,14 @@ window.cvBackground = (() => {
   }
   async function run(path, payload, headers = {}, onProgress = null) {
     const startedOwner = owner;
+    const startedGeneration = generation;
+    const current = () => startedOwner === owner && startedGeneration === generation;
     const existing = records.find(record => record.path === path && !['done', 'failed'].includes(record.state));
     if (path === '/api/bank/sync' && existing) return watch(existing, false, onProgress);
-    const record = {id: `web-${crypto.randomUUID()}`, path, state: 'queued'};
+    const requestedOperation = headers['X-CV-Operation-ID'];
+    const identifier = path === '/api/bank/sync' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(requestedOperation || '')
+      ? requestedOperation : crypto.randomUUID();
+    const record = {id: `web-${identifier}`, path, state: 'queued'};
     const currentSession = window.cvLoading.currentSession?.();
     if (currentSession != null) { record.sessionId = currentSession; record.actionId = `${pageId}:${currentSession}`; }
     const sessionId = window.cvLoading.backgroundSession?.();
@@ -198,9 +224,10 @@ window.cvBackground = (() => {
     remember(record); render(record, {progress: 1, stage: 'Guardando la solicitud en el servidor'});
     try {
       const submitted = await options.request('/api/background/jobs', {path, payload, request_id: record.id.slice(4)}, {...headers, 'X-CV-Operation-ID': record.id.slice(4)});
+      if (!current()) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
       record.id = submitted.job_id; persist();
     } catch (error) {
-      if (error.terminal || startedOwner !== owner) throw error;
+      if (error.terminal || !current()) throw error;
       if (error.status && error.status < 500) {
         record.state = 'failed'; persist(); render(record, {state: 'failed', error: error.message}); throw error;
       }
@@ -221,7 +248,9 @@ window.cvBackground = (() => {
     if (!enabled() || restoring) return;
     restoring = true;
     try {
-      if (/^web-[0-9a-f-]{36}$/.test(id)) remember({id, path: '', state: 'queued'});
+      // A push notification may refer to an earlier login. Only reconnect work
+      // explicitly started in this session; never import its historical result.
+      if (id && !records.some(record => record.id === id)) return;
       for (const record of records) {
         if (record.pendingNotice || !['done', 'failed'].includes(record.state) ||
             record.backgrounded && record.actionId && !rows.has(record.actionId)) {
@@ -267,14 +296,13 @@ window.cvBackground = (() => {
     button.disabled = !enabled(); panel.hidden = !enabled();
     for (const record of sessions.values()) render(record, {progress:1, stage:record.title});
     if (!enabled()) return;
-    try { records = JSON.parse(localStorage.getItem(`cv-processes-${owner}`) || '[]').filter(r => /^web-[0-9a-f-]{36}$/.test(r.id)); } catch { records = []; }
+    persist();
     notice.textContent = 'Activa las notificaciones para recibir un aviso aunque cierres esta página.';
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then(() => {
         if ('Notification' in window && 'PushManager' in window && Notification.permission === 'granted') return registerSubscription();
       }).catch(() => { notice.textContent = 'Los procesos continúan en el servidor; las notificaciones aún no están conectadas.'; });
     }
-    resume(new URL(location.href).searchParams.get('job') || '').catch(error => { notice.textContent = error.message; });
   }
   button.addEventListener('click', async () => {
     if (!enabled()) return;

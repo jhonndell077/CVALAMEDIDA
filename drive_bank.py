@@ -119,7 +119,7 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
     if len(form_names) == 1:
         profile['candidate']['name'] = personal_forms[-1]['facts']['candidate']['name']
     elif len(form_names) > 1:
-        warnings.append({'file_id': '', 'name': 'Información personal', 'message':
+        warnings.append({'file_id': '', 'name': 'Información personal', 'code':'bank_identity_conflict', 'severity':'blocking', 'message':
             'Hay formularios personales con nombres diferentes. Revisa el titular antes de incorporar sus datos.'})
     def skill_identifier(label):
         value=identifier('skill',label)
@@ -135,13 +135,13 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
         if facts.get('_personal_form') and len(form_names) == 1:
             ownership = True
         if ownership is False:
-            warnings.append({"file_id": file_id, "name": doc["name"], "message": "El nombre del titular difiere del perfil. Se conserva el archivo, pero sus datos requieren revisión."})
+            warnings.append({"file_id": file_id, "name": doc["name"], 'code':'bank_identity_conflict', 'severity':'blocking', "message": "El nombre del titular difiere del perfil. Se conserva el archivo, pero sus datos requieren revisión."})
             continue
         for key, value in facts.get('candidate', {}).items():
             if value and ownership is True:
                 profile['candidate'][key] = copy.deepcopy(value)
         if facts.get('candidate') and ownership is None:
-            warnings.append({'file_id': file_id, 'name': doc['name'], 'message':
+            warnings.append({'file_id': file_id, 'name': doc['name'], 'code':'bank_identity_unverified', 'severity':'blocking', 'message':
                 'El documento no identifica al titular completo. Sus datos personales no se incorporaron; requieren revisión.'})
         for reference in facts.get('references', []):
             existing_reference=find_record(profile['references'], 'references', reference)
@@ -171,7 +171,7 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
                     if not existing.get("date"):
                         existing["date"] = item["date"]
                     elif existing["date"] != item["date"]:
-                        warnings.append({"file_id": file_id, "name": doc["name"], "message": f"Hay fechas distintas para {item['title']}; se conserva la existente."})
+                        warnings.append({"file_id": file_id, "name": doc["name"], 'code':'bank_date_preserved', 'severity':'notice', "message": f"Hay fechas distintas para {item['title']}; se conserva la existente."})
                 if section == "experiences":
                     for origin, statements in (("documentada", item["responsibilities"]),
                                                ("generada_por_puesto", item.get("generated_responsibilities", []))):
@@ -189,7 +189,7 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
                         if item.get(date) and not existing.get(date):
                             existing[date] = item[date]
                         elif item.get(date) and existing.get(date) != item[date]:
-                            warnings.append({"file_id": file_id, "name": doc["name"], "message": f"Hay fechas laborales distintas para {item['title']}; se conserva la existente."})
+                            warnings.append({"file_id": file_id, "name": doc["name"], 'code':'bank_date_preserved', 'severity':'notice', "message": f"Hay fechas laborales distintas para {item['title']}; se conserva la existente."})
         for label in facts.get("skills", []):
             skill = find_record(profile["skills"], "skills", {"label":label})
             if skill is None:
@@ -199,7 +199,7 @@ def merge_profile(base: dict, documents: dict) -> tuple[dict, list[dict]]:
             if source not in skill["source_documents"]:
                 skill["source_documents"].append(source)
         for note in facts.get("notes", []):
-            warnings.append({"file_id": file_id, "name": doc["name"], "message": note})
+            warnings.append({"file_id": file_id, "name": doc["name"], 'code':'bank_document_note', 'severity':'notice', "message": note})
     if not profile["skills"]:
         for file_id,doc in documents.items():
             if not doc.get("active") or doc.get("status") != "incorporado": continue
@@ -690,13 +690,14 @@ class DriveBank:
                 doc["history"] = history[-10:]
             doc.update({"fingerprint": fingerprint(file), "processed_at": datetime.now(timezone.utc).isoformat()})
         profile, warnings = merge_profile(base, documents)
-        warnings.extend({"file_id": key, "name": doc["name"], "message": doc.get("message", "No se pudo leer el archivo.")}
+        warnings.extend({"file_id": key, "name": doc["name"], 'code':'bank_document_unreadable', 'severity':'blocking', "message": doc.get("message", "No se pudo leer el archivo.")}
                         for key, doc in documents.items() if doc.get("active") and doc.get("status") == "revision")
         remaining = sum(d.get("active") and d.get("status") == "pendiente" for d in documents.values())
         if process and documents != original_documents:
             index["last_sync"] = datetime.now(timezone.utc).isoformat()
             self._write_versioned_json(self.config['index_file_id'], index, index_etag)
-        return profile, {"folder_id": self.config["folder_id"], "pending": remaining, "last_sync": index.get("last_sync"),
+        import bank_sync_status
+        return profile, bank_sync_status.with_summary({"folder_id": self.config["folder_id"], "pending": remaining, "last_sync": index.get("last_sync"),
             "photo": {"file_id": photo_file["id"], "name": photo_file["name"], "fingerprint": fingerprint(photo_file)} if photo_file else None,
             "warnings": warnings, "documents": [{"file_id": key, **{k: d.get(k) for k in ("name", "active", "status", "message", "processed_at")}} for key, d in documents.items()],
-            "counts": {k: len(profile[k]) for k in ("courses", "education", "experiences", "skills", "projects")}}, photo
+            "counts": {k: len(profile[k]) for k in ("courses", "education", "experiences", "skills", "projects")}}), photo

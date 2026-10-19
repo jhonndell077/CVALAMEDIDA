@@ -15,6 +15,26 @@ import app as cv_app
 BASE = json.loads((Path(__file__).resolve().parents[1] / 'data/master_profile.json').read_text(encoding='utf-8'))
 CONFIG = {'folder_id': 'bank', 'base_file_id': 'base', 'index_file_id': 'index', 'photo_file_id': 'photo', 'readme_file_id': 'readme'}
 
+
+class SyncEvidenceTests(unittest.TestCase):
+    def test_processing_records_complete_or_warning_under_the_bank_operation(self):
+        for status, outcome in [({'pending':0,'warnings':[]}, 'success'),
+                                ({'pending':1,'warnings':[]}, None),
+                                ({'pending':0,'warnings':[{}]}, 'warning')]:
+            with self.subTest(outcome=outcome, status=status), cv_app.app.test_request_context('/api/bank/sync', method='POST'), \
+                    patch.object(cv_app.account_state, 'BANK_CLIENT') as bank, \
+                    patch.object(cv_app, 'validate_profile'), patch.object(cv_app, 'refresh_profile_indexes'), \
+                    patch.object(cv_app.architecture_diagnostics, 'record_stage') as record:
+                bank.load.return_value = (BASE, status, b'')
+                self.assertEqual(cv_app.load_drive_bank(process=True), status)
+                if outcome is None:
+                    record.assert_not_called()
+                    continue
+                self.assertEqual(record.call_args.kwargs['result'], outcome)
+                self.assertEqual(record.call_args.kwargs['stage'], 'bank-sync')
+                self.assertEqual(record.call_args.kwargs['component'], 'bank')
+
+
 def cert(title='Certificado de prueba'):
     return clean_facts({'recipient': BASE['candidate']['name'], 'courses': [{'title': title, 'institution': 'Institución de prueba', 'date': '2026'}]})
 
