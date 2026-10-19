@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="/employment.css">
     <link rel="stylesheet" href="/card-motion.css">
     <link rel="stylesheet" href="/workspace-navigation.css">
+    <link rel="stylesheet" href="/presentation.css">
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   </head>
   <body>
@@ -25,6 +26,7 @@
       <a class="brand" href="/" aria-label="CV a la medida">
         <img class="brand-logo" src="/logo-cv-a-la-medida.png" alt="CV a la medida" width="2172" height="724">
       </a>
+      <nav class="presentation-nav" aria-label="Conoce CV a la Medida"><a href="#como-funciona">Cómo funciona</a><a href="#tu-informacion">Tu información</a><a href="#preguntas">Preguntas</a></nav>
       <div class="privacy-pill"><span class="status-dot"></span><span id="privacy-status">Comprobando el servicio de IA…</span></div>
       <a class="employment-nav" href="#employment-panel" hidden>EMPLEO INTELIGENTE</a>
     </header>
@@ -164,12 +166,39 @@
       </section>
       <button id="sync-bank" type="button" hidden disabled>Sincronizar todo</button>
 
-      <section class="intro">
-        <img class="intro-logo" src="/logo-cv-a-la-medida.png" alt="CV a la medida" width="2172" height="724" fetchpriority="high">
-        <div class="eyebrow">TU PERFIL PROFESIONAL, UNA VACANTE A LA VEZ</div>
-        <h1>Una hoja de vida<br><em>hecha para el puesto.</em></h1>
-        <p>Comparte una vacante o pega sus requisitos. La app cruza esa oportunidad con tu banco profesional, selecciona la evidencia relevante y prepara un CV sin inventar experiencia.</p>
-      </section>
+      <div class="presentation" id="presentacion">
+        <section class="presentation-hero" aria-labelledby="welcome-title">
+          <span class="presentation-kicker">TU PRÓXIMA OPORTUNIDAD EMPIEZA AQUÍ</span>
+          <h1 id="welcome-title">Bienvenido a<br>CV <em>a la Medida.</em></h1>
+          <p>Tu experiencia tiene mucho que contar. Conviértela en una hoja de vida pensada para el puesto que quieres, con lo que sabes hacer y la evidencia que lo respalda.</p>
+          <div class="presentation-actions"><button class="presentation-cta" data-presentation-start type="button">Preparar mi CV <span aria-hidden="true">→</span></button><a class="presentation-link" href="#como-funciona">Conoce cómo funciona</a></div>
+          <p class="presentation-note">Tu perfil profesional. Cada vacante, una nueva versión.</p>
+          <div class="presentation-demo" aria-label="Ejemplo ilustrativo de adaptación de un CV">
+            <div class="presentation-demo-inner">
+              <div class="presentation-demo-top"><strong>Una oportunidad. Tu experiencia.</strong><span>Ejemplo ilustrativo · datos ficticios</span></div>
+              <div class="presentation-tabs" role="tablist" aria-label="Explorar ejemplo" style="margin-top:18px">
+                <button id="sample-job-tab" class="presentation-tab" type="button" role="tab" aria-selected="true" aria-controls="sample-job" data-presentation-tab>La vacante</button>
+                <button id="sample-cv-tab" class="presentation-tab" type="button" role="tab" aria-selected="false" aria-controls="sample-cv" tabindex="-1" data-presentation-tab>Tu CV adaptado</button>
+              </div>
+              <div id="sample-job" class="presentation-sample" role="tabpanel" aria-labelledby="sample-job-tab" tabindex="0"><span class="sample-label">SE BUSCA TALENTO</span><h2>Asistente de atención al cliente</h2><p>Una empresa busca a alguien que sepa escuchar, resolver solicitudes y mantener todo en orden. Tu CV debe mostrar dónde y cómo has hecho ese trabajo.</p><div class="sample-chips"><span>Atención al cliente</span><span>Organización</span><span>Comunicación</span></div></div>
+              <div id="sample-cv" class="presentation-sample sample-cv" role="tabpanel" aria-labelledby="sample-cv-tab" tabindex="0" hidden><aside><span class="sample-label">HOJA DE VIDA</span><strong>Alex<br>Ejemplo</strong><p>Atención al cliente<br>Organización<br>Comunicación</p></aside><div><h3>Experiencia que conecta con el puesto</h3><p>Atención de consultas, seguimiento de solicitudes y organización de registros de clientes.</p><h3>Formación y evidencias relevantes</h3><p>La adaptación prioriza la información disponible en tu banco. Tú revisas el resultado antes de utilizarlo.</p></div></div>
+            </div>
+          </div>
+        </section>
+        <div class="presentation-support">Conecta tu cuenta de Google · Organiza tu información en Drive · Telegram es opcional</div>
+        <section class="presentation-section" id="como-funciona" aria-labelledby="how-title">
+          <div><span class="presentation-kicker">DE TU EXPERIENCIA A TU PRÓXIMO PASO</span><h2 id="how-title">Una buena candidatura<br>empieza con tu historia.</h2><p>No necesitas empezar desde cero con cada oportunidad. Reúne tu información una vez y prepara una versión enfocada en lo que pide cada vacante.</p><a class="presentation-link" href="/manual.html" target="_blank" rel="noopener">Ver la guía de uso ↗</a></div>
+          <div class="presentation-steps"><div class="presentation-step"><span>01</span><div><h3>Construye tu banco profesional</h3><p>Completa tus datos y reúne experiencia, estudios y certificados en tu Drive.</p></div></div><div class="presentation-step"><span>02</span><div><h3>Comparte una oportunidad</h3><p>Pega la vacante o adjunta un PDF, Word, imagen o archivo de texto.</p></div></div><div class="presentation-step"><span>03</span><div><h3>Revisa tu CV a la medida</h3><p>Analiza los requisitos, revisa la propuesta y prepara tu hoja de vida para esa oportunidad.</p></div></div></div>
+        </section>
+        <section class="presentation-section presentation-bank-section" id="tu-informacion" aria-labelledby="bank-story-title">
+          <div class="presentation-bank" aria-label="Ejemplo de organización del banco"><strong>▱ &nbsp; Mi Banco de Datos</strong><div><span>▤</span> Experiencia laboral</div><div><span>▤</span> Estudios y formación</div><div><span>▤</span> Certificados y habilidades</div><div><span>▤</span> Datos para mi hoja de vida</div><small>Una representación de tu información profesional, organizada en Drive.</small></div>
+          <div><span class="presentation-kicker">TU INFORMACIÓN, CON CONTEXTO</span><h2 id="bank-story-title">Todo lo que has hecho.<br>Lo que importa para el puesto.</h2><p>Tu banco es el punto de partida. La app utiliza la información legible de tus documentos y los datos que completas para seleccionar la experiencia pertinente.</p><p>El objetivo es destacar tu trayectoria sin inventar experiencia. Si falta información, puedes completarla desde tus datos.</p></div>
+        </section>
+        <section class="presentation-center" aria-labelledby="tools-story-title"><span class="presentation-kicker">MÁS QUE UN DOCUMENTO</span><h2 id="tools-story-title">Tu búsqueda, mejor organizada.</h2><p>Herramientas que acompañan el camino entre encontrar una oportunidad y preparar tu candidatura.</p><div class="presentation-features"><article><span class="presentation-feature-icon" aria-hidden="true">↗</span><h3>Empleo Inteligente</h3><p>Consulta oportunidades de empleo en República Dominicana, abre el anuncio original y utiliza la vacante para adaptar tu CV.</p></article><article><span class="presentation-feature-icon" aria-hidden="true">✉</span><h3>Gmail e historial</h3><p>Conecta Gmail para el flujo de envío de tu CV y consulta tus postulaciones en el Historial de la aplicación.</p></article><article><span class="presentation-feature-icon" aria-hidden="true">↗</span><h3>También en Telegram</h3><p>Vincula tu cuenta con el bot para utilizar tu banco profesional desde una conversación privada. Esta conexión es opcional.</p></article></div></section>
+        <section class="presentation-section" aria-labelledby="trust-story-title"><div><span class="presentation-kicker">CLARIDAD EN CADA PASO</span><h2 id="trust-story-title">Tu experiencia es personal.<br>Tu proceso también.</h2><p>Tu banco y tu historial se guardan en Drive. Los permisos de Google permiten conectar las funciones de tu cuenta; puedes revisar el detalle del tratamiento de datos antes de empezar.</p><a class="presentation-link" href="/privacy.html" target="_blank" rel="noopener">Conocer privacidad y conservación de datos ↗</a></div><div class="presentation-steps"><div class="presentation-step"><span>✓</span><div><h3>Un perfil para tus oportunidades</h3><p>La adaptación utiliza la información profesional de tu cuenta.</p></div></div><div class="presentation-step"><span>✓</span><div><h3>Revisión con inteligencia artificial</h3><p>La vacante y las evidencias laborales se procesan en Google Cloud. Revisa siempre el resultado.</p></div></div><div class="presentation-step"><span>✓</span><div><h3>Límites visibles según tu plan</h3><p>Tu cuenta muestra las creaciones disponibles al día y al mes. Sincronizar tus datos no consume creaciones de CV.</p></div></div></div></section>
+        <section class="presentation-center" id="preguntas" aria-labelledby="questions-title"><span class="presentation-kicker">ANTES DE EMPEZAR</span><h2 id="questions-title">Preguntas que vale la pena resolver.</h2><div class="presentation-faq"><details><summary>¿Qué necesito para preparar mi primera hoja de vida?</summary><p>Inicia sesión con Google, completa las verificaciones de Gmail y Drive y añade tu información profesional. Después, comparte la vacante para comenzar el análisis.</p></details><details><summary>¿Tengo que volver a escribir mis datos con cada vacante?</summary><p>No. Tu banco conserva tu información profesional. Puedes actualizarla y reutilizarla para preparar un CV enfocado en una nueva oportunidad.</p></details><details><summary>¿La inteligencia artificial inventa experiencia por mí?</summary><p>La app está diseñada para trabajar con la información de tu banco y destacar lo que corresponde a la vacante. Verifica fechas, cargos, habilidades y datos de contacto antes de usar el documento.</p></details><details><summary>¿Cuántos CV puedo crear?</summary><p>Depende del plan asignado a tu cuenta. La bienvenida y los avisos de cambio de plan muestran tu disponibilidad diaria y mensual. Navegar o sincronizar tu banco no consume generaciones.</p></details><details><summary>¿Es obligatorio vincular Telegram?</summary><p>No. Puedes usar la aplicación web sin Telegram. Si quieres conectar el bot, abre el menú y elige «Vincular mi Telegram y Drive».</p></details><details><summary>¿CV a la Medida garantiza que consiga empleo?</summary><p>No. Te ayuda a organizar tu información y preparar una candidatura pertinente. La decisión de contratación corresponde a cada empleador.</p></details></div></section>
+        <section class="presentation-final" aria-labelledby="ready-title"><span class="presentation-kicker">DA EL SIGUIENTE PASO</span><h2 id="ready-title">Tu próxima oportunidad<br>merece un CV a su medida.</h2><p>Empieza por tu historia. Dale forma para el puesto que quieres.</p><div class="presentation-actions"><button class="presentation-cta" type="button" data-presentation-start>Comenzar ahora <span aria-hidden="true">→</span></button></div><div class="presentation-legal"><a href="/manual.html" target="_blank" rel="noopener">Guía de uso</a><a href="/privacy.html" target="_blank" rel="noopener">Privacidad</a></div></section>
+      </div>
 
       <div class="steps" aria-label="Pasos">
         <div class="step active" data-step-indicator="1"><span>01</span> Vacante</div>
@@ -520,6 +549,7 @@
     <dialog id="vacancy-window" class="workspace-window" aria-labelledby="vacancy-window-title" data-own-motion><header class="workspace-window-header"><h2 id="vacancy-window-title">Analizar vacante</h2><button class="workspace-close" data-workspace-close type="button" aria-label="Cerrar vacante">×</button></header><div class="workspace-window-content"></div></dialog>
     <dialog id="history-window" class="workspace-window" aria-labelledby="history-window-title" data-own-motion><header class="workspace-window-header"><h2 id="history-window-title">Historial</h2><button class="workspace-close" data-workspace-close type="button" aria-label="Cerrar historial">×</button></header><div class="workspace-window-content"></div></dialog>
     <script src="/workspace-navigation.js" defer></script>
+    <script src="/presentation.js" defer></script>
     <script src="/ui-navigation.js" defer></script>
     <script src="/subscription-notices.js" defer></script>
     <script src="/client-supervisor.js" defer></script>
