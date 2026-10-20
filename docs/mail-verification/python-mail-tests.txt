@@ -1,0 +1,23 @@
+test_active_pdf_rejected (__main__.ApplicationMailTests.test_active_pdf_rejected) ... ok
+test_actual_mime_identity_subject_date_and_id (__main__.ApplicationMailTests.test_actual_mime_identity_subject_date_and_id) ... ok
+test_empty_page_rejected (__main__.ApplicationMailTests.test_empty_page_rejected) ... ok
+test_encoded_mime_size_limit (__main__.ApplicationMailTests.test_encoded_mime_size_limit) ... ok
+test_encrypted_pdf_rejected (__main__.ApplicationMailTests.test_encrypted_pdf_rejected) ... ok
+test_google_errors_fail_closed_and_token_not_in_url (__main__.ApplicationMailTests.test_google_errors_fail_closed_and_token_not_in_url) ... ok
+test_google_scope_verified (__main__.ApplicationMailTests.test_google_scope_verified) ... ok
+test_injection_blocked_in_every_header_field (__main__.ApplicationMailTests.test_injection_blocked_in_every_header_field) ... ok
+test_invalid_and_truncated_pdf (__main__.ApplicationMailTests.test_invalid_and_truncated_pdf) ... ok
+test_long_unicode_name_and_stable_message_id (__main__.ApplicationMailTests.test_long_unicode_name_and_stable_message_id) ... ok
+test_no_tracking_or_fake_authentication (__main__.ApplicationMailTests.test_no_tracking_or_fake_authentication) ... ok
+test_partial_scope_rejected (__main__.ApplicationMailTests.test_partial_scope_rejected) ... ok
+test_pdf_size_limit (__main__.ApplicationMailTests.test_pdf_size_limit) ... ok
+test_plain_html_and_pdf_integrity (__main__.ApplicationMailTests.test_plain_html_and_pdf_integrity) ... ok
+test_rate_cas_conflict_blocks_send (__main__.ApplicationMailTests.test_rate_cas_conflict_blocks_send) ... ok
+test_recipient_lists_and_duplicates (__main__.ApplicationMailTests.test_recipient_lists_and_duplicates) ... ok
+test_shared_rate_limits_and_owner_isolation (__main__.ApplicationMailTests.test_shared_rate_limits_and_owner_isolation) ... ok
+test_two_concurrent_accounts_have_no_shared_state (__main__.ApplicationMailTests.test_two_concurrent_accounts_have_no_shared_state) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.143s
+
+OK

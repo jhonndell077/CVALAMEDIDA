@@ -415,7 +415,7 @@
           <h3 id="send-title">Postular a esta vacante</h3>
           <p>Al crear tu CV, Gmail envía automáticamente el mensaje y el PDF adjunto al primer correo detectado en la vacante. WhatsApp abre el chat para que adjuntes el PDF y completes el envío.</p>
           <div class="send-fields">
-            <label class="field-label">Correo de la vacante<input id="application-email" type="email" readonly placeholder="Correo no indicado en el anuncio"></label>
+            <label class="field-label">Correo de la vacante<input id="application-email" type="email" list="application-email-options" placeholder="Correo no indicado en el anuncio"><datalist id="application-email-options"></datalist></label>
             <label class="field-label">WhatsApp de la vacante<input id="application-phone" type="tel" placeholder="Número con código de país, ej. +1 809…"></label>
           </div>
           <p id="application-contacts" class="microcopy"></p>
@@ -564,3 +564,4 @@
     <script src="/card-motion.js" defer></script>
   </body>
 </html>
+

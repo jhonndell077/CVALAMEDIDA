@@ -120,25 +120,29 @@ def _disconnect_reserved(store, uid):
     pending,version=store.read(key('pending',uid))
     store.write(key('pending',uid),{},version)
 
-def save_oauth(store, uid, refresh, connected=False):
+def save_oauth(store, uid, refresh, connected=False, scopes=None):
     with account_writes.reserve(store, uid, 'telegram-oauth'):
-        return _save_oauth_reserved(store, uid, refresh, connected)
+        return _save_oauth_reserved(store, uid, refresh, connected, scopes)
 
 
-def _save_oauth_reserved(store, uid, refresh, connected=False):
+def _save_oauth_reserved(store, uid, refresh, connected=False, scopes=None):
     identifier=key('oauth',uid)
     old,generation=store.read(identifier)
-    record={'credentials':encrypted.protect(store,{'refresh_token':refresh},identifier),'drive_connected':connected}
+    record={'credentials':encrypted.protect(store,{'refresh_token':refresh},identifier),'drive_connected':connected,
+            'google_scopes': list(scopes if scopes is not None else (old or {}).get('google_scopes', []))}
     store.write(identifier,record,generation)
 
 def runtime(core, config, identity, store):
     result={**config}
     # Shared legacy credentials must never become another account's credentials.
-    result.pop('drive_refresh_token',None); result['drive_connected']=False
+    result.pop('drive_refresh_token',None); result.pop('_access_token',None)
+    result['drive_connected']=False; result['gmail_authorized']=False; result['google_scopes']=[]
     uid=identity['uid']; saved,_=store.read(key('oauth',uid))
     if saved and saved.get('credentials'):
         result['drive_refresh_token']=encrypted.unprotect(store,saved['credentials'],key('oauth',uid))['refresh_token']
         result['drive_connected']=bool(saved.get('drive_connected'))
+        result['google_scopes']=saved.get('google_scopes', [])
+        result['gmail_authorized']='https://www.googleapis.com/auth/gmail.send' in result['google_scopes']
     elif not saved and identity['email'].casefold()==core.ORIGINAL_OWNER_EMAIL:
         result['drive_refresh_token']=config.get('drive_refresh_token','')
         result['drive_connected']=bool(config.get('drive_connected'))
@@ -157,3 +161,4 @@ def disconnect_chat(core, store, telegram_id, callback):
         raise core.AppError('Esta vinculación ya no está activa. Usa /start para revisar tu cuenta.', 409)
     disconnect(store, linked['uid'])
     return linked.get('email', '')
+

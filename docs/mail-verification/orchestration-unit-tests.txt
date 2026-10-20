@@ -1,0 +1,17 @@
+test_bot_actual_pdf_and_duplicate_callback (__main__.OrchestrationTests.test_bot_actual_pdf_and_duplicate_callback) ... ok
+test_bot_hash_and_owner_are_enforced (__main__.OrchestrationTests.test_bot_hash_and_owner_are_enforced) ... ok
+test_bot_missing_id_or_provider_failure_never_retries (__main__.OrchestrationTests.test_bot_missing_id_or_provider_failure_never_retries) ... ok
+test_bot_multiple_recipients_never_auto_sends (__main__.OrchestrationTests.test_bot_multiple_recipients_never_auto_sends) ... ok
+test_bot_notification_failure_does_not_reverse_acceptance (__main__.OrchestrationTests.test_bot_notification_failure_does_not_reverse_acceptance) ... ok
+test_bot_post_acceptance_history_failure_is_warning (__main__.OrchestrationTests.test_bot_post_acceptance_history_failure_is_warning) ... ok
+test_web_acceptance_survives_history_failure (__main__.OrchestrationTests.test_web_acceptance_survives_history_failure) ... ok
+test_web_attaches_exact_archived_pdf_and_prevents_repeat (__main__.OrchestrationTests.test_web_attaches_exact_archived_pdf_and_prevents_repeat) ... ok
+test_web_lost_response_blocks_retry (__main__.OrchestrationTests.test_web_lost_response_blocks_retry) ... ok
+test_web_rate_rejection_is_not_started_and_can_retry (__main__.OrchestrationTests.test_web_rate_rejection_is_not_started_and_can_retry) ... ok
+test_web_scope_failure_blocks_pdf_and_send (__main__.OrchestrationTests.test_web_scope_failure_blocks_pdf_and_send) ... ok
+test_web_wrong_identity_blocks_send (__main__.OrchestrationTests.test_web_wrong_identity_blocks_send) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.338s
+
+OK

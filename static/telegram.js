@@ -72,7 +72,7 @@ window.cvTelegram = (() => {
     document.querySelector('#telegram-disconnect').hidden=!data.multi_account || !data.linked;
     document.querySelector('#telegram-check-link').hidden=true;
     document.querySelector('#telegram-confirm-link').hidden=true;
-    status().textContent = data.drive_connected ? "Drive conectado para trabajar desde Telegram. " + data.message : data.message;
+    status().textContent = `Drive: ${data.drive_connected ? "disponible" : "pendiente"}. Gmail: ${data.gmail_authorized ? "autorizado para enviar" : "requiere autorización"}. ${data.message}`;
     if (data.pending) status().textContent=`Telegram pendiente: ${data.pending.telegram_name || 'Sin nombre'} ${data.pending.telegram_username ? '@'+data.pending.telegram_username : ''} (ID ${data.pending.telegram_id}). Confirma únicamente si es tu cuenta.`;
     button().textContent = data.drive_connected ? "Volver a autorizar Drive para Telegram" : "Autorizar Drive para Telegram";
     if (!data.client_id) return;
@@ -206,3 +206,4 @@ window.cvTelegram = (() => {
   window.addEventListener?.('focus', () => { if (user) refresh(generation).catch(() => {}); });
   return {initialize, synchronize, restore, link: () => document.querySelector('#telegram-link').click()};
 })();
+

@@ -1,3 +1,5 @@
+from test_application_mail import pdf_bytes
+import application_mail
 import base64
 import json
 import os
@@ -13,6 +15,8 @@ from test_telegram import MemoryStore
 
 class GmailSendingTests(unittest.TestCase):
     def setUp(self):
+        grant = patch.object(application_mail, "verify_grant")
+        grant.start(); self.addCleanup(grant.stop)
         env = patch.dict(os.environ, {"CV_AUTH_REQUIRED": "0", "CV_ALLOW_REMOTE": "1"})
         env.start()
         self.addCleanup(env.stop)
@@ -31,7 +35,7 @@ class GmailSendingTests(unittest.TestCase):
              patch.object(cv_app, "verify_drive_access", return_value={"id": "folder"}), \
              patch.object(cv_app, "drive_request", return_value={"files": []}), \
              patch.object(cv_app, "make_draft", return_value={"position": "Chef de partida", "candidate":{"name":"Alice"}}), \
-             patch.object(cv_app, "make_pdf", return_value=io.BytesIO(b"%PDF-test-attachment")), \
+             patch.object(cv_app, "make_pdf", return_value=io.BytesIO(pdf_bytes())), \
              patch.object(cv_app, "archive_generated_resume", return_value="https://drive.google.com/file/d/cv/view"), \
              patch.object(cv_app, "save_application_record") as history:
             result = self.client.post("/api/gmail/send", json=self.payload, headers=self.headers)
@@ -42,11 +46,11 @@ class GmailSendingTests(unittest.TestCase):
             raw = json.loads(gmail.call_args.args[2])["raw"]
             message = BytesParser(policy=policy.default).parsebytes(base64.urlsafe_b64decode(raw))
             self.assertEqual(message["To"], "empleos@example.com")
-            self.assertEqual(message["Subject"], "Chef de partida")
+            self.assertEqual(message["Subject"], "Postulación a Chef de partida — Alice")
             self.assertIn("Hola, adjunto mi CV.", message.get_body(preferencelist=("plain",)).get_content())
             attachment = list(message.iter_attachments())[0]
             self.assertEqual(attachment.get_content_type(), "application/pdf")
-            self.assertEqual(attachment.get_payload(decode=True), b"%PDF-test-attachment")
+            self.assertTrue(attachment.get_payload(decode=True).startswith(b"%PDF-"))
             self.assertTrue(attachment.get_filename().startswith('Alice_'))
             self.assertEqual(history.call_count, 2)
 
@@ -81,7 +85,7 @@ class GmailSendingTests(unittest.TestCase):
              patch.object(cv_app, "verify_drive_access", return_value={"id": "folder"}), \
              patch.object(cv_app, "drive_request", return_value={"files": []}), \
              patch.object(cv_app, "make_draft", return_value={"position": "Chef", "candidate":{"name":"Alice"}}), \
-             patch.object(cv_app, "make_pdf", return_value=io.BytesIO(b"%PDF")), \
+             patch.object(cv_app, "make_pdf", return_value=io.BytesIO(pdf_bytes())), \
              patch.object(cv_app, "archive_generated_resume", return_value="https://drive.google.com/file/d/cv/view"), \
              patch.object(cv_app, "save_application_record", side_effect=[None, cv_app.AppError("Drive no disponible", 502)]):
             result = self.client.post("/api/gmail/send", json=self.payload, headers=self.headers)
@@ -93,3 +97,4 @@ class GmailSendingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

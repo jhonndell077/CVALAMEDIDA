@@ -1,6 +1,7 @@
 """HTTP routes; business operations are provided by the explicit core dependency."""
 from __future__ import annotations
 from typing import Any
+import application_mail
 import hashlib
 import time
 import job_runtime
@@ -20,9 +21,13 @@ def _reserve_dispatch(core, store, key, digest):
         store.write(key, reservation, 0)
         return reservation, False
     except PreconditionFailed:
-        existing, _ = store.read(key)
+        existing, generation = store.read(key)
         if not existing or existing.get('request_digest') != digest:
             raise core.AppError('Este identificador ya corresponde a otra solicitud de envío.', 409) from None
+        if existing.get('state') == 'not_started':
+            existing['state'] = 'reserved'
+            store.write(key, existing, generation)
+            return existing, False
         if existing.get('state') == 'gmail_accepted':
             return existing, True
         raise core.AppError('Este envío está en proceso o sin confirmar. Revisa Enviados en Gmail antes de volver a enviarlo.', 409) from None
@@ -178,6 +183,10 @@ def register_routes(core):
         sender = core.account_state.ARCHIVE_CONFIG.get("allowed_email", "")
         if identity.get("email_verified") is not True or identity.get("email", "").casefold() != sender.casefold():
             raise core.AppError("Autoriza Gmail con la cuenta permitida para esta aplicación.", 403)
+        try:
+            application_mail.verify_grant(gmail_token)
+        except ValueError as error:
+            raise core.AppError(str(error), 403) from None
         drive_token = core.request.headers.get("X-Drive-Access-Token", "")
         folder = core.verify_drive_access(drive_token)
         store = job_runtime.JobStore()
@@ -201,29 +210,35 @@ def register_routes(core):
                 raise core.AppError("Este envío está en proceso o sin confirmar. Revisa Enviados en Gmail antes de volver a enviarlo.", 409)
         draft_data = core.make_draft(payload.get("analysis"))
         position = draft_data["position"]
-        filename = core.re.sub(r"[^A-Za-z0-9_-]+", "_", draft_data['candidate']['name'] + '_' + position).strip("_") + ".pdf"
         pdf = core.make_pdf(draft_data).getvalue()
-        cv_url = core.archive_generated_resume(f"{core.uuid4().hex[:8]}_{filename}", "pdf", pdf)
-        message = core.EmailMessage()
-        message["From"] = sender
-        message["To"] = recipient
-        message["Subject"] = position.replace("\r", " ").replace("\n", " ")
-        message["Message-ID"] = f"<{application_id}@cvalamedida.web.app>"
-        message.set_content(message_text)
-        message.add_attachment(pdf, maintype="application", subtype="pdf", filename=filename)
+        try:
+            mail_payload, mail_details = application_mail.compose(sender, recipient,
+                draft_data['candidate']['name'], position, application_id, pdf, message_text)
+        except ValueError as error:
+            raise core.AppError(str(error), 422) from None
+        cv_url = core.archive_generated_resume(f"{core.uuid4().hex[:8]}_{mail_details['filename']}", "pdf", pdf)
         record = {"application_id": application_id, "position": position, "recipient": recipient, "channel": "gmail",
                   "status": "sending", "sender": sender, "rfc_message_id": f"{application_id}@cvalamedida.web.app",
-                  "cv_url": cv_url, "date": core.datetime.now(core.timezone.utc).isoformat()}
+                  "cv_url": cv_url, "date": core.datetime.now(core.timezone.utc).isoformat(),
+                  "owner_uid": user_accounts.owner(), "origin": "web", "correlation_id": application_id,
+                  "pdf_id": cv_url.split("/file/d/")[-1].split("/")[0],
+                  "recipient_origin": "vacancy" if recipient.casefold() in [v.casefold() for v in application_mail.contacts((payload.get("analysis") or {}).get("vacancy", {}).get("application_emails", []))] else "manual", **mail_details}
+        try:
+            application_mail.reserve_rate(store, user_accounts.owner() or sender, recipient, position)
+        except ValueError as error:
+            record['status'] = 'failed'
+            _save_dispatch(store, key, reservation, state='not_started', entry=record)
+            raise core.AppError(str(error), 429) from None
         core.save_application_record(record, drive_token, folder)
         # Persist before contacting Gmail. A lost response must never cause a resend.
         _save_dispatch(store, key, reservation, state='send_started')
         try:
             result = core.gmail_request("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", gmail_token,
-                                   core.json.dumps({"raw": core.base64.urlsafe_b64encode(message.as_bytes()).decode("ascii")}).encode())
+                                   core.json.dumps(mail_payload).encode())
             if not result.get("id"):
                 raise core.AppError("Gmail no confirmó el envío. Revisa Enviados antes de reintentar.", 502)
-        except core.AppError as error:
-            record["status"] = "failed" if error.status_code in {401, 403, 422} else "send_unknown"
+        except Exception as error:
+            record["status"] = "failed" if isinstance(error, core.AppError) and error.status_code in {401, 403, 422} else "send_unknown"
             try:
                 _save_dispatch(store, key, reservation, state=record['status'], entry=record)
             except Exception:
@@ -232,7 +247,9 @@ def register_routes(core):
                 core.save_application_record(record, drive_token, folder)
             except core.AppError:
                 pass
-            raise
+            if isinstance(error, core.AppError):
+                raise
+            raise core.AppError("No se pudo confirmar el envío. Comprueba Enviados antes de repetirlo.", 502) from None
         record.update(status="gmail_accepted", gmail_message_id=result["id"], date=core.datetime.now(core.timezone.utc).isoformat())
         warning = ""
         try:
@@ -290,3 +307,4 @@ def register_routes(core):
         return response
 
     core.export_resume = export_resume
+

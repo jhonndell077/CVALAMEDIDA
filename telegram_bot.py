@@ -1,6 +1,7 @@
 """Private Telegram CV workflow. Secrets stay in Secret Manager, jobs in GCS."""
 from __future__ import annotations
 
+import application_mail
 import base64
 
 import job_runtime as runtime
@@ -150,8 +151,7 @@ def private_callback(update, config):
 
 def application_contacts(analysis):
     vacancy = analysis.get("vacancy", {}) if isinstance(analysis, dict) else {}
-    emails = [value.strip() for value in vacancy.get("application_emails", [])
-              if isinstance(value, str) and len(value) <= 254 and re.fullmatch(r"[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+", value.strip())][:4]
+    emails = application_mail.contacts(vacancy.get('application_emails', []))
     phones = []
     for value in vacancy.get("application_whatsapp", []):
         if not isinstance(value, str):
@@ -167,14 +167,15 @@ def application_contacts(analysis):
 
 
 def application_message(position, name=''):
-    return (f"Asunto: Postulación a {position}\n\nSaludos,\nMe interesa postularme a la vacante de {position}. "
-            "Adjunto mi hoja de vida para su consideración. Quedo disponible para ampliar información y coordinar una entrevista.\n\n"
-            "Atentamente,\n" + name)
+    return application_mail.default_text(position, name)
+
 
 
 def application_buttons(identifier, job):
     contacts = job.get("contacts", {})
     rows = []
+    for index, address in enumerate(contacts.get('emails', [])):
+        rows.append([{'text': 'Enviar Gmail · ' + address[:40], 'callback_data': f'gmail:{identifier}:{index}'}])
     for phone in contacts.get("whatsapp", []):
         rows.append([{"text": "Preparar WhatsApp" + (f" · +{phone}" if len(contacts["whatsapp"]) > 1 else ""),
                       "url": "https://wa.me/" + phone + "?" + urlencode({"text": application_message(job["position"],job.get('candidate_name',''))})}])
@@ -188,12 +189,18 @@ def auto_send_application(core, config, identifier, store):
     if not job or not job.get("contacts", {}).get("emails"):
         say(config, "No se envió por Gmail: la vacante no indica un correo de postulación.")
         return
+    if len(job['contacts']['emails']) > 1:
+        say(config, 'Hay varios correos en la vacante. Selecciona el destinatario en los botones del PDF; no se envió automáticamente.')
+        return
     try:
         process_application(core, config, {"source_job": identifier, "recipient_index": 0}, store)
     except Exception as error:
         core.app.logger.warning("No se confirmó el envío automático de Telegram %s (%s)", identifier, type(error).__name__)
         detail = str(error)[:700] if isinstance(error, (runtime.JobError, core.AppError)) else "Revisa Enviados en Gmail antes de volver a postular."
-        say(config, "El PDF está disponible. No pude confirmar el envío automático por Gmail: " + detail)
+        current, version = store.read(identifier)
+        current['email_status'] = current.get('email_status') if current.get('email_status') in {'failed', 'send_unknown'} else 'send_unknown' if current.get('email_status') == 'sending' else 'failed'
+        store.write(identifier, current, version)
+        say(config, "Tu CV está disponible. El correo no pudo confirmarse: " + detail)
 
 
 def process_application(core, config, action, store):
@@ -208,6 +215,10 @@ def process_application(core, config, action, store):
         say(config, "Este envío ya está registrado: " + dispatches[recipient] + ". Revisa Enviados en Gmail antes de intentar otra postulación.")
         return
     token = drive_token(config)
+    try:
+        application_mail.verify_grant(token)
+    except ValueError as error:
+        raise runtime.JobError(str(error)) from None
     folder = core.verify_drive_access(token)
     file_id = source.get("drive_url", "").split("/file/d/")[-1].split("/")[0]
     if not re.fullmatch(r"[A-Za-z0-9_-]+", file_id):
@@ -235,38 +246,57 @@ def process_application(core, config, action, store):
     record = {"application_id": application_id, "position": source["position"], "recipient": recipient, "channel": "gmail",
               "status": "sending", "sender": sender, "rfc_message_id": f"{application_id}@cvalamedida.web.app",
               "cv_url": source["drive_url"], "date": datetime.now(timezone.utc).isoformat(), "origin": "telegram"}
+    try:
+        mail_payload, mail_details = application_mail.compose(sender, recipient,
+            source.get('candidate_name') or config.get('owner_name') or sender,
+            source['position'], application_id, bytes(content))
+    except ValueError as error:
+        raise runtime.JobError(str(error)) from None
+    if source.get('pdf_sha256') and source['pdf_sha256'] != mail_details['pdf_sha256']:
+        raise runtime.JobError('El PDF de Drive cambió. Genera un CV nuevo antes de enviar.')
+    record.update(owner_uid=config.get('owner_uid', ''), correlation_id=application_id, recipient_origin='vacancy',
+                  pdf_id=file_id, **mail_details)
+    try:
+        application_mail.reserve_rate(store, config.get('owner_uid') or sender, recipient, source['position'])
+    except ValueError as error:
+        raise runtime.JobError(str(error)) from None
     # Reserve in GCS before any send: concurrent/repeated clicks cannot send twice.
     dispatches[recipient] = "en proceso o sin confirmar"
+    source["email_status"] = "sending"
     store.write(action["source_job"], source, generation)
     try:
         core.save_application_record(record, token, folder)
-        mail = EmailMessage()
-        mail["From"], mail["To"] = sender, recipient
-        mail["Subject"] = source["position"].replace("\r", " ").replace("\n", " ")
-        mail["Message-ID"] = f"<{application_id}@cvalamedida.web.app>"
-        mail.set_content(application_message(source["position"],source.get('candidate_name',config.get('owner_name',''))))
-        mail.add_attachment(bytes(content), maintype="application", subtype="pdf", filename=source["filename"])
         result = core.gmail_request("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", token,
-                                    json.dumps({"raw": base64.urlsafe_b64encode(mail.as_bytes()).decode()}).encode())
+                                    json.dumps(mail_payload).encode())
         if not result.get("id"):
             raise runtime.JobError("Gmail no confirmó el envío. Revisa Enviados antes de reintentar.")
-    except Exception:
-        record["status"] = "send_unknown"
+    except Exception as error:
+        record["status"] = "failed" if isinstance(error, core.AppError) and error.status_code in {401, 403, 422} else "send_unknown"
         try:
+            current, version = store.read(action['source_job'])
+            current['email_status'] = record['status']
+            store.write(action['source_job'], current, version)
             core.save_application_record(record, token, folder)
         except Exception:
             pass
         raise
-    current, version = store.read(action["source_job"])
-    current["gmail_dispatches"][recipient] = "confirmado por Gmail"
-    store.write(action["source_job"], current, version)
     record.update(status="gmail_accepted", gmail_message_id=result["id"])
+    try:
+        current, version = store.read(action["source_job"])
+        current["gmail_dispatches"][recipient] = "confirmado por Gmail"
+        current['email_status'] = 'gmail_accepted'
+        store.write(action["source_job"], current, version)
+    except Exception:
+        core.app.logger.warning('Gmail aceptó la postulación; no se pudo actualizar el marcador. No reenviar.')
     try:
         core.save_application_record(record, token, folder)
         history = "El historial está actualizado en la app web."
     except Exception:
         history = "No se pudo actualizar el historial. No vuelvas a enviar: comprueba Enviados."
-    say(config, f"Gmail confirmó el envío a {recipient}.\nAsunto: {source['position']}\nPDF adjunto. {history}")
+    try:
+        say(config, f"Gmail aceptó el envío a {recipient}, con el CV adjunto. La ubicación en el buzón del destinatario no está verificada.\n{history}")
+    except Exception:
+        core.app.logger.warning("Gmail aceptó el envío; no se pudo notificar al chat. No reenviar.")
 
 
 
@@ -479,9 +509,10 @@ def _process_job(core, config, identifier, store):
             progress(config,identifier,store,'building','✅ Análisis completado\n📝 Preparando tu CV y creando el PDF…')
             draft = core.make_draft(analysis)
             content = core.make_pdf(draft).getvalue()
-            filename = re.sub(r"[^A-Za-z0-9_-]+", "_", f"CV_{draft['position']}").strip("_") + f"_{identifier}.pdf"
+            filename = application_mail.filename(draft.get('candidate', {}).get('name') or config.get('owner_name') or 'Candidato', draft['position'])
+            pdf_sha256 = hashlib.sha256(content).hexdigest()
             store.put_pdf(identifier, content)
-            checkpoint(pdf_ready=True, filename=filename, position=draft["position"],
+            checkpoint(pdf_ready=True, pdf_sha256=pdf_sha256, filename=filename, position=draft["position"],
                        contacts=application_contacts(analysis), owner_id=config["owner_id"], candidate_name=draft.get('candidate',{}).get('name',config.get('owner_name','')))
         content = store.pdf(identifier)
         if not job.get("drive_url"):
@@ -493,12 +524,12 @@ def _process_job(core, config, identifier, store):
         progress(config,identifier,store,'sending','✅ CV guardado en Drive\n📤 Enviando el PDF a este chat…')
         delivered = telegram(config, "sendDocument", {"chat_id": config["owner_id"],
             **reply_to(source_message_id),
-            "caption": f"CV para {job['position'][:180]}\nGuardado en CV GENERADOS:\n{job['drive_url']}\n\nGmail: enviaré automáticamente la postulación al primer correo de la vacante.\nWhatsApp: abre el mensaje; adjunta el PDF de este chat y pulsa Enviar.",
+            "caption": f"CV para {job['position'][:180]}\nGuardado en CV GENERADOS:\n{job['drive_url']}\n\nGmail: envío automático si hay un solo correo; si hay varios, selecciona el destinatario.\nWhatsApp: abre el mensaje; adjunta el PDF de este chat y pulsa Enviar.",
             "reply_markup": json.dumps(application_buttons(identifier, job), ensure_ascii=False)},
             files={"document": (job["filename"], content, "application/pdf")})
         checkpoint(state="done", telegram_message_id=delivered.get("message_id"), lease_until=0)
         auto_send_application(core, config, identifier, store)
-        progress(config,identifier,store,'done',f'✅ Solicitud completada\nCV para {job["position"][:140]} guardado en Drive y entregado en este chat.')
+        progress(config,identifier,store,'done',f'✅ PDF completado; consulta el resultado de Gmail por separado.\nCV para {job["position"][:140]} guardado en Drive y entregado en este chat.')
         try: store.remove_pdf(identifier)
         except Exception: core.app.logger.warning('No se pudo limpiar el PDF temporal ya entregado: %s',identifier)
     except Exception as error:
@@ -541,6 +572,7 @@ def register_routes(app, core):
         pending=accounts.pending_link(store,user_accounts.owner()) if store else None
         linked=bool(config.get('owner_id'))
         return jsonify(configured=configured, drive_connected=bool(config.get("drive_connected")),
+            gmail_authorized=bool(config.get("gmail_authorized")), reauthorization_required=not bool(config.get("gmail_authorized")),
             client_id=config.get("client_id", ""), bot_url=f"https://t.me/{username}" if configured and linked and re.fullmatch(r"[A-Za-z0-9_]+", username) else "",
             linked=linked, multi_account=os.environ.get('CV_MULTI_ACCOUNT')=='1',
             pending={field:pending.get(field,'') for field in ('telegram_id','telegram_name','telegram_username')} if pending and pending.get('telegram_id') else None,
@@ -592,6 +624,8 @@ def register_routes(app, core):
         if not user.ok or not identity.get("email_verified") or identity.get("email", "").casefold() != core.ARCHIVE_CONFIG["allowed_email"].casefold():
             raise core.AppError("Autoriza únicamente con el correo propietario del banco.", 403)
         scopes=set(tokens.get('scope','').split())
+        if application_mail.GMAIL_SCOPE not in scopes:
+            raise core.AppError('Falta autorizar Gmail para enviar. Vuelve a conectar Google y concede el permiso de envío.', 403)
         required={'https://www.googleapis.com/auth/drive.file'}
         if store: required.add('https://www.googleapis.com/auth/drive.readonly')
         if not required.issubset(scopes) and 'https://www.googleapis.com/auth/drive' not in scopes:
@@ -599,9 +633,9 @@ def register_routes(app, core):
         refresh = tokens.get("refresh_token") or config.get("drive_refresh_token")
         if not refresh:
             raise core.AppError("Google no devolvió la autorización permanente. Revoca el acceso de esta app en Google y vuelve a autorizar.", 403)
-        if store: accounts.save_oauth(store,user_accounts.owner(),refresh)
+        if store: accounts.save_oauth(store,user_accounts.owner(),refresh,scopes=sorted(scopes))
         else:
-            config.update(drive_refresh_token=refresh, drive_connected=False)
+            config.update(drive_refresh_token=refresh, drive_connected=False, gmail_authorized=True)
             runtime.save_configuration(config)
         result = jsonify(access_token=tokens['access_token'], expires_in=tokens.get('expires_in', 3600),
                          scope=tokens.get('scope', ''))
@@ -624,6 +658,8 @@ def register_routes(app, core):
                 raise core.AppError('El permiso de Google fue revocado. Vuelve a autorizar con Sincronizar todo.',409)
             raise core.AppError('No se pudo renovar la conexion de Google. Intentalo de nuevo.',503)
         scopes=set(tokens.get('scope','').split())
+        if application_mail.GMAIL_SCOPE not in scopes:
+            raise core.AppError('Falta autorizar Gmail para enviar. Vuelve a conectar Google y concede el permiso de envío.', 403)
         required={'https://www.googleapis.com/auth/drive.file'}
         if store: required.add('https://www.googleapis.com/auth/drive.readonly')
         if not required.issubset(scopes) and 'https://www.googleapis.com/auth/drive' not in scopes:
@@ -644,7 +680,7 @@ def register_routes(app, core):
         config = account_context(runtime.configuration(),store)
         provisional = {**config, "drive_connected": True}
         core.verify_drive_access(drive_token(provisional))
-        if store: accounts.save_oauth(store,user_accounts.owner(),config['drive_refresh_token'],True)
+        if store: accounts.save_oauth(store,user_accounts.owner(),config['drive_refresh_token'],True,scopes=config.get('google_scopes', []))
         else:
             config["drive_connected"] = True
             runtime.save_configuration(config)
@@ -842,3 +878,4 @@ def register_routes(app, core):
         except (PreconditionFailed, runtime.JobError):
             return jsonify(error="Job busy"), 503
         return jsonify(ok=True)
+
