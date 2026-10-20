@@ -47,3 +47,24 @@ gcloud logging read 'resource.type="cloud_run_revision" AND httpRequest.status>=
 Si el intento ocurrió fuera de esa ventana, ajustar el período a su fecha real. Una ausencia de filas no demuestra recuperación. Para la revisión de bloqueos antiguos y demás consultas de infraestructura, seguir los comandos documentados en `DIAGNOSTICO_BLOQUEO_ADMINISTRATIVO.md`, sin borrar marcas por antigüedad.
 
 No avanzar a Fase 3 ni publicar hasta confirmación del usuario.
+
+## Cierre adicional solicitado — 20-oct-2026
+
+Se ejecutó compatibilidad local con el código histórico real de `background_jobs.py` del commit `6232e11`, conservado en `tests/fixtures/background_jobs_6232e11.txt`. `tests/test_phase2_mixed_versions.py` comprueba:
+
+1. Worker anterior produce un fallo de revisión del banco y la API actual añade la categoría de recuperación y una correlación estable, sin modificar ni reejecutar la tarea.
+2. Worker actual produce un fallo de autorización y la API anterior conserva los campos que lee el cliente antiguo.
+3. Ambas APIs leen un resultado completado sin volver a despacharlo.
+
+Resultado final: 363 JS + 600 Python = **963 aprobadas**, cero fallos/errores/omitidas, cobertura **83,51 %**, red bloqueada. Evidencia: `tmp/phase2-mixed-verification/`. Es una prueba de interoperabilidad del módulo de tareas con dependencias actuales simuladas; no certifica imágenes completas de Functions ni revisiones desplegadas.
+
+Se revisaron únicamente resúmenes locales preexistentes: `tmp/server-audit-rejection-codes.json` contiene seis coincidencias de `job_account_maintenance` en una muestra de 300 líneas; `tmp/server-audit-logs-summary.json` documenta el alcance temporal de esa muestra. Apoya la existencia del rechazo administrativo, pero no identifica el intento de la fotografía, su usuario, HTTP o correlación. No hay evidencia suficiente para atribuir el error genérico de Drive fotografiado a una causa concreta. No se inventa ni se da por recuperado ese intento. Su identificación exige una captura sanitizada del intento o una consulta humana de solo lectura como la descrita arriba; no se consultó producción en este cierre.
+
+Para revisar la nueva evidencia local:
+
+```powershell
+Get-Content tmp/phase2-mixed-verification/release-summary.json
+Get-Content tmp/phase2-mixed-verification/python-summary.json
+Get-Content tmp/server-audit-rejection-codes.json
+Get-Content tmp/server-audit-logs-summary.json
+```
