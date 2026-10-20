@@ -197,3 +197,34 @@ test('a completed bank synchronization recovers only the same account and comple
   if(variant==='same')assert.match(ui.document.getElementById('alert-count').textContent,/0 incidencia\(s\) activa\(s\) · 1 en historial/);
  }
 });
+
+test('selecting a technical card highlights only its direct dependencies and matching arrows',async()=>{
+ const data={...fixture,edges:[{from:'api',to:'pdf-generator'},{from:'api',to:'drive-api'},{from:'pdf-generator',to:'drive-api'}]};
+ const ui=setup(async()=>new Response(JSON.stringify(data)));ui.login();await until(()=>!ui.document.getElementById('access-message').textContent.includes('Validando'));
+ const d=ui.document;d.querySelector('[data-node="api"]').click();
+ for(const id of ['api','pdf-generator','drive-api'])assert.ok(d.querySelector(`[data-node="${id}"]`).classList.contains('related'));
+ assert.equal(d.querySelector('[data-node="firebase-auth"]').classList.contains('related'),false);
+ assert.equal(d.querySelectorAll('#technical path[data-from].related').length,2);
+ const unlinked=d.querySelector('#technical path[data-from="pdf-generator"]');assert.equal(unlinked.classList.contains('related'),false);
+ for(const path of d.querySelectorAll('#technical path[data-from].related'))assert.match(path.getAttribute('marker-end'),/-related\)/);
+ assert.equal(d.querySelectorAll('[data-state="success"]').length,0);
+});
+
+test('incoming connections highlight and changing selection clears previous arrows',async()=>{
+ const ui=setup();ui.login();await until(()=>!ui.document.getElementById('access-message').textContent.includes('Validando'));
+ const d=ui.document;d.querySelector('[data-node="drive-api"]').click();
+ assert.ok(d.querySelector('[data-node="pdf-generator"]').classList.contains('related'));
+ assert.ok(d.querySelector('#technical path[data-from="pdf-generator"]').classList.contains('related'));
+ d.querySelector('[data-node="firebase-auth"]').click();
+ assert.equal(d.querySelectorAll('#technical path[data-from].related').length,0);
+ assert.equal(d.querySelector('[data-node="pdf-generator"]').classList.contains('related'),false);
+});
+
+test('functional selection highlights its route and associated service links',async()=>{
+ const ui=setup();ui.login();await until(()=>!ui.document.getElementById('access-message').textContent.includes('Validando'));
+ const d=ui.document;d.querySelector('[data-node="google"]').click();
+ assert.ok(d.querySelector('[data-node="user"]').classList.contains('related'));
+ assert.ok(d.querySelector('[data-node="bank"]').classList.contains('related'));
+ assert.equal(d.querySelectorAll('#functional path[data-from].related').length,2);
+ d.querySelector('[data-node="pdf"]').click();assert.ok(d.querySelector('#technical path[data-from="pdf-generator"]').classList.contains('related'));
+});
