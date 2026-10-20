@@ -18,6 +18,20 @@ function setup(records=[], job={state:'done',progress:100,path:'/api/draft',resu
 }
 const settle=()=>new Promise(setImmediate);
 
+test('safe pre-admission busy retries reuse one job identity and dispatch only after acceptance',async()=>{
+ const q=setup(),ids=[];let admissions=0;
+ q.settings.request=async(path,payload)=>{if(path!=='/api/background/jobs')return {state:'done',progress:100,path:'/api/draft',result:{draft:{position:'Fixture'}}};ids.push(payload.request_id);if(++admissions===1)throw Object.assign(new Error('Busy'),{status:409,code:'account_write_busy',externalOutcome:'not_started'});return {job_id:jobId}};
+ await q.window.cvBackground.initialize(q.settings);const pending=q.start();await settle();const timer=[...q.timers.values()].find(t=>t.delay===1000);assert.ok(timer);timer.fn();await pending;assert.equal(admissions,2);assert.equal(new Set(ids).size,1);
+});
+
+test('busy retry is bounded and uncertain outcomes never auto-replay',async()=>{
+ for(const safe of [true,false]){const q=setup();let admissions=0;
+ q.settings.request=async()=>{admissions++;throw Object.assign(new Error('Busy'),{status:409,code:'account_write_busy',externalOutcome:safe?'not_started':'unknown'})};
+ await q.window.cvBackground.initialize(q.settings);const pending=assert.rejects(q.start(),/Busy/);
+ for(let i=0;i<4&&safe;i++){await settle();const timer=[...q.timers.values()].find(t=>[1000,2000,4000].includes(t.delay));assert.ok(timer);q.timers.clear();timer.fn();}
+ await pending;assert.equal(admissions,safe?5:1);}
+});
+
 test('failed task exposes its recovery code and correlation to the interface',async()=>{
  const q=setup([],{state:'failed',progress:3,error:'Revisa el banco',errorCode:'bank_review_required',
   stage:'bank-sync',correlationId:'b'.repeat(32),retryable:false,safeNextAction:'review_bank'});

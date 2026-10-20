@@ -1839,6 +1839,8 @@ async function renderDraft(draft) {
     ? "Contactos detectados: " + detected.join(" · ")
     : "El anuncio no indica contactos de postulación. Puedes añadirlos si los conoces.";
   $("#application-send-status").textContent = "";
+    $('#retry-gmail').hidden = true;
+    $('#retry-gmail').disabled = false;
   const preview = $("#draft-preview");
   preview.replaceChildren();
   const photoResponse = await fetch("/api/profile-photo", {
@@ -2130,6 +2132,9 @@ async function prepareApplication(channel, button) {
 
 async function sendApplicationGmail(button) {
   if (state.gmailSending || !state.draft) return;
+  const retryButton = $('#retry-gmail');
+  retryButton.hidden = true;
+  button ||= retryButton;
   const owner = state.user?.uid, epoch = state.authEpoch, draft = state.draft, analysis = state.analysis;
   const isCurrent = () => owner === state.user?.uid && epoch === state.authEpoch;
   const sameDraft = () => isCurrent() && draft === state.draft && analysis === state.analysis;
@@ -2151,6 +2156,7 @@ async function sendApplicationGmail(button) {
   if (state.gmailAttempt?.signature) state.gmailAttempts.set(state.gmailAttempt.signature, state.gmailAttempt);
   state.gmailAttempt = state.gmailAttempts.get(signature) || { id: crypto.randomUUID(), signature };
   const attempt = state.gmailAttempt;
+  const notStartedBusy = error => error.status === 409 && error.code === 'account_write_busy' && error.externalOutcome === 'not_started';
   state.gmailAttempts.set(signature, attempt);
   if (attempt.unknown) {
     status.textContent = 'No se confirmó la respuesta de esta postulación. Comprueba Enviados en Gmail antes de repetirla.'; return;
@@ -2179,8 +2185,10 @@ async function sendApplicationGmail(button) {
     if (!isCurrent()) return;
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) window.cvGmail.reset();
-      attempt.unknown = response.status >= 500 || response.status === 409;
-      throw new Error(result.error || "No se pudo confirmar el envío. Comprueba Enviados en Gmail.");
+      const failure = Object.assign(new Error(result.error || "No se pudo confirmar el envío. Comprueba Enviados en Gmail."),
+        {status:response.status,code:result.code,externalOutcome:result.externalOutcome});
+      attempt.unknown = response.status >= 500 || response.status === 409 && !notStartedBusy(failure);
+      throw failure;
     }
     if (result.entry?.status !== "gmail_accepted") { attempt.unknown = true; throw new Error("Gmail no confirmó el envío. Comprueba Enviados."); }
     sent = true;
@@ -2190,14 +2198,16 @@ async function sendApplicationGmail(button) {
     if (sameDraft()) status.textContent = result.warning || `Gmail confirmó el envío a ${recipient}, con asunto «${draft.position}» y el PDF adjunto. El historial quedó guardado en Drive.`;
   } catch (error) {
     if (!isCurrent()) return;
-    if (submitted && !responded) attempt.unknown = true;
+    if (submitted && !responded) attempt.unknown = !notStartedBusy(error);
     if (sameDraft()) status.textContent = error.message || "No se pudo confirmar el envío. Revisa Enviados en Gmail.";
+    if (sameDraft()) retryButton.hidden = Boolean(attempt.unknown || attempt.sent);
   } finally {
     if (isCurrent()) state.gmailSending = false;
     if (sameDraft() && button) { setBusy(button, false); if (sent) button.disabled = true; }
   }
 }
 
+$('#retry-gmail').addEventListener('click', event => sendApplicationGmail(event.currentTarget));
 $("#send-whatsapp").addEventListener("click", (event) => prepareApplication("whatsapp", event.currentTarget));
 $("#refresh-application-history").addEventListener("click", refreshApplications);
 $('#load-more-applications').addEventListener('click', () => refreshApplications(true));

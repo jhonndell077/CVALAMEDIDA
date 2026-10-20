@@ -78,7 +78,16 @@ def process_job(core, identifier, store):
     job, _ = store.read(identifier)
     if job and job.get('state') not in {'done', 'failed'}:
         with account_writes.reserve(store, job.get('owner_uid', ''), 'web-worker'):
-            return _process_owned_job(core, identifier, store)
+            result = _process_owned_job(core, identifier, store)
+        # Delivery can take time. The next stage must not wait for push delivery
+        # while holding the account's business-write reservation.
+        finished, _ = store.read(identifier)
+        if finished and finished.get('state') in {'done', 'failed'}:
+            try:
+                notifications.notify(store, identifier, finished)
+            except Exception:
+                core.app.logger.warning('No se pudo entregar la notificación del proceso.')
+        return result
     return _process_owned_job(core, identifier, store)
 
 
@@ -105,8 +114,6 @@ def _process_owned_job(core, identifier, store):
             store.write(identifier, job, generation)
             if job.get('operation') == 'draft':
                 bot.refund_usage(store, identifier, job.get('owner_uid', ''))
-            try: notifications.notify(store, identifier, job)
-            except Exception: core.app.logger.warning('No se pudo entregar la notificación del proceso.')
             return
         try:
             with traces.restore(job):
@@ -236,10 +243,6 @@ def _process_job(core, identifier, store):
                    error='No se pudo confirmar el resultado. Revisa el estado del proceso antes de repetirlo.', lease_until=0, **metadata)
     if job.get('state') == 'failed' and job.get('operation') == 'draft':
         bot.refund_usage(store, identifier, job.get('owner_uid', ''))
-    try:
-        notifications.notify(store, identifier, job)
-    except Exception:
-        core.app.logger.warning('No se pudo entregar la notificación del proceso.')
 
 
 def register_routes(app, core):

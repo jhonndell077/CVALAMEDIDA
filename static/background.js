@@ -237,13 +237,26 @@ window.cvBackground = (() => {
     }
     remember(record); render(record, {progress: 1, stage: 'Guardando la solicitud en el servidor'});
     try {
-      const submitted = await options.request('/api/background/jobs', {path, payload, request_id: record.id.slice(4)}, {...headers, 'X-CV-Operation-ID': record.id.slice(4)});
+      let submitted;
+      for (let attempt = 0; ; attempt++) {
+        if (!current()) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
+        try {
+          submitted = await options.request('/api/background/jobs', {path, payload, request_id: record.id.slice(4)}, {...headers, 'X-CV-Operation-ID': record.id.slice(4)});
+          break;
+        } catch (error) {
+          // Only a confirmed pre-admission conflict permits automatic replay.
+          // Keep the same durable ID and never retry an uncertain external effect.
+          if (error.status !== 409 || error.code !== 'account_write_busy' || error.externalOutcome !== 'not_started' || attempt >= 4) throw error;
+          notice.textContent = 'Esperando a que termine la operación anterior. Tus datos se conservan.';
+          await pause(record.id, Math.min(4000, 1000 * 2 ** attempt));
+        }
+      }
       if (!current()) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});
       record.id = submitted.job_id; persist();
       submissions.delete(submissionKey);
     } catch (error) {
       if (error.terminal || !current()) throw error;
-      if (!error.status || error.status >= 500) {
+      if (!error.status || error.status >= 500 || error.code === 'account_write_busy' && error.externalOutcome === 'not_started') {
         // Never infer admission from a 5xx or connection loss. An explicit retry
         // uses the same ID; the server alone decides whether execution exists.
         submissions.set(submissionKey, record);
