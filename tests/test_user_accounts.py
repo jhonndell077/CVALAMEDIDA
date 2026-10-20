@@ -102,7 +102,7 @@ class AccountsTests(unittest.TestCase):
 
     def test_any_verified_account_can_login_but_unverified_and_missing_uid_fail(self):
         with patch.dict(os.environ,{'CV_MULTI_ACCOUNT':'1','CV_ALLOWED_EMAILS':'owner@example.com'}):
-            for claims in ({**ALICE,'email_verified':True}, {**ALICE,'email_verified':False}, {'email':ALICE['email'],'email_verified':True}):
+            for claims in ({**ALICE,'email_verified':True,'auth_time':__import__('session_policy').REAUTHENTICATE_AFTER}, {**ALICE,'email_verified':False}, {'email':ALICE['email'],'email_verified':True}):
                 with app.app.test_request_context('/api/account',headers={'Authorization':'Bearer token'}),patch('firebase_admin.auth.verify_id_token',return_value=claims):
                     if claims.get('uid') and claims['email_verified']: app.verify_google_identity()
                     else:

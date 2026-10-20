@@ -2,6 +2,7 @@
 // One public decoder for application errors; never display untrusted response text.
 window.cvErrors = (() => {
   const messages = {
+    session_reauthentication_required:'Cerramos las sesiones anteriores para aplicar las mejoras. Inicia sesión nuevamente con Google. Tus datos se conservan.',
     account_write_busy:'Otra sesión está guardando cambios. Tus datos se conservan. Reintenta en unos segundos.',
     account_write_lease_lost:'La reserva de escritura cambió. Tus datos se conservan. Sincroniza antes de reintentar.',
     account_write_outcome_unknown:'No se confirmó la escritura. Revisa su resultado antes de repetirla.',
@@ -38,7 +39,7 @@ window.cvErrors = (() => {
     return Object.assign(new Error(message), {status:response.status,code,stage,
       ...(validId(correlation) ? {correlationId:correlation} : {}),
       ...(validId(data.operationId) ? {operationId:data.operationId} : {}),
-      retryable, safeNextAction:code==='account_write_busy'?'retry': ['reauthorize','select_folders','free_storage','contact_admin','retry','retry_same_operation','synchronize','review_bank','review_outcome','check_access','wait_period','review_error'].includes(data.safeNextAction) ? data.safeNextAction : 'review_outcome',
+      retryable, safeNextAction:code==='account_write_busy'?'retry': ['reauthenticate','reauthorize','select_folders','free_storage','contact_admin','retry','retry_same_operation','synchronize','review_bank','review_outcome','check_access','wait_period','review_error'].includes(data.safeNextAction) ? data.safeNextAction : 'review_outcome',
       externalOutcome:['unknown','not_started','rejected'].includes(data.externalOutcome)?data.externalOutcome:'unknown',
       ...(typeof data.buildId==='string'&&/^(?:unknown|\d{8}T\d{6}Z-[a-f0-9]{8})$/.test(data.buildId)?{buildId:data.buildId}:{}),
       ...(typeof data.job_id==='string'&&/^web-[a-f0-9-]{36}$/.test(data.job_id)?{job_id:data.job_id}:{})});

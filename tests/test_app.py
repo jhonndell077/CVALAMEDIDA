@@ -897,6 +897,7 @@ class ResumeAppTests(unittest.TestCase):
                 "firebase_admin.auth.verify_id_token",
                 return_value={
                     "uid": "owner-uid",
+                    "auth_time": __import__('session_policy').REAUTHENTICATE_AFTER,
                     "email": "owner@example.com",
                     "email_verified": True,
                 },

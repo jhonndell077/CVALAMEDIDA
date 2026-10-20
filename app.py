@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from contextlib import nullcontext
 import account_writes
+import session_policy
 import job_runtime
 import cv_analysis
 import cv_documents
@@ -1256,6 +1257,11 @@ def verify_google_identity() -> None:
         or (os.environ.get('CV_MULTI_ACCOUNT') != '1' and email.casefold() not in allowed_emails)
     ):
         raise AppError("Esta cuenta de Google no tiene acceso a la app.", 403)
+    if session_policy.requires_reauthentication(identity):
+        error = AppError(session_policy.MESSAGE, 401)
+        error.code = 'session_reauthentication_required'
+        error.stage = 'authorization'
+        raise error
     g.google_identity = {'uid': identity.get('uid') or identity.get('sub'), 'email': email, 'name': identity.get('name', '')}
     if not g.google_identity['uid']:
         raise AppError('La sesión no identifica a un usuario válido.', 401)
@@ -1463,6 +1469,7 @@ def health() -> Any:
             "model_status": model_status,
             "models": models,
             "auth_required": os.environ.get("CV_AUTH_REQUIRED") == "1",
+            "reauthenticate_after": session_policy.REAUTHENTICATE_AFTER,
             "employment_enabled": os.environ.get("CV_EMPLOYMENT_ENABLED") == "1",
             "multi_account": os.environ.get('CV_MULTI_ACCOUNT') == '1',
             "bank": {

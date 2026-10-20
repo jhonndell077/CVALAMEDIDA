@@ -1189,7 +1189,21 @@ window.cvDataPanel = {
   },
 };
 
+async function enforceSessionPolicy(user) {
+  const cutoff = Number(state.reauthenticateAfter) || 0;
+  if (!user || cutoff <= 0) return false;
+  const result = await user.getIdTokenResult();
+  if (state.auth.currentUser !== user) return true; // Late response cannot close another account.
+  const authenticatedAt = result.claims?.auth_time;
+  if (typeof authenticatedAt === 'number' && Number.isFinite(authenticatedAt) && authenticatedAt >= cutoff) return false;
+  await state.auth.signOut();
+  await updateGoogleUserWork(null); // Clear private UI immediately, including restored sessions.
+  showError('Cerramos las sesiones anteriores para aplicar las mejoras. Inicia sesión nuevamente con Google. Tus datos se conservan.');
+  return true;
+}
+
 async function updateGoogleUser(user) {
+  if (await enforceSessionPolicy(user)) return;
   return updateGoogleUserWork(user);
 }
 
@@ -1390,6 +1404,7 @@ async function bootstrap() {
     document.querySelector('.employment-nav')?.toggleAttribute('hidden', health.employment_enabled !== true);
     if (health.employment_enabled === true && window.location?.hash === '#employment-panel') window.cvEmploymentWindow?.open();
     state.authRequired = health.auth_required === true;
+    state.reauthenticateAfter = health.reauthenticate_after;
     window.cvRequiredSync?.configure({
       required: state.authRequired && health.multi_account === true,
       verifySession: async user => {

@@ -6,6 +6,7 @@ from flask import g, has_request_context, request
 import distributed_diagnostics as traces
 
 POLICY = {
+    'session_reauthentication_required': (False, 'reauthenticate', 'not_started'),
     'job_account_maintenance': (False, 'contact_admin', 'not_started'),
     'account_write_busy': (True, 'retry', 'not_started'),
     'account_write_lease_lost': (False, 'synchronize', 'unknown'),
