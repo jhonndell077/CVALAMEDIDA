@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-10-20T18:16:28.973Z",
+  "generatedAt": "2026-10-20T18:25:28.959Z",
   "baseline": {
     "buildId": "20261016T223144Z-bb10ff7c",
     "sourceHash": "e01721cc1b35b4795610ab644f851db7ba148aff1aca89c249a197206a29d42f",
@@ -1129,8 +1129,8 @@
   },
   "previous": {
     "analysisVersion": 2,
-    "buildId": "20261020T115833Z-efa2d08d",
-    "sourceHash": "eb8d754a9d9f52bec5d0ea5ce93b8faf1740829ed771ba42cb59da03a0ef6749",
+    "buildId": "20261020T181623Z-ca636b89",
+    "sourceHash": "bef207cc7112e0c531d15cdba181bbc2c6291d651861bf2068b108193f34d838",
     "controls": [
       {
         "key": "/drive-auth.html::html:nth-of-type(0)>body:nth-of-type(1)>nav:nth-of-type(1)>a:nth-of-type(1)",
@@ -1725,7 +1725,7 @@
         "label": "1. Iniciar sesión con Google",
         "page": "/",
         "group": "auth-panel",
-        "fingerprint": "b7b1c4b92bda028ad80e5f13719254cbf7f7f9a202773d7c70b72d907b63c0df"
+        "fingerprint": "1d8d7941b100534908957fb1693f6cd5c0c910929d98f0f6a465c89ba2783441"
       },
       {
         "key": "/::#verify-session-gmail",
@@ -2033,7 +2033,7 @@
         "label": "Analizar vacante →",
         "page": "/",
         "group": "job-panel",
-        "fingerprint": "464d43fde6223a9712755e9035fa75899768735869f99e3ea3c7c9153bfa517a"
+        "fingerprint": "318b8b5475688ecd547884f2636b6aedfba63c1a7470aacf3b196fc248e7a913"
       },
       {
         "key": "/::#how-to-use",
@@ -2061,7 +2061,7 @@
         "label": "Crear y enviar mi CV →",
         "page": "/",
         "group": "analysis-panel",
-        "fingerprint": "e0170c1c75ad234a895842df9e891127a2524bbaacd77bd795a10000207f96c9"
+        "fingerprint": "4e45fb8d7dc41a499ac840258a573ade87327ff9fb70438639c7ddba0c2701ef"
       },
       {
         "key": "/::#back-to-analysis",
@@ -2117,14 +2117,14 @@
         "label": "Reintentar envío por Gmail",
         "page": "/",
         "group": "section",
-        "fingerprint": "a7cb6f46b76a458757f85c570e90de52ce72f410265f63d3edae63b33257f862"
+        "fingerprint": "3a482cf628a12c3442fe21013b453bcfaec06d489700a9ad532775859cde69f0"
       },
       {
         "key": "/::#send-whatsapp",
         "label": "◉ Abrir WhatsApp",
         "page": "/",
         "group": "section",
-        "fingerprint": "9ccfb5feb2aeebee653d34732cbfee7ed2e9d3c6d22ad6474dd503e99b6fcbaa"
+        "fingerprint": "9fdede66612881bd4e69238fda792bfcca9bb3c27c4bedf596aa2cb093d8d56b"
       },
       {
         "key": "/::#application-history-details>summary:nth-of-type(1)",
@@ -2138,14 +2138,14 @@
         "label": "Consultar historial en Drive",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "3b15b7597b316d3635730e715d91a9718809bc1ebc1d43f44ef0717a8fedae0d"
+        "fingerprint": "8a952f4c70b68fd27a982c30fe02252c38d37aff5d6912963a17737f86f942b2"
       },
       {
         "key": "/::#load-more-applications",
         "label": "Cargar más postulaciones",
         "page": "/",
         "group": "application-history-panel",
-        "fingerprint": "169ea45b8c10cff12f930c86aa400f555c97e4fc373ee03c91e4068518837e9b"
+        "fingerprint": "1c720d67b28e512ebb93a69e4dab2c1adf3059048b77758c83e3fe45b101b7d9"
       },
       {
         "key": "/::#onboarding-close",
@@ -2501,7 +2501,7 @@
   },
   "current": {
     "analysisVersion": 2,
-    "sourceHash": "bef207cc7112e0c531d15cdba181bbc2c6291d651861bf2068b108193f34d838",
+    "sourceHash": "624286c9a4954488cf28f2bd03a9372e4cf4d4fc17d00bafe49d4242d09aa37d",
     "pages": [
       {
         "path": "/drive-auth.html",
@@ -7992,62 +7992,12 @@
     ],
     "warnings": [],
     "parser": "acorn 8.16.0",
-    "buildId": "20261020T181623Z-ca636b89"
+    "buildId": "20261020T182522Z-a086fc55"
   },
   "changesSincePrevious": {
     "added": [],
     "removed": [],
-    "changed": [
-      {
-        "key": "/::#google-sign-in",
-        "label": "1. Iniciar sesión con Google",
-        "page": "/",
-        "group": "auth-panel",
-        "fingerprint": "1d8d7941b100534908957fb1693f6cd5c0c910929d98f0f6a465c89ba2783441"
-      },
-      {
-        "key": "/::#analyze-button",
-        "label": "Analizar vacante →",
-        "page": "/",
-        "group": "job-panel",
-        "fingerprint": "318b8b5475688ecd547884f2636b6aedfba63c1a7470aacf3b196fc248e7a913"
-      },
-      {
-        "key": "/::#create-button",
-        "label": "Crear y enviar mi CV →",
-        "page": "/",
-        "group": "analysis-panel",
-        "fingerprint": "4e45fb8d7dc41a499ac840258a573ade87327ff9fb70438639c7ddba0c2701ef"
-      },
-      {
-        "key": "/::#retry-gmail",
-        "label": "Reintentar envío por Gmail",
-        "page": "/",
-        "group": "section",
-        "fingerprint": "3a482cf628a12c3442fe21013b453bcfaec06d489700a9ad532775859cde69f0"
-      },
-      {
-        "key": "/::#send-whatsapp",
-        "label": "◉ Abrir WhatsApp",
-        "page": "/",
-        "group": "section",
-        "fingerprint": "9fdede66612881bd4e69238fda792bfcca9bb3c27c4bedf596aa2cb093d8d56b"
-      },
-      {
-        "key": "/::#refresh-application-history",
-        "label": "Consultar historial en Drive",
-        "page": "/",
-        "group": "application-history-panel",
-        "fingerprint": "8a952f4c70b68fd27a982c30fe02252c38d37aff5d6912963a17737f86f942b2"
-      },
-      {
-        "key": "/::#load-more-applications",
-        "label": "Cargar más postulaciones",
-        "page": "/",
-        "group": "application-history-panel",
-        "fingerprint": "1c720d67b28e512ebb93a69e4dab2c1adf3059048b77758c83e3fe45b101b7d9"
-      }
-    ]
+    "changed": []
   },
   "changesSinceBaseline": {
     "added": [
@@ -8786,11 +8736,11 @@
     ]
   },
   "tests": {
-    "sourceHash": "bef207cc7112e0c531d15cdba181bbc2c6291d651861bf2068b108193f34d838",
+    "sourceHash": "624286c9a4954488cf28f2bd03a9372e4cf4d4fc17d00bafe49d4242d09aa37d",
     "passed": true,
-    "checkedAt": "2026-10-20T18:15:33.146101+00:00",
+    "checkedAt": "2026-10-20T18:24:26.540617+00:00",
     "pythonTests": 606,
-    "javascriptTests": 381,
+    "javascriptTests": 384,
     "coveragePercent": 83.53,
     "network": "blocked",
     "scope": "Suite local; no acredita cada acción ni servicios desplegados."
