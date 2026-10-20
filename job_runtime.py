@@ -166,6 +166,8 @@ def _admit_account(self, identifier, owner_uid='', *, charge=True, probe=False):
                            'completed_at': time.time(), 'errorCode': 'job_authorization_expired',
                            'error': 'La autorización de esta solicitud pendiente venció. Inicia nuevamente la acción.',
                            'stage': 'Solicitud pendiente vencida'}
+                import error_contract
+                expired.update(error_contract.details('job_authorization_expired',stage='authorization',source=job))
                 expired.pop('credentials', None)
                 try:
                     account_writes.current().check()

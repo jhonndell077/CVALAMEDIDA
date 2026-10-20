@@ -12,6 +12,25 @@ import user_accounts
 import distributed_diagnostics as traces
 import bank_sync_status
 import account_writes
+import error_contract
+
+def failure_fields(job, error=None, *, code=None, stage='worker'):
+    """Durable public metadata is bound once to the original operation."""
+    code = code or getattr(error,'code',None) or job.get('errorCode')
+    if not code and getattr(error,'status_code',None)==401: code='job_authorization_expired'
+    metadata=error_contract.details(code,stage=getattr(error,'stage',None) or stage,source=job)
+    return {**metadata,'errorCode':metadata['code']}
+
+def failure_message(code):
+    import drive_error_details
+    messages={value[0]:value[1] for value in drive_error_details.REASONS.values()}
+    messages.update(account_writes.MESSAGES)
+    messages.update({
+        'bank_review_required':'La sincronización necesita revisión. Consulta los documentos pendientes o bloqueados.',
+        'bank_sync_pending':'La sincronización tiene documentos pendientes. Revisa el banco antes de continuar.',
+        'job_authorization_expired':'La autorización de este proceso venció. Vuelve a conectar tu cuenta.',
+        'external_outcome_unknown':'No se pudo confirmar el resultado. Revisa Drive o Enviados antes de repetirlo.'})
+    return messages.get(code,'El proceso necesita atención. Revisa el estado antes de volver a intentarlo.')
 
 PATHS = {'/api/draft': 'draft', '/api/profile/information': 'information',
          '/api/export/pdf': 'export', '/api/export/docx': 'export',
@@ -81,6 +100,8 @@ def _process_owned_job(core, identifier, store):
             job.pop('credentials', None)
             job.pop('payload', None)
             job.update(state='failed', error=str(error), stage='Conecta nuevamente tu cuenta de Drive', lease_until=0)
+            job.update(failure_fields(job,error,stage='authorization'))
+            job['error']=failure_message(job['errorCode'])
             store.write(identifier, job, generation)
             if job.get('operation') == 'draft':
                 bot.refund_usage(store, identifier, job.get('owner_uid', ''))
@@ -115,7 +136,9 @@ def _process_job(core, identifier, store):
     status = None
     try:
         if uncertain:
-            raise core.AppError('El servidor perdió la confirmación de la operación. Revisa Drive o Enviados antes de repetirla.', 409)
+            failure = core.AppError('El servidor perdió la confirmación de la operación. Revisa Drive o Enviados antes de repetirla.',409)
+            failure.code = 'external_outcome_unknown'
+            raise failure
         if time.time() - job['created_at'] > 3600:
             raise core.AppError('La autorización de este proceso venció. Vuelve a iniciarlo.', 401)
         operation = job['operation']
@@ -173,7 +196,11 @@ def _process_job(core, identifier, store):
                 endpoint, values = core.app.url_map.bind('localhost').match(job['path'], method='POST')
                 response = core.app.make_response(core.app.view_functions[endpoint](**values))
                 if response.status_code >= 400:
-                    raise core.AppError((response.get_json(silent=True) or {}).get('error', 'No se pudo completar la solicitud.'), response.status_code)
+                    body=response.get_json(silent=True) or {}
+                    failure=core.AppError('No se pudo completar la solicitud.',response.status_code)
+                    failure.code=body.get('code')
+                    failure.stage=body.get('stage')
+                    raise failure
                 checkpoint(90, 'Operación completada; guardando el resultado')
                 if operation == 'export':
                     response.direct_passthrough = False
@@ -198,13 +225,15 @@ def _process_job(core, identifier, store):
                 job['errorCode'] = 'bank_review_required'
             elif summary['pending']:
                 job['errorCode'] = 'bank_sync_pending'
-        checkpoint(job.get('progress', 1), 'El proceso necesita atención', state='failed', error=str(error), lease_until=0)
+        metadata=failure_fields(job,error,stage='bank-sync' if job.get('operation')=='bank_sync' else 'authorization' if error.status_code==401 else 'worker')
+        checkpoint(job.get('progress', 1), metadata.pop('stage'), state='failed', error=failure_message(metadata['errorCode']), lease_until=0, **metadata)
     except Exception:
         # Durable failure avoids repeating external writes after an uncertain outcome.
         job.pop('payload', None)
         job.pop('credentials', None)
-        checkpoint(job.get('progress', 1), 'El proceso necesita atención', state='failed',
-                   error='No se pudo confirmar el resultado. Revisa el estado del proceso antes de repetirlo.', lease_until=0)
+        metadata=failure_fields(job,code='external_outcome_unknown')
+        checkpoint(job.get('progress', 1), metadata.pop('stage'), state='failed',
+                   error='No se pudo confirmar el resultado. Revisa el estado del proceso antes de repetirlo.', lease_until=0, **metadata)
     if job.get('state') == 'failed' and job.get('operation') == 'draft':
         bot.refund_usage(store, identifier, job.get('owner_uid', ''))
     try:
@@ -283,7 +312,16 @@ def register_routes(app, core):
         if not job:
             raise core.AppError('El proceso no existe.', 404)
         user_accounts.require_owner(core, job)
-        return jsonify({key: job[key] for key in ('state', 'result', 'error', 'progress', 'stage', 'path', 'operation') if key in job})
+        payload={key: job[key] for key in ('state', 'result', 'error', 'progress', 'stage', 'path', 'operation',
+            'errorCode','code','operationId','correlationId','retryable','safeNextAction','externalOutcome','buildId') if key in job}
+        if job.get('state')=='failed':
+            source={**job}
+            source.setdefault('diagnostics_operation',identifier[4:])
+            source.setdefault('diagnostics_correlation',hashlib.sha256(('cv-job:'+identifier).encode()).hexdigest())
+            metadata=failure_fields(source,code=job.get('errorCode') or job.get('code'))
+            for key,value in metadata.items(): payload.setdefault(key,value)
+            payload['error']=failure_message(metadata['code'])
+        return jsonify(payload)
 
     @app.get('/api/background/jobs/<identifier>/file')
     def background_job_artifact(identifier):

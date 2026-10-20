@@ -76,7 +76,13 @@ window.cvBackground = (() => {
       ? '100% · Estado Completado' : `${displayed.progress}% · ${job.stage || 'Solicitud guardada'}`;
     const progress = document.createElement('progress'); progress.max = 100; progress.value = displayed.progress;
     progress.setAttribute('aria-label', title.textContent); row.append(title, progress, detail);
-    if (job.state === 'failed') { detail.textContent = job.error || 'El proceso necesita atención.'; row.classList.add('process-failed'); }
+    if (job.state === 'failed') {
+      detail.textContent = job.error || 'El proceso necesita atención.';
+      const code = job.errorCode || job.code;
+      if (typeof code === 'string' && /^[a-z][a-z0-9_]{0,79}$/.test(code)) detail.textContent += ` · Código: ${code}`;
+      if (typeof job.correlationId === 'string' && /^[a-f0-9-]{32,36}$/.test(job.correlationId)) detail.textContent += ` · Referencia: ${job.correlationId}`;
+      row.classList.add('process-failed');
+    }
     if ((job.path || record.path) === '/api/bank/sync' && job.result?.warnings?.length) {
       const review = document.createElement('details');
       review.open = job.state === 'failed';
@@ -170,6 +176,8 @@ window.cvBackground = (() => {
           if (job.state === 'done' || job.state === 'failed') {
             record.state = job.state; persist();
             if (job.state === 'failed') throw Object.assign(new Error(job.error || 'No se pudo completar el proceso.'), {terminal: true,
+              code:job.errorCode || job.code, stage:job.stage, correlationId:job.correlationId, operationId:job.operationId,
+              retryable:job.retryable, safeNextAction:job.safeNextAction, externalOutcome:job.externalOutcome, buildId:job.buildId,
               ...(record.path === '/api/bank/sync' && job.result ? {bankStatus:job.result} : {})});
             if (finish.complete) await finish.complete();
             if (!current()) throw Object.assign(new Error('La sesión cambió.'), {terminal:true});

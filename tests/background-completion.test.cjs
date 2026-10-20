@@ -18,6 +18,14 @@ function setup(records=[], job={state:'done',progress:100,path:'/api/draft',resu
 }
 const settle=()=>new Promise(setImmediate);
 
+test('failed task exposes its recovery code and correlation to the interface',async()=>{
+ const q=setup([],{state:'failed',progress:3,error:'Revisa el banco',errorCode:'bank_review_required',
+  stage:'bank-sync',correlationId:'b'.repeat(32),retryable:false,safeNextAction:'review_bank'});
+ await q.window.cvBackground.initialize(q.settings);
+ await assert.rejects(q.start(),error=>error.code==='bank_review_required'&&error.correlationId==='b'.repeat(32)&&error.retryable===false);
+ assert.match(q.document.querySelector('#background-processes').textContent,/bank_review_required/);
+});
+
 test('failed bank process preserves document review details for the owner',async()=>{
  const bank={pending:0,warnings:[{file_id:'fixture-file',name:'Documento de prueba',message:'No se pudo leer',severity:'blocking'}]};
  const q=setup([],{state:'failed',progress:92,path:'/api/bank/sync',error:'Revisa el documento',result:bank});
