@@ -264,7 +264,17 @@ async function processFetch(url, settings) {
     }
     return response;
   }
-  const result = await window.cvBackground.run(url, JSON.parse(settings.body || '{}'), settings.headers);
+  let result;
+  try {
+    result = await window.cvBackground.run(url, JSON.parse(settings.body || '{}'), settings.headers);
+  } catch (error) {
+    if (!isCurrent()) throw new Error('La cuenta cambió.');
+    if (url === '/api/gmail/send' && error.applicationEntry) {
+      return new Response(JSON.stringify({error:error.message, entry:error.applicationEntry}), {
+        status:error.httpStatus || 502, headers:{'Content-Type':'application/json'}});
+    }
+    throw error;
+  }
   if (!isCurrent()) throw new Error('La cuenta cambió.');
   if (result.download_url) {
     if (state.user) {
@@ -275,7 +285,8 @@ async function processFetch(url, settings) {
     const file = await fetch(result.download_url, {headers: authenticatedHeaders()});
     if (!file.ok) return file;
     return new Response(await file.blob(), {headers: {'Content-Type': file.headers.get('Content-Type'),
-      'Content-Disposition': `attachment; filename="${result.fileName}"`, 'X-CV-Drive-URL': result.driveUrl || ''}});
+      'Content-Disposition': `attachment; filename="${result.fileName}"`, 'X-CV-Drive-URL': result.driveUrl || '',
+      'X-CV-Artifact-ID': result.artifactId || '', 'X-CV-PDF-SHA256': result.pdfSha256 || ''}});
   }
   return new Response(JSON.stringify(result), {headers: {'Content-Type': 'application/json'}});
 }
@@ -1828,7 +1839,7 @@ $("#create-button").addEventListener("click", async (event) => {
     analysisPanel.hidden = true;
     cvPanel.hidden = false;
     setActiveStep(3);
-    await sendApplicationGmail();
+    if ($('#gmail-automatic').checked) await sendApplicationGmail();
   } catch (error) {
     if (!isCurrent()) return;
     const errorBox = cvPanel.hidden ? $("#gap-box") : $("#cv-error");
@@ -1856,10 +1867,21 @@ async function renderDraft(draft) {
   $('#cv-error').hidden = Boolean(state.analysis);
   if (!state.analysis) $('#cv-error').textContent = 'Esta vista previa recuperada no tiene su análisis disponible en esta sesión. Analiza de nuevo la vacante para generar y descargar el CV correcto. Los archivos ya guardados siguen disponibles en Drive.';
   state.pdf = null;
-  $("#application-subject").value = draft.position;
-  $("#application-message").value = `Hola, me interesa aplicar a la vacante de ${draft.position}. Adjunto mi hoja de vida para su consideración.\n\nSaludos,\n${draft.candidate.name}`;
+  $("#application-subject").value = `Postulación a ${draft.position} — ${draft.candidate.name}`;
+  const contactEmail = draft.candidate.email || state.user?.email || '';
+  const contactSignature = [draft.candidate.name, draft.candidate.phones?.[0],
+    /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(contactEmail) ? contactEmail : ''].filter(Boolean).join('\n');
+  $("#application-message").value = `Saludos:\n\nMe interesa postularme a la vacante de ${draft.position}.\n\nAdjunto mi currículum en PDF para su consideración. Quedo disponible para ampliar cualquier información.\n\nAtentamente,\n${contactSignature}`;
   const contacts = state.analysis?.vacancy || {};
-  $("#application-email").value = contacts.application_emails?.[0] || "";
+  const candidateEmails = [draft.candidate.email, state.user?.email].filter(Boolean).map(value => value.toLowerCase());
+  const vacancyEmails = [...new Set((contacts.application_emails || []).map(value => String(value).trim().toLowerCase()))]
+    .filter(value => !candidateEmails.includes(value));
+  $("#application-email").value = vacancyEmails.length === 1 ? vacancyEmails[0] : "";
+  const emailOptions = document.querySelector('#application-email-options');
+  if (emailOptions) {
+    emailOptions.replaceChildren();
+    for (const email of vacancyEmails) addText(emailOptions, 'option', email);
+  }
   $("#application-phone").value = contacts.application_whatsapp?.[0] || "";
   const detected = [...(contacts.application_emails || []), ...(contacts.application_whatsapp || [])];
   $("#application-contacts").textContent = detected.length
@@ -2001,7 +2023,7 @@ async function download(format) {
     link.download = fileName;
     link.click();
     URL.revokeObjectURL(link.href);
-    const artifact = { driveUrl: driveUrl || "", fileName };
+    const artifact = { driveUrl: driveUrl || "", fileName, id: response.headers.get("X-CV-Artifact-ID"), sha256: response.headers.get("X-CV-PDF-SHA256") };
     if (format === "pdf") state.pdf = artifact;
     return artifact;
   } catch (error) {
@@ -2046,8 +2068,8 @@ function renderApplications() {
     addText(card, "p", `${entry.channel === "gmail" ? "Gmail" : "WhatsApp"} · ${entry.recipient}`);
     const labels = {
       confirmed_by_user: "Enviado (confirmado por ti)", gmail_accepted: "Aceptado por Gmail · entrega al destinatario no verificada",
-      sending: "En proceso · comprueba Enviados en Gmail", send_unknown: "Sin confirmar · comprueba Enviados en Gmail",
-      failed: "Gmail rechazó el envío", prepared: "Preparado · envío pendiente de confirmar",
+      sending: "En proceso · comprueba Enviados en Gmail", send_unknown: "Resultado incierto · comprueba Enviados en Gmail",
+      failed: "Fallido · el PDF puede seguir disponible", pending: "Pendiente", bounced: "Rebotado · requiere evidencia verificable", receipt_verified: "Recepción comprobada con evidencia autorizada", prepared: "Preparado · envío pendiente de confirmar",
       whatsapp_opened: "WhatsApp abierto · postulación registrada automáticamente",
     };
     addText(card, "p", `${new Date(entry.date).toLocaleString("es-DO")} · ${labels[entry.status] || "Estado pendiente de revisar"}`);
@@ -2188,7 +2210,8 @@ async function sendApplicationGmail(button) {
   }
   if (!sameDraft()) return;
   if (state.gmailSending) return;
-  const signature = JSON.stringify([recipient.toLowerCase(), message, analysis || draft]);
+  const subject = $("#application-subject").value.trim();
+  const signature = JSON.stringify([recipient.toLowerCase(), subject, message, analysis || draft]);
   state.gmailAttempts ||= new Map();
   if (state.gmailAttempt?.signature) state.gmailAttempts.set(state.gmailAttempt.signature, state.gmailAttempt);
   state.gmailAttempt = state.gmailAttempts.get(signature) || { id: crypto.randomUUID(), signature };
@@ -2211,16 +2234,25 @@ async function sendApplicationGmail(button) {
       if (!sameDraft()) return;
       state.idToken = token;
     }
+    if (!state.pdf) {
+      const prepared = await download('pdf');
+      if (sameDraft() && prepared) state.pdf = prepared;
+      if (!sameDraft() || !state.pdf) throw new Error('Descarga y revisa el PDF antes de enviar.');
+    }
     const headers = authenticatedHeaders({"Content-Type": "application/json", ...window.cvDrive.headers(), ...window.cvGmail.headers()});
     submitted = true;
     const response = await processFetch("/api/gmail/send", {
       method: "POST", headers,
-      body: JSON.stringify({ application_id: attempt.id, recipient, message, analysis }),
+      body: JSON.stringify({ application_id: attempt.id, recipient, subject, message, analysis, artifact_id: state.pdf?.id }),
     });
     const result = await response.json().catch(() => ({}));
     responded = true;
     if (!isCurrent()) return;
     if (!response.ok) {
+      if (result.entry && sameDraft()) {
+        state.applications = [result.entry, ...state.applications.filter(entry => entry.application_id !== attempt.id)];
+        renderApplications();
+      }
       if (response.status === 401 || response.status === 403) window.cvGmail.reset();
       const failure = Object.assign(new Error(result.error || "No se pudo confirmar el envío. Comprueba Enviados en Gmail."),
         {status:response.status,code:result.code,externalOutcome:result.externalOutcome});
@@ -2245,6 +2277,7 @@ async function sendApplicationGmail(button) {
 }
 
 $('#retry-gmail').addEventListener('click', event => sendApplicationGmail(event.currentTarget));
+$('#send-gmail').addEventListener('click', event => sendApplicationGmail(event.currentTarget));
 $("#send-whatsapp").addEventListener("click", (event) => prepareApplication("whatsapp", event.currentTarget));
 $("#refresh-application-history").addEventListener("click", refreshApplications);
 $('#load-more-applications').addEventListener('click', () => refreshApplications(true));
@@ -2293,3 +2326,27 @@ $("#back-to-analysis").addEventListener("click", () => {
 });
 
 window.cvLoading.run("Cargando", bootstrap);
+
+// Connection states describe the current in-memory grant, never recipient delivery.
+let telegramLinkedForSession = false;
+function renderGoogleConnectionStates() {
+  const panel = document.querySelector('#google-connection-states');
+  if (!panel) return;
+  const connected = Boolean(state.user);
+  const drive = connected && Boolean(window.cvDrive?.isConnected());
+  const gmail = connected && Boolean(window.cvGmail?.isConnected());
+  panel.textContent = `Cuenta conectada: ${connected ? 'sí' : 'no'}. Drive disponible: ${drive ? 'sí' : 'no verificado'}. Gmail autorizado para enviar: ${gmail ? 'sí' : 'no'}. Telegram vinculado: ${connected && telegramLinkedForSession ? 'sí' : 'no verificado'}. Reautorización necesaria: ${connected && (!drive || !gmail) ? 'sí' : 'no'}.`;
+}
+window.addEventListener('cv-session-state', () => {
+  telegramLinkedForSession = false;
+  const automatic = document.querySelector('#gmail-automatic');
+  if (automatic) automatic.checked = false;
+  renderGoogleConnectionStates();
+});
+window.addEventListener('cv-telegram-state', event => {
+  telegramLinkedForSession = Boolean(event.detail?.linked);
+  renderGoogleConnectionStates();
+});
+window.addEventListener('cv-drive-connected', renderGoogleConnectionStates);
+window.addEventListener('focus', renderGoogleConnectionStates);
+renderGoogleConnectionStates();

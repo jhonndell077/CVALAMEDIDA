@@ -1,3 +1,4 @@
+from pdf_fixture import PDF
 import job_runtime
 import copy
 import io
@@ -81,7 +82,7 @@ class VacancySelectionTests(unittest.TestCase):
         core.analyze_with_model.side_effect=None
         core.analyze_with_model.return_value={'vacancy':{'position':'Asistente operativo'}}
         core.make_draft.return_value={'position':'Asistente operativo'}
-        core.make_pdf.return_value=io.BytesIO(b'%PDF-selected-role')
+        core.make_pdf.return_value=io.BytesIO(PDF)
         with patch.object(bot,'drive_token',return_value='token'), patch.object(bot,'say'), patch.object(bot,'vacancy_payload',return_value={}), patch.object(bot,'archive_pdf',return_value='https://drive.google.com/file/d/cv-selected/view'), patch.object(bot,'telegram',return_value={'message_id':201}) as telegram:
             bot.process_job(core,CONFIG,'10',store)
             self.assertEqual(core.analyze_with_model.call_args.args[-1],'Asistente operativo')

@@ -62,6 +62,7 @@ window.cvTelegram = (() => {
     const data = await json("/api/telegram/status");
     if (sessionGeneration !== generation || !user) return;
     driveConnected = Boolean(data.drive_connected);
+    if (typeof CustomEvent !== 'undefined') window.dispatchEvent(new CustomEvent('cv-telegram-state', {detail:{linked:Boolean(data.linked)}}));
     multiAccount = Boolean(data.multi_account);
     button().hidden = Boolean(data.multi_account || driveConnected);
     const link = document.querySelector("#telegram-open-bot");

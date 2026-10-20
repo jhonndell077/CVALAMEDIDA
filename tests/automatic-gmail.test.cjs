@@ -13,9 +13,10 @@ test('creating the CV renders it and automatically dispatches Gmail once', async
     analysisPanel: {}, cvPanel: {}, setActiveStep() {}, sendApplicationGmail: async () => calls.push('gmail')});
   const source = fs.readFileSync('static/app.js', 'utf8');
   vm.runInContext(source.slice(source.indexOf('$("#create-button").addEventListener'), source.indexOf('function addPreviewSection')), context);
+  $('#gmail-automatic').checked = true;
   await handler({currentTarget: {}});
   assert.deepEqual(calls, ['preview', 'gmail']);
   assert.equal(context.window.cvDraftAnalyses.get(context.state.draft), context.state.analysis);
   assert.equal(context.cvPanel.hidden, false);
-  assert.ok(!fs.readFileSync('static/index.html', 'utf8').includes('id="send-gmail"'));
+  assert.ok(fs.readFileSync('static/index.html', 'utf8').includes('id="send-gmail"'));
 });

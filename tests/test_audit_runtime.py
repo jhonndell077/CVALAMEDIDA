@@ -1,3 +1,4 @@
+from pdf_fixture import PDF
 """Synthetic regressions for audit H03, H06 and H12. No network or real users."""
 import base64
 import copy
@@ -57,7 +58,7 @@ def fixture():
         verify_drive_access=lambda token: {'id': 'fixture-folder'},
         drive_request=lambda *args: {'files': []},
         make_draft=lambda data: {'position': 'Puesto ficticio', 'candidate': {'name': 'Persona ficticia'}},
-        make_pdf=lambda data: io.BytesIO(b'%PDF-synthetic'),
+        make_pdf=lambda data: io.BytesIO(PDF),
         archive_generated_resume=lambda *args: 'https://drive.google.com/file/d/fixture/view',
         save_application_record=lambda *args: None,
     )

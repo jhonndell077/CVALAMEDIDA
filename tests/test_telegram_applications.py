@@ -1,3 +1,4 @@
+from pdf_fixture import PDF
 import job_runtime
 import base64, json, unittest, os
 from email import policy
@@ -11,7 +12,7 @@ class TelegramApplicationsTests(unittest.TestCase):
     def source(self):
         store=MemoryStore()
         store.write('10',{'state':'done','owner_id':123,'contacts':{'emails':['jobs@example.com'],'whatsapp':['18095551234']},
-                          'position':'Chef','filename':'CV_Chef.pdf','drive_url':'https://drive.google.com/file/d/file123/view'},0)
+                          'pdf_sha256':__import__('hashlib').sha256(PDF).hexdigest(),'position':'Chef','filename':'CV_Chef.pdf','drive_url':'https://drive.google.com/file/d/file123/view'},0)
         return store
     def core(self):
         core=MagicMock(ARCHIVE_CONFIG={'allowed_email':'owner@example.com'},AppError=app.AppError)
@@ -27,7 +28,7 @@ class TelegramApplicationsTests(unittest.TestCase):
         self.assertEqual(len(bot.application_buttons('10',{'position':'Chef'})['inline_keyboard']),1)
     def test_automatic_dispatch_uses_existing_pdf_and_never_repeats(self):
         core=self.core(); store=self.source(); response=MagicMock(ok=True)
-        response.iter_content.return_value=[b'%PDF-actual']
+        response.iter_content.return_value=[PDF]
         with patch.object(bot,'drive_token',return_value='test'), patch.object(bot.requests,'get',return_value=response), patch.object(bot,'say'):
             bot.auto_send_application(core,CONFIG,'10',store)
             bot.auto_send_application(core,CONFIG,'10',store)
@@ -48,7 +49,7 @@ class TelegramApplicationsTests(unittest.TestCase):
         store.write('10',{'state':'queued','message':message(message_id=7),'pdf_ready':True,
                          'position':'Chef','filename':'CV.pdf','drive_url':'https://drive.google.com/file/d/file123/view',
                          'owner_id':123,'contacts':{'emails':['jobs@example.com']}},0)
-        store.put_pdf('10',b'%PDF-actual'); events=[]
+        store.put_pdf('10',PDF); events=[]
         def deliver(config,method,data,**kwargs):
             if method=='sendDocument': events.append('pdf')
             return {'message_id':50}
@@ -69,20 +70,20 @@ class TelegramApplicationsTests(unittest.TestCase):
         self.assertIsNone(bot.private_callback({'update_id':11,'callback_query':query},CONFIG))
     def test_actual_pdf_mime_history_and_repeated_click(self):
         core=self.core();store=self.source();response=MagicMock(ok=True)
-        response.iter_content.return_value=[b'%PDF-actual']
+        response.iter_content.return_value=[PDF]
         with patch.object(bot,'drive_token',return_value='test'),patch.object(bot.requests,'get',return_value=response),patch.object(bot,'say'):
             bot.process_application(core,CONFIG,{'source_job':'10','recipient_index':0},store)
             bot.process_application(core,CONFIG,{'source_job':'10','recipient_index':0},store)
         self.assertEqual(core.gmail_request.call_count,2)
         payload=json.loads(core.gmail_request.call_args.args[2])
         mail=BytesParser(policy=policy.default).parsebytes(base64.urlsafe_b64decode(payload['raw']))
-        self.assertEqual(mail['To'],'jobs@example.com');self.assertEqual(mail['Subject'],'Chef')
-        self.assertEqual(list(mail.iter_attachments())[0].get_payload(decode=True),b'%PDF-actual')
+        self.assertEqual(mail['To'],'jobs@example.com');self.assertEqual(mail['Subject'],'Postulación a Chef')
+        self.assertEqual(list(mail.iter_attachments())[0].get_payload(decode=True),PDF)
         self.assertEqual(core.save_application_record.call_args.args[0]['status'],'gmail_accepted')
         self.assertEqual(store.read('10')[0]['gmail_dispatches']['jobs@example.com'],'confirmado por Gmail')
     def test_unknown_send_never_repeated(self):
         core=self.core();store=self.source();response=MagicMock(ok=True)
-        response.iter_content.return_value=[b'pdf']
+        response.iter_content.return_value=[PDF]
         core.gmail_request.side_effect=[{'email':'owner@example.com','email_verified':True},app.AppError('unknown',502)]
         with patch.object(bot,'drive_token',return_value='test'),patch.object(bot.requests,'get',return_value=response),patch.object(bot,'say'):
             with self.assertRaises(app.AppError):bot.process_application(core,CONFIG,{'source_job':'10','recipient_index':0},store)

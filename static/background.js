@@ -104,7 +104,7 @@ window.cvBackground = (() => {
     for (const member of members) {
     const job = jobs.get(member.id) || {};
     const record = member;
-    if (job.state === 'done' && job.result?.driveUrl?.startsWith('https://drive.google.com/')) {
+    if (job.result?.driveUrl?.startsWith('https://drive.google.com/')) {
       const link = document.createElement('a'); link.href = job.result.driveUrl; link.target = '_blank'; link.rel = 'noopener'; link.textContent = 'Abrir CV guardado en Drive'; row.append(link);
     }
     if (job.state === 'done' && ['/api/analyze', '/api/draft'].includes(job.path || record.path)) {
@@ -175,8 +175,12 @@ window.cvBackground = (() => {
           for (const listener of progressListeners.get(record.id) || []) listener(progress, job.stage, true);
           if (job.state === 'done' || job.state === 'failed') {
             record.state = job.state; persist();
-            if (job.state === 'failed') throw Object.assign(new Error(job.error || 'No se pudo completar el proceso.'), {terminal: true,
+            const mailNotice = job.result?.entry ? (job.result.entry.status === 'failed'
+              ? 'Tu CV está disponible. El correo no pudo enviarse. '
+              : 'Tu CV está disponible. El resultado del correo es incierto; comprueba Enviados antes de repetirlo. ') : '';
+            if (job.state === 'failed') throw Object.assign(new Error(mailNotice + (job.error || 'No se pudo completar el proceso.')), {terminal: true,
               code:job.errorCode || job.code, stage:job.stage, correlationId:job.correlationId, operationId:job.operationId,
+              ...(record.path === '/api/gmail/send' && job.result?.entry ? {applicationEntry:job.result.entry, httpStatus:job.result.httpStatus} : {}),
               retryable:job.retryable, safeNextAction:job.safeNextAction, externalOutcome:job.externalOutcome, buildId:job.buildId,
               ...(record.path === '/api/bank/sync' && job.result ? {bankStatus:job.result} : {})});
             if (finish.complete) await finish.complete();

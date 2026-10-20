@@ -1,3 +1,4 @@
+from pdf_fixture import PDF
 import job_runtime
 import io
 import os
@@ -45,7 +46,7 @@ class TelegramAccountsTests(unittest.TestCase):
         def verify(): app.g.google_identity=ALICE
         token=MagicMock(ok=True)
         token.json.return_value={'access_token':'alice-access','refresh_token':'alice-new-refresh',
-                                 'scope':'openid email https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly'}
+                                 'scope':'openid email https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/gmail.send'}
         user=MagicMock(ok=True);user.json.return_value={'email':ALICE['email'],'email_verified':True}
         with patch.dict(os.environ,{'CV_MULTI_ACCOUNT':'1','CV_AUTH_REQUIRED':'1','CV_ALLOW_REMOTE':'1','CV_BANK_PROVIDER':'local'}),patch.object(app,'verify_google_identity',side_effect=verify),patch.object(job_runtime, 'JobStore',return_value=store),patch.object(job_runtime, 'configuration',return_value=CONFIG),patch.object(job_runtime, 'save_configuration') as shared,patch.object(bot.requests,'post',return_value=token),patch.object(bot.requests,'get',return_value=user):
             response=app.app.test_client().post('/api/telegram/drive/authorize',json={'code':'code'},headers={'Origin':bot.ORIGIN,'X-Requested-With':'XmlHttpRequest'})
@@ -57,7 +58,7 @@ class TelegramAccountsTests(unittest.TestCase):
         self.assertNotIn('drive_refresh_token',accounts.runtime(app,CONFIG,BOB,store))
         self.assertNotIn('alice-new-refresh',str(store.jobs))
 
-    def test_saved_drive_session_remains_usable_without_optional_gmail_grant(self):
+    def test_combined_session_rejects_partial_drive_only_grant(self):
         store=MemoryStore();accounts.save_oauth(store,ALICE['uid'],'saved-refresh',True)
         def verify(): app.g.google_identity=ALICE
         scopes='https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly'
@@ -65,9 +66,8 @@ class TelegramAccountsTests(unittest.TestCase):
         identity=MagicMock(ok=True);identity.json.return_value={'email':ALICE['email'],'email_verified':True}
         with patch.dict(os.environ,{'CV_MULTI_ACCOUNT':'1','CV_AUTH_REQUIRED':'1','CV_ALLOW_REMOTE':'1','CV_BANK_PROVIDER':'local'}),patch.object(app,'verify_google_identity',side_effect=verify),patch.object(job_runtime,'JobStore',return_value=store),patch.object(job_runtime,'configuration',return_value=CONFIG),patch.object(bot.requests,'post',return_value=token),patch.object(bot.requests,'get',return_value=identity):
             result=app.app.test_client().post('/api/telegram/drive/session',json={},headers={'Origin':bot.ORIGIN,'X-Requested-With':'XmlHttpRequest'})
-        self.assertEqual(result.status_code,200)
-        self.assertEqual(result.json.get('scope'),scopes)
-        self.assertNotIn('gmail.send',result.json.get('scope',''))
+        self.assertEqual(result.status_code,403)
+        self.assertNotIn('access_token',result.json)
 
     def test_browser_session_renews_saved_grant_without_authorization_code(self):
         store=MemoryStore();accounts.save_oauth(store,ALICE['uid'],'saved-refresh',True)
@@ -215,7 +215,7 @@ class TelegramAccountsTests(unittest.TestCase):
             self.assertEqual(app.MASTER_PROFILE['candidate']['name'],'Alice')
             self.assertEqual(app.MASTER_PROFILE['experiences'],[])
             return {}
-        with patch.object(bot,'drive_token',return_value='alice-access'),patch.object(app,'load_drive_bank',return_value={'pending':0}),patch.object(app,'extract_vacancy',return_value=('Chef',[])),patch.object(app,'analyze_with_model',side_effect=analyze),patch.object(app,'make_draft',return_value={'position':'Chef','candidate':{'name':'Alice'}}),patch.object(app,'make_pdf',return_value=io.BytesIO(b'pdf')),patch.object(bot,'archive_pdf',return_value='https://drive.google.com/file/d/alice/view'),patch.object(bot,'telegram',return_value={'message_id':55}) as sent:
+        with patch.object(bot,'drive_token',return_value='alice-access'),patch.object(app,'load_drive_bank',return_value={'pending':0}),patch.object(app,'extract_vacancy',return_value=('Chef',[])),patch.object(app,'analyze_with_model',side_effect=analyze),patch.object(app,'make_draft',return_value={'position':'Chef','candidate':{'name':'Alice'}}),patch.object(app,'make_pdf',return_value=io.BytesIO(PDF)),patch.object(bot,'archive_pdf',return_value='https://drive.google.com/file/d/alice/view'),patch.object(bot,'telegram',return_value={'message_id':55}) as sent:
             bot.process_job(app,CONFIG,'1',store)
         self.assertEqual(store.read('1')[0]['state'],'done')
         for call in sent.call_args_list:self.assertEqual(call.args[2]['chat_id'],321)

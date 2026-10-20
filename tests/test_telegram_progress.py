@@ -1,3 +1,4 @@
+from pdf_fixture import PDF
 import job_runtime
 import io
 import json
@@ -16,7 +17,7 @@ class TelegramProgressTests(unittest.TestCase):
         core.extract_vacancy.return_value=('SECRET-ADVERT',[])
         core.analyze_with_model.return_value={'vacancy':{'position':'Chef'}}
         core.make_draft.return_value={'position':'Chef','candidate':{'name':'Alice'}}
-        core.make_pdf.return_value=io.BytesIO(b'pdf')
+        core.make_pdf.return_value=io.BytesIO(PDF)
         return core
 
     def test_new_user_pdf_without_references_or_photo_is_delivered(self):
@@ -88,7 +89,8 @@ class TelegramProgressTests(unittest.TestCase):
             if method=='editMessageText':self.assertEqual(data['message_id'],50)
         self.assertEqual(calls[-3][0],'sendDocument')
         self.assertIn('no indica un correo',calls[-2][1]['text'])
-        self.assertIn('completada',calls[-1][1]['text'])
+        self.assertIn('PDF disponible',calls[-1][1]['text'])
+        self.assertIn('resultado del correo se informa por separado',calls[-1][1]['text'])
         self.assertEqual(store.read('1')[0]['progress_stage'],'done')
 
     def test_selected_vacancy_reuses_encrypted_extraction_without_downloading_again(self):

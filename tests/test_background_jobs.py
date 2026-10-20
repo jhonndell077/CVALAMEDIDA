@@ -169,7 +169,8 @@ class BackgroundJobTests(unittest.TestCase):
         def export(format_name):
             self.assertEqual(app.request.headers['X-Drive-Access-Token'], 'private-token')
             return Response(b'pdf-content', mimetype='application/pdf', headers={
-                'Content-Disposition': 'attachment; filename="CV.pdf"', 'X-CV-Drive-URL': 'https://drive.google.com/file/d/test/view'})
+                'Content-Disposition': 'attachment; filename="CV.pdf"', 'X-CV-Drive-URL': 'https://drive.google.com/file/d/test/view',
+                'X-CV-Artifact-ID':'a'*32,'X-CV-PDF-SHA256':'b'*64})
         with patch.object(app, 'bank_enabled', return_value=False), patch.dict(app.app.view_functions, {'export_resume': export}):
             jobs.process_job(app, ID, store)
         saved = store.read(ID)[0]
@@ -177,6 +178,22 @@ class BackgroundJobTests(unittest.TestCase):
         self.assertNotIn('credentials', saved)
         self.assertEqual(store.artifact(ID)[0], b'pdf-content')
         self.assertEqual(saved['result']['fileName'], 'CV.pdf')
+        self.assertEqual(saved['result']['artifactId'], 'a'*32)
+        self.assertEqual(saved['result']['pdfSha256'], 'b'*64)
+
+    def test_gmail_failure_retains_archived_pdf_and_safe_mail_state(self):
+        store=Store(); job(store,'/api/gmail/send')
+        entry={'application_id':'fixture','status':'failed','pdf_status':'archived',
+               'cv_url':'https://drive.google.com/file/d/test/view','access_token':'must-not-survive'}
+        def fail(): return jsonify(error='Gmail needs authorization',entry=entry),403
+        with patch.object(app,'bank_enabled',return_value=False), patch.dict(app.app.view_functions,{'send_gmail_application':fail}), patch.object(push,'notify'):
+            jobs.process_job(app,ID,store)
+        saved=store.read(ID)[0]
+        self.assertEqual(saved['state'],'failed')
+        self.assertEqual(saved['result']['httpStatus'],403)
+        self.assertEqual(saved['result']['driveUrl'],entry['cv_url'])
+        self.assertEqual(saved['result']['entry']['status'],'failed')
+        self.assertNotIn('access_token',saved['result']['entry'])
 
     def test_push_keys_parse_and_encrypted_headers_are_bound_to_job(self):
         from py_vapid import Vapid

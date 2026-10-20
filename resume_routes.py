@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Any
 import hashlib
+import application_mail
 import time
 import job_runtime
 import user_accounts
@@ -183,6 +184,10 @@ def register_routes(core):
         store = job_runtime.JobStore()
         digest = hashlib.sha256(core.json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         key = _dispatch_key(user_accounts.owner() or sender.casefold(), application_id)
+        try:
+            application_mail.reserve_rate(store, user_accounts.owner() or sender.casefold(), recipient, application_id)
+        except ValueError as error:
+            raise core.AppError(str(error), 429) from None
         reservation, already_sent = _reserve_dispatch(core, store, key, digest)
         if already_sent:
             return core.jsonify({'entry': reservation['entry'], 'already_sent': True})
@@ -202,17 +207,31 @@ def register_routes(core):
         draft_data = core.make_draft(payload.get("analysis"))
         position = draft_data["position"]
         filename = core.re.sub(r"[^A-Za-z0-9_-]+", "_", draft_data['candidate']['name'] + '_' + position).strip("_") + ".pdf"
-        pdf = core.make_pdf(draft_data).getvalue()
-        cv_url = core.archive_generated_resume(f"{core.uuid4().hex[:8]}_{filename}", "pdf", pdf)
-        message = core.EmailMessage()
-        message["From"] = sender
-        message["To"] = recipient
-        message["Subject"] = position.replace("\r", " ").replace("\n", " ")
-        message["Message-ID"] = f"<{application_id}@cvalamedida.web.app>"
-        message.set_content(message_text)
-        message.add_attachment(pdf, maintype="application", subtype="pdf", filename=filename)
+        artifact_id = payload.get('artifact_id')
+        artifact = None
+        if artifact_id:
+            if not isinstance(artifact_id, str) or not core.re.fullmatch(r'[a-f0-9]{32}', artifact_id):
+                raise core.AppError('El identificador del PDF no es válido.', 400)
+            artifact, _ = store.read('mail-pdf-' + artifact_id)
+            expected = hashlib.sha256(core.json.dumps(draft_data, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+            if not artifact or artifact.get('owner') != (user_accounts.owner() or sender.casefold()) or artifact.get('draft_digest') != expected or time.time() - artifact.get('created_at', 0) > 86400:
+                raise core.AppError('El PDF pertenece a otra cuenta, cambió el perfil o venció. Descarga y revisa un PDF nuevo.', 409)
+            pdf = store.pdf('mail-pdf-' + artifact_id)
+            if hashlib.sha256(pdf).hexdigest() != artifact.get('pdf_sha256'):
+                raise core.AppError('El PDF archivado no coincide con su hash. Genera un CV nuevo.', 409)
+        else:
+            pdf = core.make_pdf(draft_data).getvalue()
+        try:
+            message, pdf_hash = application_mail.compose(sender, recipient, position,
+                draft_data['candidate']['name'], application_id, pdf, filename,
+                message_text, payload.get('subject'))
+        except ValueError as error:
+            raise core.AppError(str(error), 400) from None
+        cv_url = artifact["cv_url"] if artifact else core.archive_generated_resume(f"{core.uuid4().hex[:8]}_{filename}", "pdf", pdf)
         record = {"application_id": application_id, "position": position, "recipient": recipient, "channel": "gmail",
-                  "status": "sending", "sender": sender, "rfc_message_id": f"{application_id}@cvalamedida.web.app",
+                  "uid": user_accounts.owner(), "origin": "web", "pdf_status": "archived", "pdf_sha256": pdf_hash, "pdf_size": len(pdf),
+                  "recipient_source": "vacancy_analysis" if recipient.casefold() in [str(value).strip().casefold() for value in (payload.get('analysis') or {}).get('vacancy', {}).get('application_emails', [])] else "user_input",
+                  "correlation_id": application_id, "subject": str(message["Subject"]), "status": "sending", "sender": sender, "rfc_message_id": f"{application_id}@cvalamedida.web.app",
                   "cv_url": cv_url, "date": core.datetime.now(core.timezone.utc).isoformat()}
         core.save_application_record(record, drive_token, folder)
         # Persist before contacting Gmail. A lost response must never cause a resend.
@@ -223,6 +242,7 @@ def register_routes(core):
             if not result.get("id"):
                 raise core.AppError("Gmail no confirmó el envío. Revisa Enviados antes de reintentar.", 502)
         except core.AppError as error:
+            record["error_code"] = "gmail_rejected" if error.status_code in {401, 403, 422} else "gmail_outcome_unknown"
             record["status"] = "failed" if error.status_code in {401, 403, 422} else "send_unknown"
             try:
                 _save_dispatch(store, key, reservation, state=record['status'], entry=record)
@@ -232,7 +252,9 @@ def register_routes(core):
                 core.save_application_record(record, drive_token, folder)
             except core.AppError:
                 pass
-            raise
+            detail = ('Tu CV está disponible. El correo no pudo enviarse: ' if record['status'] == 'failed'
+                      else 'Tu CV está disponible. El resultado del correo es incierto; comprueba Enviados antes de repetirlo: ')
+            return core.jsonify(error=detail + str(error), entry=record, cv_url=cv_url), error.status_code
         record.update(status="gmail_accepted", gmail_message_id=result["id"], date=core.datetime.now(core.timezone.utc).isoformat())
         warning = ""
         try:
@@ -257,6 +279,10 @@ def register_routes(core):
         draft_data = core.make_draft(payload.get("analysis"))
         if format_name == "pdf":
             file_data = core.make_pdf(draft_data)
+            try:
+                pdf_hash = application_mail.validate_pdf(file_data.getvalue())
+            except ValueError as error:
+                raise core.AppError(str(error), 400) from None
             mimetype = "application/pdf"
         else:
             file_data = core.make_docx(draft_data)
@@ -278,6 +304,15 @@ def register_routes(core):
             file_data.getvalue(),
         )
         core.app.logger.info("CV generado archivado en %s", archived_location)
+        artifact_id = None
+        if format_name == 'pdf' and user_accounts.owner():
+            artifact_id = core.uuid4().hex
+            artifact_key = 'mail-pdf-' + artifact_id
+            store = job_runtime.JobStore()
+            store.put_pdf(artifact_key, file_data.getvalue())
+            store.write(artifact_key, {'owner': user_accounts.owner() or core.account_state.ARCHIVE_CONFIG.get('allowed_email', '').casefold(),
+                'draft_digest': hashlib.sha256(core.json.dumps(draft_data, sort_keys=True, ensure_ascii=False).encode()).hexdigest(),
+                'pdf_sha256': pdf_hash, 'cv_url': archived_location, 'created_at': time.time()}, 0)
         file_data.seek(0)
         response = core.send_file(
             file_data,
@@ -285,6 +320,9 @@ def register_routes(core):
             as_attachment=True,
             download_name=f"{filename}.{format_name}",
         )
+        if artifact_id:
+            response.headers["X-CV-Artifact-ID"] = artifact_id
+            response.headers["X-CV-PDF-SHA256"] = pdf_hash
         if archived_location.startswith("https://drive.google.com/"):
             response.headers["X-CV-Drive-URL"] = archived_location
         return response

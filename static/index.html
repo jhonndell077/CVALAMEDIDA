@@ -395,7 +395,8 @@
         </div>
         <div id="gap-box" class="gap-box" hidden></div>
         <div class="strategy-row"><span class="template-chip" id="template-name"></span><span id="template-reason"></span></div>
-        <button id="create-button" class="button button-primary" type="button">Crear y enviar mi CV <span aria-hidden="true">→</span></button>
+        <label><input id="gmail-automatic" type="checkbox"> Autorizar envío automático al crear el CV, solo cuando la vacante indique un único correo.</label>
+        <button id="create-button" class="button button-primary" type="button">Crear mi CV <span aria-hidden="true">→</span></button>
       </section>
 
       <section class="panel results-panel" id="cv-panel" hidden>
@@ -413,19 +414,22 @@
         <section class="application-send" aria-labelledby="send-title">
           <div class="eyebrow">TU PRÓXIMO PASO</div>
           <h3 id="send-title">Postular a esta vacante</h3>
-          <p>Al crear tu CV, Gmail envía automáticamente el mensaje y el PDF adjunto al primer correo detectado en la vacante. WhatsApp abre el chat para que adjuntes el PDF y completes el envío.</p>
+          <p>Revisa el destinatario, asunto, mensaje y PDF antes de pulsar Enviar por Gmail. El modo automático requiere marcar la autorización antes de crear el CV y un único correo detectado. WhatsApp abre el chat para que adjuntes el PDF y completes el envío.</p>
           <div class="send-fields">
-            <label class="field-label">Correo de la vacante<input id="application-email" type="email" readonly placeholder="Correo no indicado en el anuncio"></label>
+            <label class="field-label">Correo de la vacante<input id="application-email" type="email" list="application-email-options" placeholder="Correo no indicado en el anuncio"></label>
             <label class="field-label">WhatsApp de la vacante<input id="application-phone" type="tel" placeholder="Número con código de país, ej. +1 809…"></label>
           </div>
+          <datalist id="application-email-options"></datalist>
           <p id="application-contacts" class="microcopy"></p>
-          <label class="field-label">Asunto<input id="application-subject" type="text" readonly></label>
-          <label class="field-label">Mensaje para Gmail<textarea id="application-message" rows="5" maxlength="5000" readonly></textarea></label>
+          <label class="field-label">Asunto<input id="application-subject" type="text" maxlength="300"></label>
+          <label class="field-label">Mensaje para Gmail<textarea id="application-message" rows="5" maxlength="5000"></textarea></label>
           <div class="download-row">
+            <button id="send-gmail" class="button button-primary" type="button">Enviar por Gmail</button>
             <button id="retry-gmail" class="button button-secondary" type="button" hidden>Reintentar envío por Gmail</button>
             <button id="send-whatsapp" class="button button-secondary" type="button">◉ Abrir WhatsApp</button>
           </div>
           <p id="application-send-status" role="status"></p>
+          <p id="google-connection-states" class="microcopy" role="status"></p>
         </section>
         <div id="cv-error" class="error-message" role="alert" hidden></div>
       </section>

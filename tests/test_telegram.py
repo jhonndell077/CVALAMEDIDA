@@ -1,3 +1,4 @@
+from pdf_fixture import PDF
 import job_runtime
 import copy,io,os,unittest
 from unittest.mock import patch,MagicMock
@@ -57,7 +58,7 @@ class TelegramTests(unittest.TestCase):
   store=MemoryStore();store.write('1',{'state':'queued','message':message()},0)
   core=MagicMock(); core.MAX_FILE_BYTES=1000;core.VERTEX_MODEL='model';core.AppError=app.AppError
   core.load_drive_bank.return_value={'pending':0};core.extract_vacancy.return_value=('vacante',[])
-  core.make_draft.return_value={'position':'Chef'};core.make_pdf.return_value=io.BytesIO(b'pdf')
+  core.make_draft.return_value={'position':'Chef'};core.make_pdf.return_value=io.BytesIO(PDF)
   calls=[]
   def send(config,method,data,files=None):
    calls.append(method)

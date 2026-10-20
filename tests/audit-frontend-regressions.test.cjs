@@ -7,7 +7,7 @@ const tick = () => new Promise(setImmediate);
 function setup(extra = {}) {
   const elements = new Map();
   const $ = id => { if (!elements.has(id)) elements.set(id, {textContent:'', value:'', hidden:true, addEventListener(){}, replaceChildren(){}, append(){},classList:{add(){}},style:{setProperty(){}}}); return elements.get(id); };
-  const state = {user:{uid:'alice',getIdToken:async()=> 'synthetic'},authEpoch:1, applications:[], profile:{name:'Alice'},profileDraft:{name:'Alice'},bankEnabled:true};
+  const state = {pdf:{id:'fixture'},user:{uid:'alice',getIdToken:async()=> 'synthetic'},authEpoch:1, applications:[], profile:{name:'Alice'},profileDraft:{name:'Alice'},bankEnabled:true};
   const context = vm.createContext({state,$,structuredClone,URLSearchParams,Date,crypto:{randomUUID:()=> 'fixture-id'},authenticatedHeaders:h=>h||{},setBusy(){},renderProfileTree(){},analysisPanel:{},cvPanel:{},jobPanel:{},window:{cvDrive:{connect:async()=>{},isConnected:()=>true,headers:()=>({})}},...extra});
   return {context, state, $};
 }
@@ -37,7 +37,7 @@ test('H02 discarded edits are not restored by a late save response',async()=>{
   assert.equal(qa.state.profileDraft.name,'Discarded');
 });
 test('H02 profile photo completion after logout cannot create an object URL',async()=>{
-  let release,created=0;const qa=setup({fetch:()=>new Promise(resolve=>release=resolve),getTemplateDetails:()=>({name:'Fixture'}),addText:()=>({append(){}}),document:{createElement:()=>({})},URL:{createObjectURL(){created++;return 'blob:private'},revokeObjectURL(){}}});
+  let release,created=0;const qa=setup({fetch:()=>new Promise(resolve=>release=resolve),getTemplateDetails:()=>({name:'Fixture'}),addText:()=>({append(){}}),document:{createElement:()=>({}),querySelector:()=>null},URL:{createObjectURL(){created++;return 'blob:private'},revokeObjectURL(){}}});
   vm.runInContext(source.slice(source.indexOf('async function renderDraft('),source.indexOf('async function download(')),qa.context);
   const pending=qa.context.renderDraft({candidate:{name:'Alice',phones:[]},position:'Fixture',skills:[],education:[],courses:[],experiences:[],references:[]});await tick();
   qa.state.user=null;qa.state.authEpoch++;
@@ -46,7 +46,7 @@ test('H02 profile photo completion after logout cannot create an object URL',asy
 });
 test('H02 export does not download or retain an artifact after switching accounts',async()=>{
   let release,downloads=0;const qa=setup({document:{createElement:()=>({click(){downloads++;}})},URL:{createObjectURL:()=> 'blob:private',revokeObjectURL(){}},processFetch:()=>new Promise(resolve=>release=resolve)});
-  qa.state.analysis={vacancy:'Alice'};
+  qa.state.analysis={vacancy:'Alice'}; delete qa.state.pdf;
   vm.runInContext(source.slice(source.indexOf('async function download('),source.indexOf('$("#download-pdf").addEventListener')),qa.context);
   const pending=qa.context.download('pdf');await tick();qa.state.user={uid:'bob'};qa.state.authEpoch++;
   release({ok:true,headers:{get:()=>''},blob:async()=>({})});await pending;
@@ -161,7 +161,7 @@ test('H09 Firebase login verifies actual granted scopes through the authenticate
 test('a recovered preview does not reopen private panels after a session change', async () => {
   const source = fs.readFileSync('static/app.js', 'utf8');
   let handler, finish;
-  const state = {user:{uid:'alice'},authEpoch:1,vacancyRevision:0};
+  const state = {pdf:{id:'fixture'},user:{uid:'alice'},authEpoch:1,vacancyRevision:0};
   const panels = {jobPanel:{hidden:false},analysisPanel:{hidden:false},cvPanel:{hidden:true}};
   const context = {state,...panels,
     window:{addEventListener:(name,callback)=>{handler=callback},cvDraftAnalyses:new Map()},

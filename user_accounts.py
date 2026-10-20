@@ -55,9 +55,7 @@ def scope(core, identity, headers=None, store=None):
             'folder_id': (record or {}).get('archive_id', '')}
         core.BANK_CLIENT = None
         if record:
-            if record.get('legacy'):
-                core.BANK_CLIENT = DriveBank(core.BANK_CONFIG)
-            elif token:
+            if token:
                 assert_drive_identity(core, token, identity)
                 session = requests.Session()
                 session.headers['Authorization'] = 'Bearer ' + token
@@ -69,7 +67,7 @@ def scope(core, identity, headers=None, store=None):
         yield
     finally:
         try:
-            if core.BANK_CLIENT and not (record or {}).get('legacy') and core.BANK_CLIENT._session:
+            if core.BANK_CLIENT and core.BANK_CLIENT._session:
                 core.BANK_CLIENT._session.close()
         finally:
             try:

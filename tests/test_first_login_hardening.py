@@ -1,3 +1,4 @@
+from pdf_fixture import PDF
 """Failed generations, simultaneous devices and recoverable setup; no live providers."""
 import os
 import io
@@ -174,7 +175,7 @@ class TelegramQuotaOutcomeTests(unittest.TestCase):
             VacancySelectionRequired=app.VacancySelectionRequired, app=SimpleNamespace(logger=Mock()),
             load_drive_bank=Mock(return_value={'pending':0}), extract_vacancy=Mock(return_value=('Test', [])),
             analyze_with_model=Mock(return_value={}), make_draft=Mock(return_value={'position':'Test'}),
-            make_pdf=Mock(return_value=io.BytesIO(b'pdf')))
+            make_pdf=Mock(return_value=io.BytesIO(PDF)))
         if failure == 'analysis':
             core.analyze_with_model.side_effect = app.AppError('Synthetic model failure', 503)
         def archive(*args):

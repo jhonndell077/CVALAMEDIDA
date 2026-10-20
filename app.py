@@ -1282,6 +1282,17 @@ def load_drive_bank(process: bool = False, force: bool = False) -> dict:
     try:
         if user_accounts.CURRENT.get() and account_state.BANK_CLIENT is None:
             raise AppError('Conecta el Drive de esta cuenta para preparar y sincronizar tu Banco de Datos.', 401)
+        current_account = user_accounts.CURRENT.get()
+        if current_account:
+            bank_folder = account_state.BANK_CONFIG.get('folder_id', '')
+            if not re.fullmatch(r'[A-Za-z0-9_-]+', bank_folder):
+                raise AppError('Configura tu carpeta Banco de Datos antes de continuar.', 409)
+            ownership = drive_request('https://www.googleapis.com/drive/v3/files/' + bank_folder +
+                '?fields=id,mimeType,trashed,owners(emailAddress)&supportsAllDrives=true', current_account['drive_token'])
+            if ownership.get('trashed') or ownership.get('mimeType') != 'application/vnd.google-apps.folder' or not any(
+                    person.get('emailAddress', '').casefold() == current_account['email'].casefold()
+                    for person in ownership.get('owners', [])):
+                raise AppError('El Banco de Datos debe pertenecer a tu cuenta Google autorizada.', 403)
         if (not process and not force and has_request_context() and request.method == "GET"
                 and request.path not in {'/api/profile', '/api/profile-summary'}
                 and account_state.BANK_READ_STATUS is not None and time.monotonic() - account_state.BANK_READ_AT < 15):
@@ -1643,10 +1654,12 @@ def verify_drive_access(token: str) -> dict[str, Any]:
     if not re.fullmatch(r"[A-Za-z0-9_-]+", folder_id):
         raise AppError("Falta configurar la carpeta de Drive.", 503)
     folder = drive_request(
-        f"https://www.googleapis.com/drive/v3/files/{folder_id}?fields=id,name,mimeType,capabilities(canAddChildren)&supportsAllDrives=true", token,
+        f"https://www.googleapis.com/drive/v3/files/{folder_id}?fields=id,name,mimeType,owners(emailAddress),capabilities(canAddChildren)&supportsAllDrives=true", token,
     )
     if folder.get("mimeType") != "application/vnd.google-apps.folder" or not folder.get("capabilities", {}).get("canAddChildren"):
         raise AppError("La carpeta de Drive no permite añadir archivos.", 403)
+    if user_accounts.owner() and not any(person.get('emailAddress', '').casefold() == identity['email'].casefold() for person in folder.get('owners', [])):
+        raise AppError('La carpeta CV Generados debe pertenecer a tu cuenta Google autorizada.', 403)
     return folder
 
 

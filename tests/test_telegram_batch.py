@@ -1,3 +1,4 @@
+from pdf_fixture import PDF
 import job_runtime
 import io
 import json
@@ -40,7 +41,7 @@ class TelegramBatchTests(unittest.TestCase):
         core.extract_vacancy.side_effect=lambda payload:(payload['text'],[])
         core.analyze_with_model.side_effect=lambda model,text,images:{'vacancy':{'position':text,'application_emails':['jobs@example.com']}}
         core.make_draft.side_effect=lambda analysis:{'position':analysis['vacancy']['position']}
-        core.make_pdf.side_effect=lambda draft:io.BytesIO(draft['position'].encode())
+        core.make_pdf.side_effect=lambda draft:io.BytesIO(PDF)
         for number in range(1,11):
             store.write(str(number), {'state':'queued','message':message(message_id=number+100,text='Vacante '+str(number)),'source_message_id':number+100},0)
         delivered = []
@@ -57,6 +58,6 @@ class TelegramBatchTests(unittest.TestCase):
         for data, content in delivered:
             original = json.loads(data['reply_parameters'])['message_id']
             number = original-100
-            self.assertEqual(content,('Vacante '+str(number)).encode())
+            self.assertEqual(content,PDF)
             buttons = json.loads(data['reply_markup'])['inline_keyboard']
-            self.assertFalse(any(button.get('callback_data','').startswith('gmail:') for row in buttons for button in row))
+            self.assertTrue(any(button.get('callback_data','').startswith('gmail:') for row in buttons for button in row))

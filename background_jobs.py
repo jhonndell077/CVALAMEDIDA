@@ -204,6 +204,12 @@ def _process_job(core, identifier, store):
                 response = core.app.make_response(core.app.view_functions[endpoint](**values))
                 if response.status_code >= 400:
                     body=response.get_json(silent=True) or {}
+                    if operation == 'gmail' and isinstance(body.get('entry'), dict):
+                        allowed = {'application_id','position','recipient','sender','channel','status','cv_url','date',
+                            'rfc_message_id','gmail_message_id','pdf_sha256','pdf_size','pdf_status','uid','origin',
+                            'correlation_id','error_code','subject','recipient_source'}
+                        entry = {key:value for key,value in body['entry'].items() if key in allowed}
+                        job['result'] = {'entry':entry, 'driveUrl':entry.get('cv_url',''), 'httpStatus':response.status_code}
                     failure=core.AppError('No se pudo completar la solicitud.',response.status_code)
                     failure.code=body.get('code')
                     failure.stage=body.get('stage')
@@ -215,7 +221,9 @@ def _process_job(core, identifier, store):
                     filename = re.search(r'filename="?([^";]+)', response.headers.get('Content-Disposition', ''))
                     result = {'download_url': f'/api/background/jobs/{identifier}/file',
                               'fileName': filename.group(1) if filename else 'CV.' + job['path'].split('/')[-1],
-                              'driveUrl': response.headers.get('X-CV-Drive-URL', '')}
+                              'driveUrl': response.headers.get('X-CV-Drive-URL', ''),
+                              'artifactId': response.headers.get('X-CV-Artifact-ID', ''),
+                              'pdfSha256': response.headers.get('X-CV-PDF-SHA256', '')}
                     response.close()
                 else:
                     result = response.get_json()

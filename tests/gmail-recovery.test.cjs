@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 function fixture(){
  const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,{value:'',textContent:'',hidden:true,addEventListener(){}});return elements.get(id)};
- const state={user:{uid:'fixture',getIdToken:async()=> 'synthetic'},authEpoch:1,draft:{position:'Fixture'},analysis:{},applications:[]};
+ const state={pdf:{id:'fixture'},user:{uid:'fixture',getIdToken:async()=> 'synthetic'},authEpoch:1,draft:{position:'Fixture'},analysis:{},applications:[]};
  $('#application-email').value='self@example.test';$('#application-message').value='Fixture message';
  const calls=[];const context={state,$,crypto:{randomUUID:()=> 'same-application'},authenticatedHeaders:h=>h,setBusy(){},renderApplications(){},window:{cvDrive:{isConnected:()=>true,headers:()=>({})},cvGmail:{connect:async()=>{},headers:()=>({}),reset(){}}},processFetch:async(path,options)=>{calls.push(JSON.parse(options.body));return {ok:true,json:async()=>({entry:{status:'gmail_accepted',application_id:'same-application'}})}}};
  const source=fs.readFileSync('static/app.js','utf8');vm.runInNewContext(source.slice(source.indexOf('async function sendApplicationGmail('),source.indexOf('$("#send-whatsapp").addEventListener')),context);

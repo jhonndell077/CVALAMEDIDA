@@ -25,7 +25,11 @@
       ".github",
       "scripts",
       "docs",
-      "Deploy.ps1"
+      "Deploy.ps1",
+      "evidence",
+      "AUDITORIA_*.md",
+      "DIAGNOSTICO_*.md",
+      "VERIFICACION_DESPLIEGUE_*.md"
     ]
   },
   "hosting": [
