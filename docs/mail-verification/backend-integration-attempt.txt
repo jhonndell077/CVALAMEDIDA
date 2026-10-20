@@ -1,0 +1,24 @@
+E
+======================================================================
+ERROR: test_gmail (unittest.loader._FailedTest.test_gmail)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_gmail
+Traceback (most recent call last):
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "/workspace/scratch/53f8e2c9c622/CVALAMEDIDA/tests/test_gmail.py", line 11, in <module>
+    import app as cv_app
+  File "/workspace/scratch/53f8e2c9c622/CVALAMEDIDA/app.py", line 5, in <module>
+    import account_writes
+  File "/workspace/scratch/53f8e2c9c622/CVALAMEDIDA/account_writes.py", line 12, in <module>
+    from google.api_core.exceptions import PreconditionFailed
+ModuleNotFoundError: No module named 'google'
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)

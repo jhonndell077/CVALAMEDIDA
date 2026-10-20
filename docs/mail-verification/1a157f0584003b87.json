@@ -1,0 +1,19 @@
+{
+  "message_id": "1a157f0584003b87",
+  "labels": [
+    "UNREAD",
+    "CATEGORY_PERSONAL",
+    "SPAM"
+  ],
+  "from": "marcoaure.23077@gmail.com",
+  "to": "Jhonndell077@gmail.com",
+  "subject": "Manejador de paquete de oficina",
+  "authentication": {
+    "spf": "pass",
+    "dkim": "pass",
+    "dmarc": "pass",
+    "aligned_domain": "gmail.com"
+  },
+  "transport": "gmailapi.google.com HTTPREST",
+  "causal_spam_reason": "Not exposed by retrieved headers; undetermined"
+}

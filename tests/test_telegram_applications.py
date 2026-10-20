@@ -1,3 +1,5 @@
+from test_application_mail import pdf_bytes
+import application_mail
 import job_runtime
 import base64, json, unittest, os
 from email import policy
@@ -8,6 +10,10 @@ import telegram_bot as bot
 from test_telegram import MemoryStore, CONFIG
 
 class TelegramApplicationsTests(unittest.TestCase):
+    def setUp(self):
+        grant = patch.object(application_mail, 'verify_grant')
+        grant.start(); self.addCleanup(grant.stop)
+
     def source(self):
         store=MemoryStore()
         store.write('10',{'state':'done','owner_id':123,'contacts':{'emails':['jobs@example.com'],'whatsapp':['18095551234']},
@@ -23,11 +29,11 @@ class TelegramApplicationsTests(unittest.TestCase):
         contacts=bot.application_contacts({'vacancy':{'application_emails':['jobs@example.com','bad\n@example.com'],'application_whatsapp':['809-555-1234']}})
         self.assertEqual(contacts,{'emails':['jobs@example.com'],'whatsapp':['18095551234']})
         buttons=bot.application_buttons('10',{'contacts':contacts,'position':'Chef'})['inline_keyboard']
-        self.assertIn('https://wa.me/18095551234?',buttons[0][0]['url'])
+        self.assertIn('https://wa.me/18095551234?',buttons[1][0]['url'])
         self.assertEqual(len(bot.application_buttons('10',{'position':'Chef'})['inline_keyboard']),1)
     def test_automatic_dispatch_uses_existing_pdf_and_never_repeats(self):
         core=self.core(); store=self.source(); response=MagicMock(ok=True)
-        response.iter_content.return_value=[b'%PDF-actual']
+        response.iter_content.return_value=[pdf_bytes()]
         with patch.object(bot,'drive_token',return_value='test'), patch.object(bot.requests,'get',return_value=response), patch.object(bot,'say'):
             bot.auto_send_application(core,CONFIG,'10',store)
             bot.auto_send_application(core,CONFIG,'10',store)
@@ -48,7 +54,7 @@ class TelegramApplicationsTests(unittest.TestCase):
         store.write('10',{'state':'queued','message':message(message_id=7),'pdf_ready':True,
                          'position':'Chef','filename':'CV.pdf','drive_url':'https://drive.google.com/file/d/file123/view',
                          'owner_id':123,'contacts':{'emails':['jobs@example.com']}},0)
-        store.put_pdf('10',b'%PDF-actual'); events=[]
+        store.put_pdf('10',pdf_bytes()); events=[]
         def deliver(config,method,data,**kwargs):
             if method=='sendDocument': events.append('pdf')
             return {'message_id':50}
@@ -69,20 +75,20 @@ class TelegramApplicationsTests(unittest.TestCase):
         self.assertIsNone(bot.private_callback({'update_id':11,'callback_query':query},CONFIG))
     def test_actual_pdf_mime_history_and_repeated_click(self):
         core=self.core();store=self.source();response=MagicMock(ok=True)
-        response.iter_content.return_value=[b'%PDF-actual']
+        response.iter_content.return_value=[pdf_bytes()]
         with patch.object(bot,'drive_token',return_value='test'),patch.object(bot.requests,'get',return_value=response),patch.object(bot,'say'):
             bot.process_application(core,CONFIG,{'source_job':'10','recipient_index':0},store)
             bot.process_application(core,CONFIG,{'source_job':'10','recipient_index':0},store)
         self.assertEqual(core.gmail_request.call_count,2)
         payload=json.loads(core.gmail_request.call_args.args[2])
         mail=BytesParser(policy=policy.default).parsebytes(base64.urlsafe_b64decode(payload['raw']))
-        self.assertEqual(mail['To'],'jobs@example.com');self.assertEqual(mail['Subject'],'Chef')
-        self.assertEqual(list(mail.iter_attachments())[0].get_payload(decode=True),b'%PDF-actual')
+        self.assertEqual(mail['To'],'jobs@example.com');self.assertEqual(mail['Subject'],'Postulación a Chef — owner@example.com')
+        self.assertTrue(list(mail.iter_attachments())[0].get_payload(decode=True).startswith(b'%PDF-'))
         self.assertEqual(core.save_application_record.call_args.args[0]['status'],'gmail_accepted')
         self.assertEqual(store.read('10')[0]['gmail_dispatches']['jobs@example.com'],'confirmado por Gmail')
     def test_unknown_send_never_repeated(self):
         core=self.core();store=self.source();response=MagicMock(ok=True)
-        response.iter_content.return_value=[b'pdf']
+        response.iter_content.return_value=[pdf_bytes()]
         core.gmail_request.side_effect=[{'email':'owner@example.com','email_verified':True},app.AppError('unknown',502)]
         with patch.object(bot,'drive_token',return_value='test'),patch.object(bot.requests,'get',return_value=response),patch.object(bot,'say'):
             with self.assertRaises(app.AppError):bot.process_application(core,CONFIG,{'source_job':'10','recipient_index':0},store)
@@ -99,3 +105,4 @@ class TelegramApplicationsTests(unittest.TestCase):
         with patch.object(job_runtime, 'configuration',return_value=CONFIG),patch.object(job_runtime, 'JobStore',return_value=store),patch.object(job_runtime, 'enqueue') as queue,patch.object(bot,'telegram'),patch.dict(os.environ,{'CV_AUTH_REQUIRED':'1','CV_ALLOW_REMOTE':'1'}):
             response=app.app.test_client().post('/telegram/webhook',json={'update_id':11,'callback_query':query},headers={'X-Telegram-Bot-Api-Secret-Token':'secret-test'})
         self.assertEqual(response.status_code,200);self.assertEqual(store.read('11')[0]['action']['source_job'],'10');queue.assert_called_once()
+

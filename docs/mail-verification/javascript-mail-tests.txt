@@ -1,0 +1,16 @@
+Postulaciones: destinatarios, asunto, WhatsApp, PDF fallido e historial sin falsos envíos verificados.
+✔ tests/application-flow.test.cjs (139.031799ms)
+✔ creating the CV renders it and automatically dispatches Gmail once (4.386004ms)
+✔ multiple detected recipients require manual selection before any connection or send (3.583772ms)
+Gmail: shared authorization, reuse, partial scopes and expiration verified.
+✔ tests/gmail-auth.test.cjs (110.727604ms)
+✔ safe admission conflict exposes resend and reuses the application without regenerating (6.406509ms)
+✔ direct safe 409 is retryable but ambiguous 409 and lost responses remain protected (4.779928ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 153.786361

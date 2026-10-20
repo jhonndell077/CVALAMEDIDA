@@ -1856,10 +1856,15 @@ async function renderDraft(draft) {
   $('#cv-error').hidden = Boolean(state.analysis);
   if (!state.analysis) $('#cv-error').textContent = 'Esta vista previa recuperada no tiene su análisis disponible en esta sesión. Analiza de nuevo la vacante para generar y descargar el CV correcto. Los archivos ya guardados siguen disponibles en Drive.';
   state.pdf = null;
-  $("#application-subject").value = draft.position;
-  $("#application-message").value = `Hola, me interesa aplicar a la vacante de ${draft.position}. Adjunto mi hoja de vida para su consideración.\n\nSaludos,\n${draft.candidate.name}`;
+  $("#application-subject").value = `Postulación a ${draft.position} — ${draft.candidate.name}`;
+  $("#application-message").value = `Saludos:\n\nMe interesa postularme a la vacante de ${draft.position}. Adjunto mi currículum en PDF para su consideración. Quedo disponible para ampliar cualquier información.\n\nAtentamente,\n${draft.candidate.name}`;
   const contacts = state.analysis?.vacancy || {};
   $("#application-email").value = contacts.application_emails?.[0] || "";
+  const choices = document.querySelector('#application-email-options');
+  choices.replaceChildren();
+  for (const address of [...new Set(contacts.application_emails || [])]) {
+    const option = document.createElement('option'); option.value = address; choices.append(option);
+  }
   $("#application-phone").value = contacts.application_whatsapp?.[0] || "";
   const detected = [...(contacts.application_emails || []), ...(contacts.application_whatsapp || [])];
   $("#application-contacts").textContent = detected.length
@@ -2169,6 +2174,7 @@ async function prepareApplication(channel, button) {
 
 async function sendApplicationGmail(button) {
   if (state.gmailSending || !state.draft) return;
+  const automatic = !button;
   const retryButton = $('#retry-gmail');
   retryButton.hidden = true;
   button ||= retryButton;
@@ -2177,6 +2183,14 @@ async function sendApplicationGmail(button) {
   const sameDraft = () => isCurrent() && draft === state.draft && analysis === state.analysis;
   const status = $("#application-send-status");
   const recipient = $("#application-email").value.trim();
+  const detectedEmails = [...new Set((analysis?.vacancy?.application_emails || []).map(value => value.trim().toLowerCase()))];
+  if (automatic && detectedEmails.length > 1) {
+    status.textContent = 'Hay varios correos. Revisa el PDF, selecciona el destinatario y pulsa Enviar por Gmail.';
+    retryButton.textContent = 'Enviar por Gmail al destinatario seleccionado';
+    retryButton.hidden = false;
+    return;
+  }
+
   const message = $("#application-message").value.trim();
   if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(recipient)) {
     status.textContent = "No se envió automáticamente: la vacante no indica un correo válido."; return;
@@ -2293,3 +2307,4 @@ $("#back-to-analysis").addEventListener("click", () => {
 });
 
 window.cvLoading.run("Cargando", bootstrap);
+
