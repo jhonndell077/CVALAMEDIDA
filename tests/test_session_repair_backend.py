@@ -50,7 +50,11 @@ class DispatchRecoveryTests(unittest.TestCase):
         with app.app.test_request_context():
             response, status = app.handle_app_error(error)
         self.assertEqual(status, 401)
-        self.assertEqual(response.json, {'error': str(error), 'code': error.code})
+        self.assertEqual({key: response.json[key] for key in ('error', 'code')},
+                         {'error': str(error), 'code': error.code})
+        self.assertEqual(response.json['safeNextAction'], 'reauthorize')
+        self.assertNotIn('private', response.get_data(as_text=True))
+        self.assertNotIn('token', response.json)
 
     def test_session_state_real_middleware_requires_verified_identity_and_never_drive_scope(self):
         with patch.object(app, 'verify_google_identity', side_effect=app.AppError('Denied', 401)), \

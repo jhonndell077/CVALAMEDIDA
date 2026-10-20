@@ -94,7 +94,9 @@ def api(core, token, method, path, payload=None):
         response = requests.request(method, 'https://www.googleapis.com/drive/v3/' + path,
             headers={'Authorization': 'Bearer ' + token}, json=payload, timeout=45)
     if not response.ok:
-        raise core.AppError('Drive no pudo preparar las carpetas. Puedes seleccionar tus carpetas manualmente y volver a intentarlo.', 403 if response.status_code in {401,403,404} else 503)
+        from drive_error_details import translate
+        raise translate(core.AppError, 'https://www.googleapis.com/drive/v3/' + path,
+            response.status_code,response.content,stage='drive-prepare' if method=='POST' else 'drive-upload') from None
     return response.json()
 
 def existing(core, token, name, parent='root'):

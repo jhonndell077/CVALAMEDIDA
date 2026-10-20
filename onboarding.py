@@ -80,11 +80,8 @@ def put(core, token, folder, name, mime, raw):
             response=users.requests.patch(url,
                 headers={"Authorization":"Bearer "+token,"Content-Type":mime},data=raw,timeout=45)
         if not response.ok:
-            from drive_error_details import classify
-            code, message = classify(url, response.status_code, response.content[:16384])
-            error = core.AppError(message, 401 if response.status_code == 401 else 403 if response.status_code in {403, 404} else 502)
-            error.code = code
-            raise error
+            from drive_error_details import translate
+            raise translate(core.AppError,url,response.status_code,response.content,stage='drive-upload') from None
         return response.json()["id"]
     boundary="cv-form-"+hashlib.sha256(name.encode()).hexdigest()[:16]
     metadata=json.dumps({"name":name,"mimeType":mime,"parents":[folder]}).encode()

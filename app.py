@@ -1304,7 +1304,10 @@ def load_drive_bank(process: bool = False, force: bool = False) -> dict:
                     result=evidence[0], code=evidence[1])
         return status
     except BankError as error:
-        raise AppError(str(error), error.status_code) from error
+        translated = AppError(str(error), error.status_code)
+        translated.code = getattr(error,'code',None)
+        translated.stage = getattr(error,'stage','bank-sync')
+        raise translated from None
     except AppError:
         raise
     except Exception as error:
@@ -1607,17 +1610,20 @@ def drive_request(url: str, token: str, data: bytes | None = None, content_type:
             return json.load(response)
     except urllib.error.HTTPError as error:
         # Inspect only bounded JSON for allowlisted reasons, never raw messages.
-        from drive_error_details import classify
+        from drive_error_details import translate
         try:
             body = error.read(16384)
         except Exception:
             body = b''
-        code, message = classify(url, error.code, body)
-        translated = AppError(message, 401 if error.code == 401 else 403 if error.code in {403, 404} else 502)
-        translated.code = code
-        raise translated from error
+        finally:
+            error.close()
+        raise translate(AppError,url,error.code,body,
+            stage='drive-upload' if data is not None else 'drive-access-check') from None
     except (urllib.error.URLError, TimeoutError, ValueError) as error:
-        raise AppError("No se pudo confirmar el guardado en Drive. Revisa la carpeta antes de reintentar.", 502) from error
+        translated = AppError("No se pudo confirmar la operación de Drive. Revisa su resultado antes de reintentar.",502)
+        translated.code = 'google_request_failed'
+        translated.stage = 'drive-upload' if data is not None else 'drive-access-check'
+        raise translated from None
 
 
 def verify_drive_access(token: str) -> dict[str, Any]:
@@ -1778,11 +1784,9 @@ def archive_generated_resume(
 
 @app.errorhandler(AppError)
 def handle_app_error(error: AppError) -> Any:
-    from diagnostic_store import GOOGLE_REASON_CODES
+    import error_contract
     payload = {"error": str(error)}
-    code = getattr(error, 'code', None)
-    if isinstance(code, str) and (code in GOOGLE_REASON_CODES or code in account_writes.MESSAGES):
-        payload['code'] = code
+    payload.update(error_contract.from_error(error))
     return jsonify(payload), error.status_code
 
 
@@ -1818,7 +1822,7 @@ def handle_too_large(_: Any) -> Any:
 
 @app.errorhandler(500)
 def handle_internal_error(error: Any) -> Any:
-    app.logger.error("Error interno al procesar la solicitud: %s", error)
+    app.logger.error("Error interno al procesar la solicitud.")
     return jsonify(
         {"error": "Ocurrió un error interno. Inténtalo de nuevo."}
     ), 500
@@ -1840,6 +1844,8 @@ import plan_catalog
 plan_catalog.register_routes(sys.modules[__name__])
 
 import profile_routes
+import error_contract
+error_contract.register(app)
 import resume_routes
 profile_routes.register_routes(sys.modules[__name__])
 resume_routes.register_routes(sys.modules[__name__])

@@ -386,14 +386,12 @@ class DriveBank:
         except Exception as error:
             raise BankError("No se pudo conectar con el banco de Drive. Revisa su acceso al servidor.") from error
         provider_response(response, started, stage='drive-readback' if method.upper() == 'GET' else 'drive-upload')
-        if response.status_code in {403, 404}:
-            if not self.config.get('service_account'):
-                raise BankError('Autoriza el Drive de esta cuenta y comprueba que sus carpetas siguen disponibles.', 403)
-            raise BankError("Comparte Banco de Datos con cv-bank@cv-a-la-medida-jhonn.iam.gserviceaccount.com como Editor para activar la sincronización.")
         if response.status_code == 412:
             raise BankError("El banco cambió mientras guardabas. Vuelve a intentarlo.", 409)
         if not response.ok:
-            raise BankError("Drive no pudo actualizar el banco. No se utilizará una copia desactualizada.")
+            from drive_error_details import translate
+            raise translate(BankError,url,response.status_code,response.content,
+                stage='drive-access-check' if method.upper()=='GET' else 'drive-upload') from None
         return response
 
     def _read_json(self, file_id):
