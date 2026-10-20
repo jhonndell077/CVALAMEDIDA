@@ -22,6 +22,17 @@ def _text(value, maximum):
     return ''.join(char for char in (value if isinstance(value, str) else '') if ord(char) >= 32)[:maximum]
 
 
+def maintenance_summary(queue):
+    value = (queue or {}).get('maintenance')
+    if not value:
+        return {'blocked': False}
+    fence = value if isinstance(value, dict) else {}
+    state = fence.get('state')
+    return {'blocked': True, 'action': 'delete_user' if fence.get('action') == 'delete_user' else 'unknown',
+            'state': state if isinstance(state, str) and state in {'failed', 'executing', 'completed'} else 'unknown',
+            'recovery': 'review_required'}
+
+
 def register_routes(core):
     def reply(**data):
         response = core.jsonify(**data)
@@ -55,7 +66,8 @@ def register_routes(core):
                 accounts.append(dict(uid=uid, email=_text(user.email, 320), displayName=_text(user.display_name, 200),
                     disabled=user.disabled is True, limits=policy, plan=(document or {}).get('plan'),
                     override=({**override, 'generation': str(version)} if override is not None else None),
-                    overrideGeneration=str(version), usage=admission_policy.usage_summary(queue, timestamp, policy)))
+                    overrideGeneration=str(version), usage=admission_policy.usage_summary(queue, timestamp, policy),
+                    maintenance=maintenance_summary(queue)))
             now = datetime.fromtimestamp(timestamp, timezone.utc)
             tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
             next_month = now.replace(year=now.year + (now.month == 12), month=now.month % 12 + 1,

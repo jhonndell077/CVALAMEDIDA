@@ -77,6 +77,17 @@ class AdminUsageTests(unittest.TestCase):
         self.assertIn('private', response.headers['Cache-Control'])
         self.assertEqual(self.store.writes, [])
 
+    def test_maintenance_is_visible_without_exposing_private_action_records(self):
+        self.store.write(admission_policy.queue_key('alice'), {'maintenance': {
+            'action':'delete_user', 'state':'failed', 'planId':'private-plan',
+            'proofKey':'must-never-return', 'providerError':'must-never-return'}}, 0)
+        response = self.client.get('/api/admin/usage', headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['accounts'][0]['maintenance'], {
+            'blocked':True,'action':'delete_user','state':'failed','recovery':'review_required'})
+        self.assertNotIn('private-plan', response.text)
+        self.assertNotIn('must-never-return', response.text)
+
     def test_write_global_and_account_then_inherit_preserves_queue(self):
         self.store.write(admission_policy.queue_key('alice'), {'usage': {'monthly': 3}}, 0)
         self.assertEqual(self.put(scope='global', generation='0', daily=8, monthly=30).status_code, 200)

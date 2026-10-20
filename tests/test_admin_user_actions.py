@@ -125,6 +125,109 @@ class ActionTests(unittest.TestCase):
         self.assertNotIn('private-token-provider',response.text)
         self.assertEqual(self.execute(plan).status_code,409)
 
+    def failed_before_delete(self):
+        plan = self.preview('delete_user').json
+        self.revoke.side_effect = RuntimeError('fixture-provider-error')
+        response = self.execute(plan)
+        self.revoke.side_effect = None
+        self.assertEqual(response.status_code, 503)
+        return plan
+
+    def test_failed_deletion_is_tracked_and_recovery_preserves_data_and_consumption(self):
+        key = admission_policy.queue_key('alice')
+        usage = {'daily': 2, 'monthly': 7, 'receipts': {'kept': 123}}
+        self.store.write(key, {'pending': [], 'usage': usage, 'other': True}, 0)
+        plan = self.failed_before_delete()
+        queue = self.store.read(key)[0]
+        self.assertEqual(queue['maintenance']['state'], 'failed')
+        self.assertEqual(queue['maintenance']['planId'], plan['planId'].split('.')[0])
+        original, _ = self.store.read(actions._key(queue['maintenance']['planId']))
+        self.assertEqual(original['state'], 'failed')
+        self.assertFalse(original['deleteAttempted'])
+        recover = self.preview('recover_access').json
+        self.assertFalse(recover['blocked'])
+        self.assertEqual(self.execute(recover).status_code, 200)
+        after = self.store.read(key)[0]
+        self.assertNotIn('maintenance', after)
+        self.assertEqual(after['usage'], usage)
+        self.assertEqual(after['pending'], [])
+        self.assertTrue(after['other'])
+        self.delete.assert_not_called()
+        self.assertTrue(self.store.read(telegram_accounts.key('oauth','alice'))[0]['revoked'])
+        self.assertEqual(self.execute(recover).status_code, 200)
+        self.assertTrue(actions.job_runtime.JobStore.admit(self.store, 'sync-after-recovery', 'alice', charge=False))
+
+    def test_legacy_executing_completed_and_unknown_fences_are_not_auto_removed(self):
+        key = admission_policy.queue_key('alice')
+        for fence in ({'action':'delete_user','at':1}, {'action':'delete_user','state':'executing'},
+                      {'action':'delete_user','state':'completed'}, {'action':'unknown','state':'failed'}):
+            _, version = self.store.read(key)
+            self.store.write(key, {'pending':[], 'maintenance':fence}, version)
+            plan = self.preview('recover_access').json
+            self.assertTrue(plan['blocked'])
+            self.assertEqual(self.execute(plan).status_code, 409)
+            self.assertEqual(self.store.read(key)[0]['maintenance'], fence)
+
+    def test_unknown_external_delete_result_is_not_reported_as_recoverable(self):
+        plan = self.preview('delete_user').json
+        self.delete.side_effect = RuntimeError('fixture-lost-delete-confirmation')
+        self.assertEqual(self.execute(plan).status_code, 503)
+        recovery = self.preview('recover_access').json
+        self.assertTrue(recovery['blocked'])
+        self.assertIn('resultado externo', ' '.join(recovery['reasons']))
+
+    def test_disabled_missing_or_busy_account_cannot_be_recovered(self):
+        self.failed_before_delete()
+        self.user.disabled = True
+        self.assertTrue(self.preview('recover_access').json['blocked'])
+        self.user.disabled = False
+        key = admission_policy.queue_key('alice')
+        queue, version = self.store.read(key)
+        self.store.write(key, {**queue, 'pending':[{'id':'active'}]}, version)
+        self.assertTrue(self.preview('recover_access').json['blocked'])
+        self.get_user.side_effect = actions.auth.UserNotFoundError('fixture-missing')
+        self.assertEqual(self.preview('recover_access').status_code, 404)
+
+    def test_recovery_revalidates_queue_and_original_plan_after_preview(self):
+        self.failed_before_delete()
+        plan = self.preview('recover_access').json
+        key = admission_policy.queue_key('alice')
+        queue, version = self.store.read(key)
+        self.store.write(key, {**queue, 'changed': True}, version)
+        self.assertEqual(self.execute(plan).status_code, 409)
+        plan = self.preview('recover_access').json
+        original_key = actions._key(queue['maintenance']['planId'])
+        original, version = self.store.read(original_key)
+        self.store.write(original_key, {**original,'state':'executing'}, version)
+        self.assertEqual(self.execute(plan).status_code, 409)
+        self.assertIn('maintenance', self.store.read(key)[0])
+
+    def test_recovery_of_one_account_does_not_change_another_account(self):
+        self.failed_before_delete()
+        key = admission_policy.queue_key('bob')
+        other = {'maintenance':{'action':'delete_user'},'usage':{'daily':5},'pending':[]}
+        self.store.write(key, other, 0)
+        self.assertEqual(self.execute(self.preview('recover_access').json).status_code, 200)
+        self.assertEqual(self.store.read(key)[0], other)
+
+    def test_seventy_independent_accounts_recover_failed_actions_without_resetting_consumption(self):
+        self.get_user.side_effect = lambda uid: types.SimpleNamespace(uid=uid, email=uid+'@example.test', disabled=False)
+        for index in range(70):
+            uid = 'fixture-' + str(index)
+            key = admission_policy.queue_key(uid)
+            usage = {'daily':index % 3, 'monthly':index, 'receipts':{'kept':index}}
+            self.store.write(key, {'pending':[], 'usage':usage}, 0)
+            self.revoke.side_effect = RuntimeError('fixture-only')
+            deletion = self.client.post('/api/admin/users/action/preview', json={'uid':uid,'action':'delete_user'}, headers=self.headers).json
+            self.assertEqual(self.execute(deletion, confirmation=uid).status_code, 503)
+            self.revoke.side_effect = None
+            recovery = self.client.post('/api/admin/users/action/preview', json={'uid':uid,'action':'recover_access'}, headers=self.headers).json
+            self.assertFalse(recovery['blocked'])
+            self.assertEqual(self.execute(recovery, confirmation=uid).status_code, 200)
+            self.assertEqual(self.store.read(key)[0]['usage'], usage)
+            self.assertTrue(actions.job_runtime.JobStore.admit(self.store, 'sync-'+uid, uid, charge=False))
+        self.delete.assert_not_called()
+
     def test_unauthorized_and_cross_origin_never_act(self):
         self.assertEqual(self.client.post('/api/admin/users/action/preview',json={'uid':'alice','action':'reset'}).status_code,403)
         self.headers = {**self.headers,'Origin':'https://attacker.example'}
