@@ -212,7 +212,8 @@ def register_routes(core):
         message.set_content(message_text)
         message.add_attachment(pdf, maintype="application", subtype="pdf", filename=filename)
         record = {"application_id": application_id, "position": position, "recipient": recipient, "channel": "gmail",
-                  "status": "sending", "cv_url": cv_url, "date": core.datetime.now(core.timezone.utc).isoformat()}
+                  "status": "sending", "sender": sender, "rfc_message_id": f"{application_id}@cvalamedida.web.app",
+                  "cv_url": cv_url, "date": core.datetime.now(core.timezone.utc).isoformat()}
         core.save_application_record(record, drive_token, folder)
         # Persist before contacting Gmail. A lost response must never cause a resend.
         _save_dispatch(store, key, reservation, state='send_started')

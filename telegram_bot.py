@@ -233,7 +233,8 @@ def process_application(core, config, action, store):
         raise runtime.JobError("La autorización de Gmail no corresponde al propietario.")
     application_id = str(uuid5(NAMESPACE_URL, f"{runtime.PROJECT}:telegram:{action['source_job']}:{recipient}"))
     record = {"application_id": application_id, "position": source["position"], "recipient": recipient, "channel": "gmail",
-              "status": "sending", "cv_url": source["drive_url"], "date": datetime.now(timezone.utc).isoformat(), "origin": "telegram"}
+              "status": "sending", "sender": sender, "rfc_message_id": f"{application_id}@cvalamedida.web.app",
+              "cv_url": source["drive_url"], "date": datetime.now(timezone.utc).isoformat(), "origin": "telegram"}
     # Reserve in GCS before any send: concurrent/repeated clicks cannot send twice.
     dispatches[recipient] = "en proceso o sin confirmar"
     store.write(action["source_job"], source, generation)

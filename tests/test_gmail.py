@@ -37,6 +37,8 @@ class GmailSendingTests(unittest.TestCase):
             result = self.client.post("/api/gmail/send", json=self.payload, headers=self.headers)
             self.assertEqual(result.status_code, 200)
             self.assertEqual(result.json["entry"]["status"], "gmail_accepted")
+            self.assertEqual(result.json["entry"]["sender"], self.identity["email"])
+            self.assertEqual(result.json["entry"]["rfc_message_id"], self.payload["application_id"] + '@cvalamedida.web.app')
             raw = json.loads(gmail.call_args.args[2])["raw"]
             message = BytesParser(policy=policy.default).parsebytes(base64.urlsafe_b64decode(raw))
             self.assertEqual(message["To"], "empleos@example.com")

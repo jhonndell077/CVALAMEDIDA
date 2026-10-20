@@ -1484,6 +1484,7 @@ function resetVacancyChoice() {
 }
 
 async function analyzeVacancyRequest(payload) {
+  await ensureAnalysisDrive();
   if (window.cvBackground.enabled()) return window.cvBackground.run('/api/analyze', payload);
   if (!state.authRequired || state.provider !== "vertex-ai") return requestJson("/api/analyze", payload);
   const submitted = await requestJson("/api/analyze/jobs", { ...payload, request_id: crypto.randomUUID() });
@@ -1494,6 +1495,15 @@ async function analyzeVacancyRequest(payload) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
   throw new Error("El análisis sigue en la cola de procesamiento. Espera unos minutos antes de volver a intentarlo.");
+}
+async function ensureAnalysisDrive() {
+  if (!state.bankEnabled) return;
+  const owner = state.user?.uid, epoch = state.authEpoch;
+  // connect joins any authorization already running and reuses an unexpired grant.
+  // Never send a bank-backed analysis with silently omitted Drive credentials.
+  if (!window.cvDrive.isConnected()) await window.cvDrive.connect();
+  if (owner !== state.user?.uid || epoch !== state.authEpoch) throw new Error('La cuenta cambió durante la conexión de Drive.');
+  if (!window.cvDrive.isConnected()) throw new Error('Google no confirmó el acceso a Drive. Vuelve a intentar Analizar vacante para autorizarlo.');
 }
 jobTextInput.addEventListener("input", () => { state.employmentContact=null; updateRemoveTextButton(); resetVacancyChoice(); });
 window.addEventListener('cv-employment-vacancy', event => {
@@ -1568,6 +1578,8 @@ $("#analyze-button").addEventListener("click", async (event) => {
     };
     const file = fileInput.files?.[0];
     if (!payload.text && !file) throw new Error("Pega la descripción del puesto o adjunta el anuncio antes de analizar.");
+    // Request authorization within the click, before asynchronous file reading.
+    await ensureAnalysisDrive();
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
         throw new Error("El archivo supera el límite de 10 MB.");
@@ -2033,12 +2045,22 @@ function renderApplications() {
     addText(card, "h3", entry.position);
     addText(card, "p", `${entry.channel === "gmail" ? "Gmail" : "WhatsApp"} · ${entry.recipient}`);
     const labels = {
-      confirmed_by_user: "Enviado (confirmado por ti)", gmail_accepted: "Enviado · confirmado por Gmail",
+      confirmed_by_user: "Enviado (confirmado por ti)", gmail_accepted: "Aceptado por Gmail · entrega al destinatario no verificada",
       sending: "En proceso · comprueba Enviados en Gmail", send_unknown: "Sin confirmar · comprueba Enviados en Gmail",
       failed: "Gmail rechazó el envío", prepared: "Preparado · envío pendiente de confirmar",
       whatsapp_opened: "WhatsApp abierto · postulación registrada automáticamente",
     };
     addText(card, "p", `${new Date(entry.date).toLocaleString("es-DO")} · ${labels[entry.status] || "Estado pendiente de revisar"}`);
+    if (entry.status === "gmail_accepted") {
+      addText(card, "p", entry.sender ? `Cuenta remitente: ${entry.sender}. Comprueba Enviados en esta cuenta.` : "Comprueba Enviados en la cuenta de Google usada al enviar.");
+      if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(entry.application_id || "")) {
+        const search = addText(card, "a", "Buscar este mensaje en Gmail");
+        const params = new URLSearchParams({ q: `in:anywhere rfc822msgid:${entry.application_id}@cvalamedida.web.app` });
+        if (entry.sender) params.set("authuser", entry.sender);
+        search.href = `https://mail.google.com/mail/?${params}`;
+        search.target = "_blank"; search.rel = "noopener noreferrer";
+      }
+    }
     if (/^https:\/\/drive\.google\.com\/file\/d\/[A-Za-z0-9_-]+\/view$/.test(entry.cv_url || "")) {
       const link = addText(card, "a", "Ver CV en Drive");
       link.href = entry.cv_url; link.target = "_blank"; link.rel = "noopener";
@@ -2210,7 +2232,7 @@ async function sendApplicationGmail(button) {
     attempt.sent = true;
     state.applications = [result.entry, ...state.applications.filter(entry => entry.application_id !== attempt.id)];
     renderApplications();
-    if (sameDraft()) status.textContent = result.warning || `Gmail confirmó el envío a ${recipient}, con asunto «${draft.position}» y el PDF adjunto. El historial quedó guardado en Drive.`;
+    if (sameDraft()) status.textContent = result.warning || `Gmail aceptó el mensaje para ${recipient}, con asunto «${draft.position}» y el PDF adjunto. Esto no confirma la entrega al destinatario. Comprueba Enviados${result.entry.sender ? ` en ${result.entry.sender}` : " en la cuenta usada al enviar"}; desde el historial puedes buscar el mensaje en Gmail.`;
   } catch (error) {
     if (!isCurrent()) return;
     if (submitted && !responded) attempt.unknown = !notStartedBusy(error);
