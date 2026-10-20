@@ -43,13 +43,13 @@ test('setup busy retries are bounded instead of looping forever',async()=>{
  context.setTimeout=resolve=>resolve();
  context.fetch=async()=>{calls++;return {ok:false,status:409,json:async()=>({code:'account_setup_in_progress',error:'Preparación pendiente'})};};
  await drive.initialize({provider:'drive',multi_account:true},()=>({}));
- await assert.rejects(drive.acceptCredential('synthetic'),/Preparación pendiente/);assert.equal(calls,9);
+ await assert.rejects(drive.acceptCredential('synthetic'),error=>error.status===409 && /HTTP 409/.test(error.message) && !error.message.includes('Preparación pendiente'));assert.equal(calls,9);
 });
 test('Drive requires confirmed setup and rejects responses after account switches',async()=>{
   const {context,drive,elements,events}=environment();
   await drive.initialize({provider:'drive',multi_account:true},()=>({Authorization:'Bearer alice'}));
   context.fetch=async()=>({ok:false,status:403,json:async()=>({error:'Selecciona tus carpetas'})});
-  await assert.rejects(drive.acceptCredential('alice-drive'),/Selecciona/);
+  await assert.rejects(drive.acceptCredential('alice-drive'),error=>error.status===403 && /HTTP 403/.test(error.message) && !error.message.includes('Selecciona tus carpetas'));
   assert.equal(drive.isConnected(),false);
   assert.equal(drive.headersIfConnected()['X-Drive-Access-Token'],'alice-drive');
   const response=deferred();

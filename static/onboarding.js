@@ -35,6 +35,7 @@ window.cvOnboarding = (() => {
     if (!current(started)) throw new Error('La cuenta cambi\u00f3.');
     if (!response.ok) {
       window.cvDrive?.invalidateAuthorization?.(data.code, requestHeaders);
+      if (window.cvErrors) throw window.cvErrors.fromResponse(response,data,{stage:'drive-upload'});
       throw Object.assign(new Error(data.error || 'No se pudo completar el formulario.'), {status: response.status, code: data.code});
     }
     return data;

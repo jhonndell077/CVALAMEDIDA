@@ -1,4 +1,50 @@
 /* OAuth tokens remain in memory, never in localStorage. */
+// One public decoder for application errors; never display untrusted response text.
+window.cvErrors = (() => {
+  const messages = {
+    account_write_busy:'Otra sesión está guardando cambios. Tus datos se conservan. Reintenta en unos segundos.',
+    account_write_lease_lost:'La reserva de escritura cambió. Tus datos se conservan. Sincroniza antes de reintentar.',
+    account_write_outcome_unknown:'No se confirmó la escritura. Revisa su resultado antes de repetirla.',
+    job_account_maintenance:'La cuenta requiere revisión administrativa antes de continuar.',
+    admin_delete_failed:'La acción administrativa falló. El administrador debe revisar su resultado.',
+    google_authorization_expired:'La autorización de Google venció o fue revocada. Vuelve a conectar tu cuenta.',
+    job_authorization_expired:'La autorización del proceso venció. Vuelve a conectar tu cuenta.',
+    google_permissions_missing:'Faltan permisos de Google. Autoriza los permisos solicitados con la misma cuenta.',
+    drive_folder_permission:'Esta cuenta no tiene permiso sobre la carpeta. Selecciona una carpeta propia.',
+    drive_access_undetermined:'Drive rechazó el acceso. Comprueba los permisos y la disponibilidad de la carpeta.',
+    google_identity_check_failed:'Google no confirmó la identidad de esta conexión. Comprueba la cuenta autorizada.',
+    drive_storage_full:'El almacenamiento de Google Drive está lleno. Libera espacio antes de reintentar.',
+    google_api_disabled:'La API de Google no está habilitada. El administrador debe revisar la configuración.',
+    google_rate_limit:'Google limitó temporalmente las solicitudes. Espera antes de reintentar.',
+    google_daily_limit:'Se alcanzó un límite de la API de Google. El administrador debe revisar la cuota.',
+    google_request_failed:'No se confirmó la operación de Google. Revisa su resultado antes de repetirla.',
+    bank_review_required:'El banco necesita revisión. Consulta los documentos pendientes o bloqueados.',
+    bank_sync_pending:'Hay documentos pendientes. Sincroniza el banco antes de continuar.',
+    job_dispatch_unavailable:'La solicitud está guardada. Reintenta la misma acción para recuperar su despacho.',
+    job_service_unavailable:'El servicio temporal no está disponible. Espera antes de reintentar.',
+    external_outcome_unknown:'No se confirmó el resultado externo. Revisa Drive o Enviados antes de repetirlo.',
+  };
+  const validId = value => typeof value === 'string' && /^(?:[a-f0-9]{32}|[a-f0-9]{64}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$/.test(value);
+  function fromResponse(response, value, options = {}) {
+    const data = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const code = Object.hasOwn(messages,data.code) ? data.code : [502,504].includes(response.status) ? 'http_gateway_error' : 'http_request_failed';
+    const stages = ['request','drive-access-check','drive-prepare','drive-upload','bank-sync','authorization','admission','worker','administration','delivery'];
+    const stage = stages.includes(data.stage) ? data.stage : options.stage || 'request';
+    const correlation = validId(data.correlationId) ? data.correlationId : response.headers?.get?.('X-Correlation-ID');
+    const fallback = stage === 'drive-prepare' ? 'El servidor no pudo confirmar la preparación de tus carpetas.'
+      : stage === 'drive-access-check' ? 'El servidor no pudo confirmar la comprobación de acceso.' : 'No se pudo completar la solicitud.';
+    const message = messages[code] || `${fallback} (HTTP ${response.status}). Conserva tus datos y revisa el estado antes de repetirla.`;
+    const retryable = code === 'account_write_busy' || data.retryable === true && ['google_rate_limit','bank_sync_pending','job_dispatch_unavailable','job_service_unavailable'].includes(code);
+    return Object.assign(new Error(message), {status:response.status,code,stage,
+      ...(validId(correlation) ? {correlationId:correlation} : {}),
+      ...(validId(data.operationId) ? {operationId:data.operationId} : {}),
+      retryable, safeNextAction:code==='account_write_busy'?'retry': ['reauthorize','select_folders','free_storage','contact_admin','retry','retry_same_operation','synchronize','review_bank','review_outcome','check_access','wait_period','review_error'].includes(data.safeNextAction) ? data.safeNextAction : 'review_outcome',
+      externalOutcome:['unknown','not_started','rejected'].includes(data.externalOutcome)?data.externalOutcome:'unknown',
+      ...(typeof data.buildId==='string'&&/^(?:unknown|\d{8}T\d{6}Z-[a-f0-9]{8})$/.test(data.buildId)?{buildId:data.buildId}:{}),
+      ...(typeof data.job_id==='string'&&/^web-[a-f0-9-]{36}$/.test(data.job_id)?{job_id:data.job_id}:{})});
+  }
+  return {fromResponse};
+})();
 window.cvDrive = (() => {
   let config, authHeaders, token = "", expiresAt = 0;
   let connection = null;
@@ -66,31 +112,35 @@ window.cvDrive = (() => {
       dialog.setVisible(true);
     });
   }
-  async function check(selection = {}, retry = 0) {
+  async function check(selection = {}, retry = 0, mode = config.multi_account ? 'prepare' : 'access') {
     const started = generation;
-    const path = config.multi_account ? '/api/account/setup' : '/api/drive/check';
+    const preparing = mode === 'prepare';
+    const path = preparing ? '/api/account/setup' : '/api/drive/check';
+    const stage = preparing ? 'drive-prepare' : 'drive-access-check';
+    if (status()) status().textContent = preparing ? 'Preparando tus carpetas de Drive…' : 'Comprobando acceso a Drive…';
     const requestHeaders = { 'Content-Type':'application/json', ...authHeaders(), "X-Drive-Access-Token": token, ...(activeOperationId ? {'X-CV-Operation-ID':activeOperationId}: {}) };
     let response;
     try { response = await fetch(path, {
       method: "POST", headers: requestHeaders,
-      ...(config.multi_account ? {body: JSON.stringify(selection)} : {}),
+      ...(preparing ? {body: JSON.stringify(selection)} : {}),
     }); } catch (error) {
       if (started === generation) window.cvClientSupervisor?.network(path, error, activeOperationId);
       throw error;
     }
-    const data = await response.json().catch(() => ({}));
+    const raw = await response.json().catch(() => ({}));
+    const data = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     if (started !== generation) throw new Error('La sesión cambió. Conecta el Drive de la cuenta actual.');
     if (response.status === 409 && data.code === 'account_setup_in_progress' && retry < 8) {
       status().textContent = 'Otra sesión está preparando tu banco. Esperando para reutilizar sus carpetas…';
       await new Promise(resolve => setTimeout(resolve, 1000));
       if (started !== generation) throw new Error('La sesión cambió. Conecta el Drive de la cuenta actual.');
-      return check(selection, retry + 1);
+      return check(selection, retry + 1, mode);
     }
     if (!response.ok) {
       invalidateAuthorization(data.code, requestHeaders);
-      throw Object.assign(new Error(data.error || "No se pudo comprobar la carpeta de Drive."), { status: response.status, code: data.code });
+      throw window.cvErrors.fromResponse(response,data,{stage});
     }
-    if (config.multi_account) {
+    if (preparing) {
       config.folder_id = data.archive_id;
       document.querySelector('#bank-folder').href = `https://drive.google.com/drive/folders/${data.bank_id}`;
       document.querySelector('#drive-folder').href = `https://drive.google.com/drive/folders/${data.archive_id}`;
@@ -257,5 +307,6 @@ window.cvDrive = (() => {
     if (account.bank_id) document.querySelector('#bank-folder').href = `https://drive.google.com/drive/folders/${account.bank_id}`;
     if (account.archive_id) document.querySelector('#drive-folder').href = `https://drive.google.com/drive/folders/${account.archive_id}`;
   }
-  return { initialize, headers, headersIfConnected, reset, connect, isConnected, acceptCredential, setAuthorizationHandler, chooseFolders, setAccount, invalidateAuthorization, verify: check };
+  return { initialize, headers, headersIfConnected, reset, connect, isConnected, acceptCredential, setAuthorizationHandler, chooseFolders, setAccount, invalidateAuthorization, verify: check,
+    checkAccess: () => check({},0,'access'), prepareFolders: selection => check(selection,0,'prepare') };
 })();

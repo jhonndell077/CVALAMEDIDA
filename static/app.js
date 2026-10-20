@@ -243,6 +243,7 @@ async function directRequestJson(url, payload, headers = {}, requestOptions = {}
   window.cvSubscription?.observe(response, data)?.catch(() => {});
   if (!response.ok) {
     window.cvDrive?.invalidateAuthorization?.(data.code, requestHeaders);
+    if (window.cvErrors) throw window.cvErrors.fromResponse(response,data);
     throw Object.assign(new Error(data.error || `La solicitud falló (${response.status}).`), {
       status: response.status,
       ...(typeof data.code === 'string' ? {code: data.code} : {}),
@@ -1095,6 +1096,7 @@ async function saveProfileChangesTransaction() {
     const data = await response.json().catch(() => ({}));
     if (!isCurrent()) return false;
     if (!response.ok) {
+      if (window.cvErrors) throw Object.assign(window.cvErrors.fromResponse(response,data), {conflict:response.status===409 && data.code!=='account_write_busy'});
       throw Object.assign(new Error(data.error || `No se pudo guardar (${response.status}).`), {conflict: response.status === 409});
     }
     state.profile = data.profile;
