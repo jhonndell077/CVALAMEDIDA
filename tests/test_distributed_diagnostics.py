@@ -44,7 +44,9 @@ class DistributedDiagnosticsTests(unittest.TestCase):
     def test_background_worker_restores_only_after_scope_validated(self):
         import background_jobs
         job = {**self.fields, 'owner_uid': 'fixture', 'owner_email': 'fixture@example.test'}
-        store = types.SimpleNamespace(read=lambda identifier: (job.copy(), 1))
+        from test_period_admission import Store
+        store = Store()
+        store.write('fixture', job, 0)
         entered = []
         class Scope:
             def __enter__(self): entered.append(True)

@@ -1,4 +1,5 @@
 """Account-owned Telegram bindings, expiring pairing links and encrypted OAuth."""
+import account_writes
 import hashlib
 import re
 import secrets
@@ -22,6 +23,11 @@ def account_binding(store, uid):
     return binding(store, account['telegram_id']) if account and account.get('telegram_id') else None
 
 def legacy(core, config, identity, store):
+    with account_writes.boundary(core, store, identity['uid'], 'telegram-legacy'):
+        return _legacy_reserved(core, config, identity, store)
+
+
+def _legacy_reserved(core, config, identity, store):
     if identity['email'].casefold() != core.ORIGINAL_OWNER_EMAIL or not config.get('owner_id'):
         return
     if account_binding(store, identity['uid']): return
@@ -35,6 +41,11 @@ def legacy(core, config, identity, store):
     store.write(key('account', identity['uid']), linked, generation)
 
 def create_link(core, identity, store):
+    with account_writes.boundary(core, store, identity['uid'], 'telegram-link'):
+        return _create_link_reserved(core, identity, store)
+
+
+def _create_link_reserved(core, identity, store):
     if account_binding(store, identity['uid']): raise core.AppError('Telegram ya está vinculado a esta cuenta.',409)
     token = secrets.token_urlsafe(32)
     record = {**{field:identity.get(field,'') for field in ('uid','email','name')}, 'expires_at':time.time()+600}
@@ -50,6 +61,11 @@ def stage_link(core, token, message, store):
     pending, _=store.read(key('pending',(pair or {}).get('uid','')))
     if not pair or pair.get('used') or pair['expires_at'] < time.time() or (pending or {}).get('pair_key') != identifier:
         raise core.AppError('El enlace venció. Genera otro desde la app.',410)
+    with account_writes.boundary(core, store, pair['uid'], 'telegram-pair'):
+        return _stage_pair(core, token, message, store, identifier, pair, generation)
+
+
+def _stage_pair(core, token, message, store, identifier, pair, generation):
     sender=message['from']; telegram_id=sender['id']
     linked=binding(store,telegram_id)
     if linked and linked['uid'] != pair['uid']: raise core.AppError('Este Telegram ya está vinculado a otra cuenta. Desvincúlalo desde esa cuenta.',409)
@@ -68,6 +84,11 @@ def pending_link(store, uid):
     return None
 
 def confirm_link(core, identity, store):
+    with account_writes.boundary(core, store, identity['uid'], 'telegram-link'):
+        return _confirm_link_reserved(core, identity, store)
+
+
+def _confirm_link_reserved(core, identity, store):
     pointer,_=store.read(key('pending',identity['uid']))
     identifier=(pointer or {}).get('pair_key','telegram-no-pair')
     pair,version=store.read(identifier)
@@ -87,6 +108,11 @@ def confirm_link(core, identity, store):
     return linked
 
 def disconnect(store, uid):
+    with account_writes.reserve(store, uid, 'telegram-disconnect'):
+        return _disconnect_reserved(store, uid)
+
+
+def _disconnect_reserved(store, uid):
     account,generation=store.read(key('account',uid))
     store.write(key('account',uid),{'uid':uid,'revoked':True},generation)
     auth,version=store.read(key('oauth',uid))
@@ -95,6 +121,11 @@ def disconnect(store, uid):
     store.write(key('pending',uid),{},version)
 
 def save_oauth(store, uid, refresh, connected=False):
+    with account_writes.reserve(store, uid, 'telegram-oauth'):
+        return _save_oauth_reserved(store, uid, refresh, connected)
+
+
+def _save_oauth_reserved(store, uid, refresh, connected=False):
     identifier=key('oauth',uid)
     old,generation=store.read(identifier)
     record={'credentials':encrypted.protect(store,{'refresh_token':refresh},identifier),'drive_connected':connected}

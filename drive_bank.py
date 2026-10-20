@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import copy
+from contextlib import nullcontext
+import account_writes
 from time import monotonic
 from diagnostic_stages import provider_response
 import hashlib
@@ -377,7 +379,10 @@ class DriveBank:
     def request(self, method: str, url: str, **kwargs):
         started = monotonic()
         try:
-            response = self.session.request(method, url, timeout=45, **kwargs)
+            with (account_writes.effect() if method.upper() not in {'GET', 'HEAD'} else nullcontext()):
+                response = self.session.request(method, url, timeout=45, **kwargs)
+        except account_writes.WriteBlocked:
+            raise
         except Exception as error:
             raise BankError("No se pudo conectar con el banco de Drive. Revisa su acceso al servidor.") from error
         provider_response(response, started, stage='drive-readback' if method.upper() == 'GET' else 'drive-upload')

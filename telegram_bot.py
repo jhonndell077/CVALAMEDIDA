@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 
 import job_runtime as runtime
+import account_writes
 from job_runtime import (JobError as TelegramError, JobStore, configuration,
     save_configuration, task_secret, cloud_request, enqueue, PROJECT, SECRET, QUEUE, BUCKET, WORKER)
 import hashlib
@@ -45,9 +46,10 @@ ALLOWED_ORIGINS = {ORIGIN, "https://cvalamedida.firebaseapp.com", "https://cv-a-
 def telegram(config, method, data, files=None):
     started = time.monotonic()
     try:
-        response = requests.post(f"https://api.telegram.org/bot{config['bot_token']}/{method}",
-            data=data if files else None, json=None if files else data, files=files,
-            timeout=5 if method in {'editMessageText','answerCallbackQuery','sendChatAction'} else 8 if method=='sendMessage' else 40)
+        with account_writes.effect(uid=config.get('owner_uid')):
+            response = requests.post(f"https://api.telegram.org/bot{config['bot_token']}/{method}",
+                data=data if files else None, json=None if files else data, files=files,
+                timeout=5 if method in {'editMessageText','answerCallbackQuery','sendChatAction'} else 8 if method=='sendMessage' else 40)
         result = response.json()
         provider_response(response, started, component='telegram', service='telegram-api',
                           stage='telegram-request', success=response.ok and result.get('ok') is True)
@@ -55,6 +57,8 @@ def telegram(config, method, data, files=None):
             raise runtime.JobError("Telegram no confirmó la operación.")
         return result["result"]
     except runtime.JobError:
+        raise
+    except account_writes.WriteBlocked:
         raise
     except Exception:
         # Never expose a URL containing the bot token in exception messages.
@@ -342,6 +346,14 @@ def archive_pdf(core, config, identifier, filename, content):
 
 
 def process_job(core, config, identifier, store):
+    job, _ = store.read(identifier)
+    if job and job.get('state') not in {'done', 'failed', 'rejected', 'delivery_started', 'awaiting_selection'}:
+        with account_writes.reserve(store, job.get('owner_uid', ''), 'telegram-worker'):
+            return _process_reserved_job(core, config, identifier, store)
+    return _process_reserved_job(core, config, identifier, store)
+
+
+def _process_reserved_job(core, config, identifier, store):
     try:
         return _process_owned_job(core, config, identifier, store)
     finally:

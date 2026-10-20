@@ -12,6 +12,7 @@ import tempfile
 from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
+MINIMUM_COVERAGE = 82.96
 
 
 def child(sandbox, output):
@@ -45,12 +46,12 @@ def child(sandbox, output):
     summary = {'tests': result.testsRun, 'failures': len(result.failures),
         'errors': len(result.errors), 'skipped': len(result.skipped),
         'failed_names': [str(test) for test, _ in result.failures + result.errors],
-        'coverage_percent': round(percent, 2), 'minimum_coverage_percent': 80,
-        'coverage_passed': percent >= 80, 'python': sys.version.split()[0],
+        'coverage_percent': round(percent, 2), 'minimum_coverage_percent': MINIMUM_COVERAGE,
+        'coverage_passed': percent >= MINIMUM_COVERAGE, 'python': sys.version.split()[0],
         'network': 'blocked', 'original_runtime_files_modified': False}
     (output / 'python-summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
     print(json.dumps(summary))
-    return 0 if result.wasSuccessful() and percent >= 80 else 1
+    return 0 if result.wasSuccessful() and percent >= MINIMUM_COVERAGE else 1
 
 
 def main():
@@ -69,7 +70,7 @@ def main():
     for path in (ROOT / 'static').glob('*.js'):
         subprocess.run(['node', '--check', str(path)], check=True)
     with (output / 'node-tests.txt').open('w', encoding='utf-8') as stream:
-        node = subprocess.run(['node', '--test', *map(str, sorted((ROOT / 'tests').glob('*.test.js'))),
+        node = subprocess.run(['node', '--require', str(ROOT / 'scripts' / 'offline_node.cjs'), '--test', *map(str, sorted((ROOT / 'tests').glob('*.test.js'))),
                                *map(str, sorted((ROOT / 'tests').glob('*.test.cjs')))],
                               cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT)
     with tempfile.TemporaryDirectory(prefix='cvalamedida-verification-') as directory:
@@ -88,7 +89,8 @@ def main():
         backend = subprocess.run([sys.executable, str(Path(__file__).resolve()), '--child',
                                   str(sandbox), str(output)], cwd=ROOT)
     summary = {'frontend_exit': node.returncode, 'backend_exit': backend.returncode,
-               'passed': node.returncode == backend.returncode == 0}
+               'passed': node.returncode == backend.returncode == 0,
+               'frontend_network': 'blocked', 'backend_network': 'blocked'}
     (output / 'release-summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
     python_summary = json.loads((output / 'python-summary.json').read_text(encoding='utf-8'))
     node_output = (output / 'node-tests.txt').read_text(encoding='utf-8')

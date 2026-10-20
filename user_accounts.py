@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from urllib.parse import urlencode
 import requests
+import account_writes
 from google.api_core.exceptions import PreconditionFailed
 
 CURRENT = ContextVar('cv_account', default=None)
@@ -89,8 +90,9 @@ def api(core, token, method, path, payload=None):
         guard()
     if method == 'GET':
         return core.drive_request('https://www.googleapis.com/drive/v3/' + path, token)
-    response = requests.request(method, 'https://www.googleapis.com/drive/v3/' + path,
-        headers={'Authorization': 'Bearer ' + token}, json=payload, timeout=45)
+    with account_writes.effect():
+        response = requests.request(method, 'https://www.googleapis.com/drive/v3/' + path,
+            headers={'Authorization': 'Bearer ' + token}, json=payload, timeout=45)
     if not response.ok:
         raise core.AppError('Drive no pudo preparar las carpetas. Puedes seleccionar tus carpetas manualmente y volver a intentarlo.', 403 if response.status_code in {401,403,404} else 503)
     return response.json()
@@ -149,6 +151,11 @@ def _setup_busy(core):
 def prepare(core, identity, token, selection=None, store=None):
     import job_runtime
     store = store or job_runtime.JobStore()
+    with account_writes.boundary(core, store, identity['uid'], 'prepare'):
+        return _prepare_reserved(core, identity, token, selection, store)
+
+
+def _prepare_reserved(core, identity, token, selection, store):
     assert_drive_identity(core, token, identity)
     # The lease precedes all Drive writes and is shared across server instances.
     key = 'setup-' + account_key(identity['uid'])
@@ -168,6 +175,7 @@ def prepare(core, identity, token, selection=None, store=None):
                 raise _setup_busy(core) from None
 
     def renew():
+        account_writes.current().check()
         lease, version = store.read(key)
         if not lease or lease.get('holder') != holder or lease.get('expires_at', 0) <= time.time():
             raise core.AppError('La preparación del banco venció. Vuelve a sincronizar para continuar.', 409)

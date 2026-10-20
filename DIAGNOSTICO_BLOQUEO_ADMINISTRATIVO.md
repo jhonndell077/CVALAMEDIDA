@@ -26,7 +26,7 @@ Un registro antiguo con solo `action` y `at` no permite saber si la eliminación
 
 Las capturas y el código permiten identificar la causa del rechazo reportado. No se consultaron ni modificaron los registros privados de la cuenta de producción para atribuirle una etapa o resultado que no estén confirmados. No se afirma que esa cuenta ya esté desbloqueada.
 
-## Pruebas ejecutadas
+## Línea base previa a Fase 1
 
 - 358 pruebas JavaScript y 561 Python: **919 aprobadas**, sin fallos.
 - Cobertura Python: **82,96 %**.
@@ -72,3 +72,35 @@ if ($phase1PlanId -match '^[a-f0-9]{32}$') {
 ```
 
 Registrar por cada objeto: identidad existente/habilitada comprobada en Firebase Console, estado del plan original, etapa, fecha, resultado externo confirmado o desconocido y procesos pendientes. Sin `planId`, sin estado terminal o con eliminación externa incierta: **revisión manual, sin desbloqueo automático**. No ejecutar `reset` ni borrar la marca como sustituto. La lista queda pendiente de evidencia humana.
+
+## Fase 1 · S02: reserva común por cuenta
+
+`account_writes.py` mantiene un objeto CAS separado, `jobs/account-write-<sha256(uid)>.json`, con propietario, titular aleatorio, propósito, estado y TTL de 180 segundos. El objeto separado evita que renovar la reserva invalide la generación de la cola de trabajos. Cada efecto externo comprueba nuevamente titular, plazo y mantenimiento; la operación entra en `in_flight` antes del efecto. Los efectos confirmados vuelven a `held`; una respuesta perdida deja `uncertain`. Una reserva `in_flight` o `uncertain` no se recupera por antigüedad. Solo una reserva ociosa `held` vencida puede reemplazarse. Esto no modifica ni vence las marcas `maintenance`.
+
+Preparación de carpetas, onboarding, admisión, escrituras de solicitudes autenticadas, workers, recibos de reembolso y operaciones administrativas comparten la reserva. Las escrituras Drive, archivos Storage, despacho Cloud Tasks y entregas asociadas a una cuenta verifican la barrera junto al efecto. La antigua reserva de preparación se conserva como control adicional de compatibilidad. Las operaciones anidadas de la misma identidad reutilizan la reserva; otra identidad se rechaza.
+
+Las lecturas de estado no reservan escritura. El registro de control de la propia reserva evita recursión. El cierre de un plan administrativo dispone de una excepción estrecha: solo puede escribir los campos terminales auditables del plan y su marca pertenecientes al titular; no puede cambiar datos, consumo, recibos ni titularidad. Los mensajes informativos sin una cuenta vinculada y los registros de control no equivalen a escrituras del banco de una cuenta.
+
+Los códigos seguros incluyen `job_account_maintenance`, `account_write_busy`, `account_write_lease_lost` y `account_write_outcome_unknown`. El conflicto HTTP devuelve 409; el cliente debe conservar los datos introducidos. No se reinician cuotas: los reembolsos existentes conservan recibo y período.
+
+### Límites operativos pendientes
+
+- La seguridad distribuida exige que todas las instancias escritoras ejecuten el protocolo. Una mezcla con una versión antigua que no lo respeta no queda acreditada por estas pruebas. Revisar compatibilidad y despliegue coordinado antes de publicar; no aumentar concurrencia.
+- Una caída durante un efecto desconocido deja una reserva conservadora para revisión. No existe una liberación automática segura sin evidencia del proveedor. No se garantiza disponibilidad cuando Storage está caído; se impide continuar sin la reserva.
+- Un cierre forzado antes de persistir el resultado puede conservar un plan incompleto. No se inventa `failed` sin persistencia confirmada; debe revisarse manualmente.
+- IAM efectivo, cuota Vertex, backlog Cloud Tasks, lifecycle, ejecución CI y costos reales siguen pendientes de evidencia. No se consultaron servicios reales.
+
+Consultas humanas de solo lectura, **no ejecutadas**. Resolver los nombres exactos de cola, región y servicio desde el inventario antes de sustituir los marcadores; no inferir permisos efectivos de una sola política:
+
+```powershell
+gcloud storage buckets describe gs://cv-a-la-medida-jhonn-telegram-private --project=cv-a-la-medida-jhonn --format='json(lifecycle_config,retention_policy,soft_delete_policy)'
+gcloud projects get-iam-policy cv-a-la-medida-jhonn --format=json
+gcloud tasks queues list --project=cv-a-la-medida-jhonn --location=REGION
+gcloud tasks queues describe QUEUE --project=cv-a-la-medida-jhonn --location=REGION --format=json
+gcloud tasks list --queue=QUEUE --project=cv-a-la-medida-jhonn --location=REGION --format='table(name,scheduleTime,dispatchCount,responseCount)'
+gcloud run services describe SERVICE --project=cv-a-la-medida-jhonn --region=REGION --format='json(spec.template.spec.serviceAccountName,spec.template.metadata.annotations,status.latestReadyRevisionName)'
+```
+
+Para cuota Vertex, revisar en Cloud Console → proyecto `cv-a-la-medida-jhonn` → IAM y administración → Cuotas y límites → servicio `aiplatform.googleapis.com`, filtrando región del servicio. Exportar límite, uso, región y fecha; esto no prueba disponibilidad funcional del modelo. Para costos, usar Billing Reports filtrado por proyecto y servicios Cloud Run, Storage, Tasks y Vertex, con rango y moneda explícitos. No se ejecutan pruebas activas ni se leen mensajes o CV.
+
+La ejecución local reproducible es `.\venv\Scripts\python.exe scripts/verify_release.py --output tmp/phase1-final-verification`. JS y Python bloquean conexiones; el mínimo de cobertura queda fijado en 82,96 %. Publicación, cotejo de versiones y prueba real quedan pendientes de autorización futura y de las fases correspondientes. No ejecutar despliegues como parte de esta fase.

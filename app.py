@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import sys
+from contextlib import nullcontext
+import account_writes
+import job_runtime
 import cv_analysis
 import cv_documents
 from diagnostic_stages import observe, observe_drive
@@ -1352,6 +1355,14 @@ def enforce_request_policy() -> tuple[Any, int] | None:
             account_scope = user_accounts.scope(sys.modules[__name__], g.google_identity, account_headers)
             account_scope.__enter__()
             g.account_scope = account_scope
+    # All authenticated account mutations, including setup/onboarding, share the
+    # same fence as administration and workers. Status polling remains read-only.
+    if user_accounts.owner() and request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} and request.endpoint not in {
+        'background_job_status', 'google_grant', 'check_drive', 'verify_synchronization_connections', 'import_onboarding_reference'
+    }:
+        writer = account_writes.reserve(job_runtime.JobStore(), user_accounts.owner(), 'request')
+        writer.__enter__()
+        g.account_writer = writer
     # Interactive requests share the durable per-user admission budget with jobs.
     # Workers dispatch handlers inside their already-admitted job context.
     background_jobs.enforce_request_quota(sys.modules[__name__])
@@ -1370,6 +1381,13 @@ def restore_account_context(error=None):
         background_jobs.release_request_quota()
     except Exception:
         app.logger.warning("No se pudo liberar el cupo de la solicitud; vencerá su reserva.")
+    writer = getattr(g, 'account_writer', None)
+    if writer:
+        g.account_writer = None
+        try:
+            writer.__exit__(None, None, None)
+        except Exception:
+            app.logger.warning('No se pudo confirmar la liberación de la reserva de escritura.')
     scope = getattr(g, 'account_scope', None)
     if scope:
         g.account_scope = None
@@ -1585,7 +1603,7 @@ def drive_request(url: str, token: str, data: bytes | None = None, content_type:
         "Authorization": f"Bearer {token}", "Content-Type": content_type,
     })
     try:
-        with urllib.request.urlopen(req, timeout=60) as response:
+        with (account_writes.effect() if data is not None else nullcontext()), urllib.request.urlopen(req, timeout=60) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
         # Inspect only bounded JSON for allowlisted reasons, never raw messages.
@@ -1645,7 +1663,7 @@ def save_application_record(record: dict, token: str, folder: dict) -> None:
 def gmail_request(url: str, token: str, data: bytes | None = None) -> dict:
     req = urllib.request.Request(url, data=data, headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=60) as response:
+        with (account_writes.effect() if data is not None else nullcontext()), urllib.request.urlopen(req, timeout=60) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
         if error.code == 401:
@@ -1723,7 +1741,8 @@ def archive_generated_resume(
         )
         try:
             blob = storage.Client().bucket(bucket_name).blob(blob_name)
-            blob.upload_from_string(
+            with account_writes.effect():
+                blob.upload_from_string(
                 content,
                 content_type=(
                     "application/pdf"
@@ -1761,8 +1780,9 @@ def archive_generated_resume(
 def handle_app_error(error: AppError) -> Any:
     from diagnostic_store import GOOGLE_REASON_CODES
     payload = {"error": str(error)}
-    if getattr(error, 'code', None) in GOOGLE_REASON_CODES:
-        payload['code'] = error.code
+    code = getattr(error, 'code', None)
+    if isinstance(code, str) and (code in GOOGLE_REASON_CODES or code in account_writes.MESSAGES):
+        payload['code'] = code
     return jsonify(payload), error.status_code
 
 
@@ -1772,6 +1792,14 @@ def handle_job_storage_error(error):
     code = getattr(error, 'public_code', 'job_service_unavailable')
     app.logger.warning('job_request_rejected code=%s', code)
     return jsonify(error=JOB_MESSAGES[code], code=code), 503
+
+
+@app.errorhandler(account_writes.WriteBlocked)
+def handle_account_write_block(error):
+    response = jsonify(error=str(error), code=error.code)
+    response.status_code = error.status_code
+    response.headers['Retry-After'] = '1'
+    return response
 
 
 @app.errorhandler(AdmissionLimit)

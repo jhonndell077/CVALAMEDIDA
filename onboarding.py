@@ -9,6 +9,7 @@ from google.api_core.exceptions import PreconditionFailed
 from urllib.parse import quote
 from PIL import Image, ImageOps, UnidentifiedImageError
 import user_accounts as users
+import account_writes
 
 FIELDS = {"education": ("Estudios", "Formacion academica - formulario.txt", "FORMACION ACADEMICA"),
           "courses": ("Estudios", "Cursos realizados - formulario.txt", "CURSOS REALIZADOS"),
@@ -75,8 +76,9 @@ def put(core, token, folder, name, mime, raw):
     item=users.existing(core,token,name,folder)
     if item:
         url = "https://www.googleapis.com/upload/drive/v3/files/"+quote(item["id"],safe="")+"?uploadType=media&fields=id"
-        response=users.requests.patch(url,
-            headers={"Authorization":"Bearer "+token,"Content-Type":mime},data=raw,timeout=45)
+        with account_writes.effect():
+            response=users.requests.patch(url,
+                headers={"Authorization":"Bearer "+token,"Content-Type":mime},data=raw,timeout=45)
         if not response.ok:
             from drive_error_details import classify
             code, message = classify(url, response.status_code, response.content[:16384])
@@ -215,6 +217,14 @@ def mark_completed(core, store, uid):
 
 
 def save(core, payload, photo, store, reference=None):
+    identity = users.CURRENT.get()
+    if not identity:
+        raise core.AppError('Inicia sesión para guardar tu banco.', 401)
+    with account_writes.boundary(core, store, identity['uid'], 'onboarding'):
+        return _save_reserved(core, payload, photo, store, reference)
+
+
+def _save_reserved(core, payload, photo, store, reference=None):
     identity=users.CURRENT.get();record=identity.get("record") or {}
     if not record.get("bank") or not record.get("sections"):
         raise core.AppError("Conecta Drive para preparar las carpetas de tu cuenta.",409)
@@ -235,9 +245,11 @@ def save(core, payload, photo, store, reference=None):
                 files = [item for item in files if item[1] != 'hoja_de_vida.jpeg']
         saved=[]
         for section,name,mime,raw in files:
+            account_writes.current().check()
             renew()
             saved.append(put(core,token,record["sections"][section],name,mime,raw))
         renew()
+        account_writes.current().check()
         mark_completed(core, store, identity["uid"])
         return {"saved":len(saved),"sync_required":bool(saved)}
 

@@ -3,6 +3,7 @@ import base64
 import hashlib
 import json
 import os
+import account_writes
 from urllib.parse import urlparse
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -92,8 +93,9 @@ def notify(store, identifier, job):
     expired = []
     for key, subscription in subscriptions.items():
         try:
-            webpush(subscription_info=subscription, data=data, vapid_private_key=config['private_key'],
-                    vapid_claims={'sub': 'mailto:jhonndell077@gmail.com'}, timeout=10, ttl=86400)
+            with account_writes.effect(store, job.get('owner_uid')):
+                webpush(subscription_info=subscription, data=data, vapid_private_key=config['private_key'],
+                        vapid_claims={'sub': 'mailto:jhonndell077@gmail.com'}, timeout=10, ttl=86400)
         except WebPushException as error:
             if error.response is not None and error.response.status_code in {404, 410}:
                 expired.append(key)

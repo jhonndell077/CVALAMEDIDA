@@ -11,6 +11,7 @@ import web_notifications as notifications
 import user_accounts
 import distributed_diagnostics as traces
 import bank_sync_status
+import account_writes
 
 PATHS = {'/api/draft': 'draft', '/api/profile/information': 'information',
          '/api/export/pdf': 'export', '/api/export/docx': 'export',
@@ -56,6 +57,14 @@ def valid_id(identifier):
 
 def process_job(core, identifier, store):
     job, _ = store.read(identifier)
+    if job and job.get('state') not in {'done', 'failed'}:
+        with account_writes.reserve(store, job.get('owner_uid', ''), 'web-worker'):
+            return _process_owned_job(core, identifier, store)
+    return _process_owned_job(core, identifier, store)
+
+
+def _process_owned_job(core, identifier, store):
+    job, _ = store.read(identifier)
     if job and job.get('owner_uid'):
         if job.get('state') in {'done', 'failed'}:
             if job.get('state') == 'failed' and job.get('operation') == 'draft':
@@ -97,6 +106,8 @@ def _process_job(core, identifier, store):
     store.write(identifier, job, generation)
 
     def checkpoint(progress, stage, **values):
+        if account_writes.current():
+            account_writes.current().check()
         job.update(progress=max(job.get('progress', 1), progress), stage=stage, **values)
         _, current = store.read(identifier)
         store.write(identifier, job, current)

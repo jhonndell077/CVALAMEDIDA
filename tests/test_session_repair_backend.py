@@ -38,7 +38,7 @@ class DispatchRecoveryTests(unittest.TestCase):
         self.store.write(key, queue, 0)
         response = app.app.test_client().post('/api/background/jobs', json=dict(
             request_id='12345678-1234-1234-1234-123456789012', path='/api/bank/sync', payload={}))
-        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json['code'], 'job_account_maintenance')
         self.assertNotIn('job_id', response.json)
         self.assertEqual(self.store.read(key)[0], queue)

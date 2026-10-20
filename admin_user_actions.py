@@ -21,6 +21,7 @@ import admission_policy
 import job_runtime
 import user_accounts
 import telegram_accounts
+import account_writes
 
 ACTIONS = frozenset({'reset', 'delete_data', 'delete_user', 'recover_access'})
 TTL_SECONDS = 120
@@ -78,6 +79,8 @@ def _recovery_reasons(store, user, queue):
 
 def _delete_step(core, store, plan, stage, *, delete_attempted=False):
     """An executing action must still own its fence before every external step."""
+    if account_writes.current():
+        account_writes.current().check()
     queue, version = store.read(admission_policy.queue_key(plan['uid']))
     fence = (queue or {}).get('maintenance') or {}
     current, generation = store.read(_key(plan['id']))
@@ -100,11 +103,11 @@ def _finish_delete(store, plan, outcome):
             finishedAt=current.get('finishedAt') or time.time())
         try:
             if current.get('state') == 'executing':
-                store.write(_key(plan['id']), {**current, **evidence}, version)
+                account_writes.write_terminal(store, plan['uid'], plan['id'], _key(plan['id']), {**current, **evidence}, version)
             queue, version = store.read(admission_policy.queue_key(plan['uid']))
             fence = (queue or {}).get('maintenance') or {}
             if fence.get('planId') == plan['id'] and fence.get('state') == 'executing':
-                store.write(admission_policy.queue_key(plan['uid']), {**queue, 'maintenance': {**fence, **evidence}}, version)
+                account_writes.write_terminal(store, plan['uid'], plan['id'], admission_policy.queue_key(plan['uid']), {**queue, 'maintenance': {**fence, **evidence}}, version)
             return
         except PreconditionFailed:
             if attempt == 2:
@@ -199,11 +202,18 @@ def register_routes(core):
         if not match or data['confirmation'] != uid:
             raise core.AppError('Confirma escribiendo el identificador exacto de la cuenta.', 400)
         deletion_started = False
+        writer = None
         try:
             store = job_runtime.JobStore()
             plan, plan_generation = store.read(_key(match[1]))
             if not plan or plan.get('admin') != core.g.google_identity['uid'] or plan.get('uid') != uid or plan.get('action') != action or not hmac.compare_digest(match[2], _signature(plan)):
                 raise core.AppError('La vista previa no pertenece a esta acción o administrador.', 403)
+            if action == 'recover_access' and plan.get('state') == 'completed' and isinstance(plan.get('result'), dict):
+                return reply(**plan['result'])
+            reservation = account_writes.reserve(store, uid, 'admin-' + action,
+                maintenance=plan['id'] if action == 'delete_user' else True)
+            reservation.__enter__()
+            writer = reservation
             if action == 'recover_access':
                 if plan.get('state') == 'completed' and isinstance(plan.get('result'), dict):
                     return reply(**plan['result'])
@@ -255,9 +265,13 @@ def register_routes(core):
                     _, version = store.read(identifier)
                     store.write(identifier, replacement, version)
                 _delete_step(core, store, plan, 'auth-revoke')
-                auth.revoke_refresh_tokens(uid)
+                # Revocation may have succeeded even on timeout; recovery never
+                # restores that credential, so reconciliation remains idempotent.
+                with account_writes.effect(store, uid, uncertain_on_error=False):
+                    auth.revoke_refresh_tokens(uid)
                 _delete_step(core, store, plan, 'auth-delete', delete_attempted=True)
-                auth.delete_user(uid)
+                with account_writes.effect(store, uid):
+                    auth.delete_user(uid)
                 _finish_delete(store, plan, 'completed')
                 deletion_started = False
                 return reply(ok=True, status='completed', uid=uid, action=action, dataDeleted=False,
@@ -273,6 +287,10 @@ def register_routes(core):
             # A claimed plan cannot be replayed even if final acknowledgement fails.
             return reply(ok=True, status='completed', uid=uid, action=action,
                          detail='Consumo diario y mensual reiniciado. Datos, procesos y recibos conservados.')
+        except account_writes.WriteBlocked as failure:
+            error = core.AppError(str(failure), failure.status_code)
+            error.code = failure.code
+            raise error from None
         except PreconditionFailed:
             raise core.AppError('La cuenta o la vista previa cambió. Actualiza antes de reintentar.', 409) from None
         except auth.UserNotFoundError:
@@ -288,3 +306,8 @@ def register_routes(core):
                 except Exception:
                     # Unknown outcomes must remain fenced; no automatic unlocking.
                     pass
+            if writer:
+                try:
+                    writer.__exit__(None, None, None)
+                except Exception:
+                    core.app.logger.warning('No se pudo confirmar la liberación de la reserva administrativa.')
